@@ -7,7 +7,9 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#030712">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <style>
     body { background-color: #030712; color: #f3f4f6; font-family: system-ui, sans-serif; touch-action: manipulation; }
     .node-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
@@ -28,17 +30,17 @@
           <input type="email" id="authEmail" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm focus:border-sky-500 outline-none text-white">
         </div>
         <div>
-          <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Password</label>
+          <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Password (6+ chars)</label>
           <input type="password" id="authPassword" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm focus:border-sky-500 outline-none text-white">
         </div>
-        <div id="authError" class="text-xs text-red-400 hidden"></div>
+        <div id="authStatus" class="text-xs text-red-400 hidden"></div>
         <button id="signInBtn" class="w-full py-2.5 bg-sky-500 hover:bg-sky-600 rounded-lg font-semibold text-sm text-gray-950 transition">Log In</button>
         <button id="signUpBtn" class="w-full py-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg font-semibold text-sm text-gray-200 transition">Create Account</button>
       </div>
     </div>
   </div>
 
-  <!-- APP INTERFACE -->
+  <!-- APP HEADER -->
   <header class="h-14 border-b border-gray-800 bg-gray-950/80 backdrop-blur px-4 flex items-center justify-between shrink-0 z-20">
     <div class="flex items-center space-x-2">
       <span class="text-sm font-bold tracking-widest text-sky-400">SKILL TREE</span>
@@ -48,25 +50,30 @@
       </select>
     </div>
     <div class="flex items-center space-x-2">
-      <button id="addNodeBtn" class="px-2 py-1 bg-sky-500 text-gray-950 rounded text-xs font-semibold">+ Skill</button>
-      <button id="logOutBtn" class="px-2 py-1 bg-gray-800 text-gray-300 rounded text-xs">Exit</button>
+      <button id="newTreeBtn" class="px-2 py-1 bg-gray-800 text-sky-400 border border-gray-700 rounded text-xs font-semibold">+ Tree</button>
+      <button id="addNodeBtn" class="px-2 py-1 bg-sky-500 text-gray-950 rounded text-xs font-bold">+ Skill</button>
+      <button id="logOutBtn" class="px-2 py-1 bg-gray-800 text-gray-400 rounded text-xs">Exit</button>
     </div>
   </header>
 
-  <!-- SKYRIM CONSTELLATION CANVAS -->
+  <!-- CONSTELLATION CANVAS -->
   <main class="relative flex-1 bg-gray-950 overflow-hidden">
     <canvas id="treeCanvas" class="absolute inset-0 w-full h-full"></canvas>
     <div id="nodesContainer" class="absolute inset-0 pointer-events-none"></div>
   </main>
 
-  <!-- SKILL DETAIL & EDIT MODAL -->
+  <!-- SKILL DETAIL MODAL -->
   <div id="detailModal" class="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-4">
     <div class="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl p-5 shadow-2xl max-h-[85vh] overflow-y-auto space-y-4">
       <div class="flex justify-between items-start">
         <h2 id="modalTitle" class="text-lg font-bold text-sky-400">Skill Details</h2>
-        <button id="closeModalBtn" class="text-gray-400 text-sm">✕</button>
+        <button id="closeModalBtn" class="text-gray-400 text-sm p-1">✕</button>
       </div>
       <img id="modalMedia" class="w-full h-44 object-cover rounded-lg bg-gray-950 border border-gray-800" src="" alt="Skill preview">
+      <div>
+        <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Image / GIF URL</label>
+        <input type="text" id="modalMediaUrl" placeholder="Paste image or GIF link..." class="w-full bg-gray-950 border border-gray-800 rounded-lg px-2.5 py-1.5 text-xs text-gray-200 outline-none focus:border-sky-500">
+      </div>
       <div>
         <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Status</label>
         <div class="grid grid-cols-3 gap-2">
@@ -76,35 +83,43 @@
         </div>
       </div>
       <div>
-        <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Mentorship Notes</label>
+        <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Mentorship Notes (To Pass Down)</label>
         <textarea id="modalNotes" rows="3" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-2 text-xs text-gray-200 outline-none focus:border-sky-500"></textarea>
       </div>
-      <button id="saveSkillBtn" class="w-full py-2 bg-sky-500 text-gray-950 rounded-lg font-bold text-xs">Save Updates</button>
+      <button id="saveSkillBtn" class="w-full py-2.5 bg-sky-500 text-gray-950 rounded-lg font-bold text-xs">Save Updates</button>
     </div>
   </div>
 
   <script>
-    const SUPABASE_URL = "https://wnjmoaeroiduicckizsi.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_VnOmzYfkkmxlsUyKDgWITg_J6HDCMj9";
+    const firebaseConfig = {
+      apiKey: "AIzaSyBaAcBLfnUulVRxlGx8YKyXFQrm-fIYsns",
+      authDomain: "skill-tree-4cffd.firebaseapp.com",
+      projectId: "skill-tree-4cffd",
+      storageBucket: "skill-tree-4cffd.firebasestorage.app",
+      messagingSenderId: "482405207638",
+      appId: "1:482405207638:web:1a2a944ab4d8036e1ab5f7"
+    };
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
     let currentUser = null;
     let selectedTree = "Culinary Arts";
     let activeNode = null;
 
-    let defaultData = {
+    const defaultData = {
       "Culinary Arts": [
         { id: "c1", title: "Knife Skills", status: "mastered", x: 50, y: 80, media: "https://images.unsplash.com/photo-1590794056226-79ef3a8147e1?w=500", notes: "Keep fingers curled like a bear claw. Focus on rock-chop motion.", parentId: null },
-        { id: "c2", title: "Heat Control", status: "learning", x: 30, y: 55, media: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=500", notes: "Searing requires preheated pans; let meat release naturally before turning.", parentId: "c1" },
-        { id: "c3", title: "Stock & Broth", status: "locked", x: 70, y: 55, media: "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=500", notes: "Simmer bones gently; never let it hit a rolling boil.", parentId: "c1" },
-        { id: "c4", title: "Pan Sauces", status: "locked", x: 50, y: 30, media: "https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=500", notes: "Deglaze fond with stock or wine, mount cold butter off heat.", parentId: "c2" }
+        { id: "c2", title: "Heat Control", status: "learning", x: 30, y: 55, media: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=500", notes: "Preheat pan before adding oil. Let protein release naturally.", parentId: "c1" },
+        { id: "c3", title: "Stock & Broth", status: "locked", x: 70, y: 55, media: "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=500", notes: "Gently simmer bones; never boil vigorously to prevent cloudiness.", parentId: "c1" },
+        { id: "c4", title: "Pan Sauces", status: "locked", x: 50, y: 30, media: "https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=500", notes: "Deglaze the fond with stock, reduce, and mount cold butter off heat.", parentId: "c2" }
       ],
       "Construction & Framing": [
-        { id: "f1", title: "Tape & Layout", status: "mastered", x: 50, y: 80, media: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500", notes: "Pull from the same point; verify squareness using 3-4-5 rule.", parentId: null },
-        { id: "f2", title: "Chop & Table Saw", status: "mastered", x: 35, y: 55, media: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=500", notes: "Never reach across blade path. Account for 1/8-inch kerf.", parentId: "f1" },
-        { id: "f3", title: "Wall Framing", status: "learning", x: 65, y: 55, media: "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=500", notes: "16-inch on center layout. Crown studs facing up.", parentId: "f1" },
-        { id: "f4", title: "Truss Assembly", status: "locked", x: 50, y: 30, media: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=500", notes: "Ensure pitch match and compression bracing angles are secured.", parentId: "f3" }
+        { id: "f1", title: "Tape & Layout", status: "mastered", x: 50, y: 80, media: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500", notes: "Always pull from the same index point. Check square with 3-4-5 rule.", parentId: null },
+        { id: "f2", title: "Saw Operations", status: "mastered", x: 35, y: 55, media: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=500", notes: "Never reach across blade line. Account for 1/8-inch blade kerf.", parentId: "f1" },
+        { id: "f3", title: "Wall Framing", status: "learning", x: 65, y: 55, media: "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=500", notes: "16-inch on-center spacing. Face stud crowns the same direction.", parentId: "f1" },
+        { id: "f4", title: "Truss Assembly", status: "locked", x: 50, y: 30, media: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=500", notes: "Ensure pitch angle match and secure diagonal compression bracing.", parentId: "f3" }
       ]
     };
 
@@ -113,11 +128,12 @@
     const authScreen = document.getElementById("authScreen");
     const authEmail = document.getElementById("authEmail");
     const authPassword = document.getElementById("authPassword");
-    const authError = document.getElementById("authError");
+    const authStatus = document.getElementById("authStatus");
     const signInBtn = document.getElementById("signInBtn");
     const signUpBtn = document.getElementById("signUpBtn");
     const logOutBtn = document.getElementById("logOutBtn");
     const treeSelect = document.getElementById("treeSelect");
+    const newTreeBtn = document.getElementById("newTreeBtn");
     const addNodeBtn = document.getElementById("addNodeBtn");
     const canvas = document.getElementById("treeCanvas");
     const ctx = canvas.getContext("2d");
@@ -125,9 +141,16 @@
     const detailModal = document.getElementById("detailModal");
     const modalTitle = document.getElementById("modalTitle");
     const modalMedia = document.getElementById("modalMedia");
+    const modalMediaUrl = document.getElementById("modalMediaUrl");
     const modalNotes = document.getElementById("modalNotes");
     const saveSkillBtn = document.getElementById("saveSkillBtn");
     const closeModalBtn = document.getElementById("closeModalBtn");
+
+    function showStatus(msg, isError = true) {
+      authStatus.textContent = msg;
+      authStatus.className = isError ? "text-xs text-red-400" : "text-xs text-sky-400";
+      authStatus.classList.remove("hidden");
+    }
 
     function resizeCanvas() {
       canvas.width = canvas.parentElement.clientWidth;
@@ -137,32 +160,29 @@
     window.addEventListener("resize", resizeCanvas);
 
     signUpBtn.onclick = async () => {
-      authError.classList.add("hidden");
-      const { data, error } = await supabase.auth.signUp({ email: authEmail.value, password: authPassword.value });
-      if (error) {
-        authError.textContent = error.message;
-        authError.classList.remove("hidden");
-      } else {
-        alert("Account created! Check your email to confirm or log in.");
+      showStatus("Creating account...", false);
+      try {
+        await auth.createUserWithEmailAndPassword(authEmail.value.trim(), authPassword.value);
+      } catch (err) {
+        showStatus(err.message, true);
       }
     };
 
     signInBtn.onclick = async () => {
-      authError.classList.add("hidden");
-      const { data, error } = await supabase.auth.signInWithPassword({ email: authEmail.value, password: authPassword.value });
-      if (error) {
-        authError.textContent = error.message;
-        authError.classList.remove("hidden");
+      showStatus("Logging in...", false);
+      try {
+        await auth.signInWithEmailAndPassword(authEmail.value.trim(), authPassword.value);
+      } catch (err) {
+        showStatus(err.message, true);
       }
     };
 
-    logOutBtn.onclick = async () => {
-      await supabase.auth.signOut();
-    };
+    logOutBtn.onclick = () => auth.signOut();
 
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        currentUser = session.user;
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        currentUser = user;
+        authStatus.classList.add("hidden");
         authScreen.classList.add("hidden");
         await loadUserData();
       } else {
@@ -172,19 +192,30 @@
     });
 
     async function loadUserData() {
-      const { data, error } = await supabase.from("user_trees").select("data").eq("user_id", currentUser.id).maybeSingle();
-      if (data && data.data) {
-        userTreeData = data.data;
-      } else {
-        userTreeData = JSON.parse(JSON.stringify(defaultData));
-        await supabase.from("user_trees").insert({ user_id: currentUser.id, data: userTreeData });
+      try {
+        const doc = await db.collection("user_trees").doc(currentUser.uid).get();
+        if (doc.exists && doc.data().trees) {
+          userTreeData = doc.data().trees;
+        } else {
+          userTreeData = JSON.parse(JSON.stringify(defaultData));
+          await db.collection("user_trees").doc(currentUser.uid).set({ trees: userTreeData });
+        }
+      } catch (e) {
+        console.error(e);
       }
+      updateTreeDropdown();
       resizeCanvas();
     }
 
     async function saveUserData() {
       if (!currentUser) return;
-      await supabase.from("user_trees").update({ data: userTreeData, updated_at: new Date() }).eq("user_id", currentUser.id);
+      await db.collection("user_trees").doc(currentUser.uid).set({ trees: userTreeData });
+    }
+
+    function updateTreeDropdown() {
+      const keys = Object.keys(userTreeData);
+      if (!keys.includes(selectedTree) && keys.length > 0) selectedTree = keys[0];
+      treeSelect.innerHTML = keys.map(k => `<option value="${k}" ${k === selectedTree ? "selected" : ""}>${k}</option>`).join("");
     }
 
     function renderTree() {
@@ -224,10 +255,10 @@
         if (node.status === "learning") color = "bg-amber-400 border-amber-300 shadow-lg shadow-amber-500/50";
 
         div.innerHTML = `
-          <div class="w-7 h-7 rounded-full border-2 ${color} flex items-center justify-center text-[10px] font-bold text-gray-950">
+          <div class="w-8 h-8 rounded-full border-2 ${color} flex items-center justify-center text-xs font-bold text-gray-950">
             ${node.status === "mastered" ? "★" : (node.status === "learning" ? "▲" : "•")}
           </div>
-          <span class="text-[11px] font-semibold tracking-wide text-gray-300 mt-1 whitespace-nowrap bg-gray-950/70 px-1.5 py-0.5 rounded border border-gray-800/80">${node.title}</span>
+          <span class="text-[11px] font-semibold tracking-wide text-gray-300 mt-1 whitespace-nowrap bg-gray-950/80 px-2 py-0.5 rounded border border-gray-800">${node.title}</span>
         `;
 
         div.onclick = () => openModal(node);
@@ -240,10 +271,23 @@
       renderTree();
     };
 
+    newTreeBtn.onclick = async () => {
+      const treeName = prompt("Name of your new Skill Tree (e.g., Welding, Gardening):");
+      if (!treeName || userTreeData[treeName]) return;
+      userTreeData[treeName] = [
+        { id: "n_" + Date.now(), title: "Core Fundamentals", status: "learning", x: 50, y: 80, media: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500", notes: "Starting foundation for " + treeName, parentId: null }
+      ];
+      selectedTree = treeName;
+      updateTreeDropdown();
+      renderTree();
+      await saveUserData();
+    };
+
     function openModal(node) {
       activeNode = node;
       modalTitle.textContent = node.title;
       modalMedia.src = node.media || "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500";
+      modalMediaUrl.value = node.media || "";
       modalNotes.value = node.notes || "";
       updateStatusToggles(node.status);
       detailModal.classList.remove("hidden");
@@ -271,6 +315,7 @@
     saveSkillBtn.onclick = async () => {
       if (activeNode) {
         activeNode.notes = modalNotes.value;
+        if (modalMediaUrl.value.trim()) activeNode.media = modalMediaUrl.value.trim();
         detailModal.classList.add("hidden");
         renderTree();
         await saveUserData();
@@ -281,12 +326,13 @@
       const name = prompt("Name of the new skill:");
       if (!name) return;
       const currentNodes = userTreeData[selectedTree] || [];
+      const xPositions = [50, 30, 70, 50, 25, 75, 50];
       const newNode = {
         id: "s_" + Date.now(),
         title: name,
         status: "locked",
-        x: 50,
-        y: Math.max(15, 80 - currentNodes.length * 15),
+        x: xPositions[currentNodes.length % xPositions.length],
+        y: Math.max(15, 80 - currentNodes.length * 14),
         media: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500",
         notes: "Key concepts and practical execution notes.",
         parentId: currentNodes.length > 0 ? currentNodes[currentNodes.length - 1].id : null
@@ -296,7 +342,7 @@
       await saveUserData();
     };
 
-    resizeCanvas();
+    setTimeout(resizeCanvas, 50);
   </script>
 </body>
 </html>

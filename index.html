@@ -6,8 +6,8 @@
   <title>Skill Tree</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#030712">
-  <script src="https://cdn.tailwindcss.com"></scrihttps://wnjmoaeroiduicckizsi.supabase.co/rest/v1/pt>
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></scsb_secret_eZlP9_YRXbiaGDW9sX7GtQ_eSuBzW7Aript>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
     body { background-color: #030712; color: #f3f4f6; font-family: system-ui, sans-serif; touch-action: manipulation; }
     .node-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
@@ -16,7 +16,7 @@
 </head>
 <body class="h-screen w-screen overflow-hidden flex flex-col select-none">
 
-  <!-- AUTH SCREEN (Displayed when logged out) -->
+  <!-- AUTH SCREEN -->
   <div id="authScreen" class="fixed inset-0 z-50 bg-gray-950 flex flex-col items-center justify-center p-6">
     <div class="w-full max-w-sm bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-2xl">
       <h1 class="text-2xl font-black text-center tracking-wider text-sky-400 mb-1">SKILL TREE</h1>
@@ -25,11 +25,11 @@
       <div class="space-y-4">
         <div>
           <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Email</label>
-          <input type="email" id="authEmail" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm focus:border-sky-500 outline-none">
+          <input type="email" id="authEmail" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm focus:border-sky-500 outline-none text-white">
         </div>
         <div>
           <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Password</label>
-          <input type="password" id="authPassword" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm focus:border-sky-500 outline-none">
+          <input type="password" id="authPassword" class="w-full bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-sm focus:border-sky-500 outline-none text-white">
         </div>
         <div id="authError" class="text-xs text-red-400 hidden"></div>
         <button id="signInBtn" class="w-full py-2.5 bg-sky-500 hover:bg-sky-600 rounded-lg font-semibold text-sm text-gray-950 transition">Log In</button>
@@ -42,7 +42,7 @@
   <header class="h-14 border-b border-gray-800 bg-gray-950/80 backdrop-blur px-4 flex items-center justify-between shrink-0 z-20">
     <div class="flex items-center space-x-2">
       <span class="text-sm font-bold tracking-widest text-sky-400">SKILL TREE</span>
-      <select id="treeSelect" class="bg-gray-900 border border-gray-800 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:border-sky-500">
+      <select id="treeSelect" class="bg-gray-900 border border-gray-800 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:border-sky-500 text-white">
         <option value="Culinary Arts">Culinary Arts</option>
         <option value="Construction & Framing">Construction & Framing</option>
       </select>
@@ -70,13 +70,13 @@
       <div>
         <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Status</label>
         <div class="grid grid-cols-3 gap-2">
-          <button data-status="locked" class="status-toggle py-1.5 text-xs rounded border border-gray-800 bg-gray-950">Locked</button>
-          <button data-status="learning" class="status-toggle py-1.5 text-xs rounded border border-gray-800 bg-gray-950">Learning</button>
-          <button data-status="mastered" class="status-toggle py-1.5 text-xs rounded border border-gray-800 bg-gray-950">Mastered</button>
+          <button data-status="locked" class="status-toggle py-1.5 text-xs rounded border border-gray-800 bg-gray-950 text-gray-400">Locked</button>
+          <button data-status="learning" class="status-toggle py-1.5 text-xs rounded border border-gray-800 bg-gray-950 text-gray-400">Learning</button>
+          <button data-status="mastered" class="status-toggle py-1.5 text-xs rounded border border-gray-800 bg-gray-950 text-gray-400">Mastered</button>
         </div>
       </div>
       <div>
-        <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Mentorship Notes (To Pass On)</label>
+        <label class="block text-xs uppercase tracking-wider text-gray-400 mb-1">Mentorship Notes</label>
         <textarea id="modalNotes" rows="3" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-2 text-xs text-gray-200 outline-none focus:border-sky-500"></textarea>
       </div>
       <button id="saveSkillBtn" class="w-full py-2 bg-sky-500 text-gray-950 rounded-lg font-bold text-xs">Save Updates</button>
@@ -84,12 +84,8 @@
   </div>
 
   <script>
-    // -------------------------------------------------------------
-    // REPLACE THESE TWO LINES WITH YOUR COPIED SUPABASE DETAILS
-    // -------------------------------------------------------------
-    const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
-    const SUPABASE_KEY = "YOUR_SUPABASE_ANON_KEY";
-    // -------------------------------------------------------------
+    const SUPABASE_URL = "https://wnjmoaeroiduicckizsi.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_VnOmzYfkkmxlsUyKDgWITg_J6HDCMj9";
 
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -97,25 +93,23 @@
     let selectedTree = "Culinary Arts";
     let activeNode = null;
 
-    // Default Seed Trees
     let defaultData = {
       "Culinary Arts": [
         { id: "c1", title: "Knife Skills", status: "mastered", x: 50, y: 80, media: "https://images.unsplash.com/photo-1590794056226-79ef3a8147e1?w=500", notes: "Keep fingers curled like a bear claw. Focus on rock-chop motion.", parentId: null },
         { id: "c2", title: "Heat Control", status: "learning", x: 30, y: 55, media: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=500", notes: "Searing requires preheated pans; let meat release naturally before turning.", parentId: "c1" },
-        { id: "c3", title: "Stock & Broth", status: "locked", x: 70, y: 55, media: "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=500", notes: "Simmer bones gently; never let it hit a rolling boil or fat clouds the liquid.", parentId: "c1" },
-        { id: "c4", title: "Pan Sauces", status: "locked", x: 50, y: 30, media: "https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=500", notes: "Deglaze the fond with stock or wine, then mount cold butter off heat.", parentId: "c2" }
+        { id: "c3", title: "Stock & Broth", status: "locked", x: 70, y: 55, media: "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=500", notes: "Simmer bones gently; never let it hit a rolling boil.", parentId: "c1" },
+        { id: "c4", title: "Pan Sauces", status: "locked", x: 50, y: 30, media: "https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=500", notes: "Deglaze fond with stock or wine, mount cold butter off heat.", parentId: "c2" }
       ],
       "Construction & Framing": [
         { id: "f1", title: "Tape & Layout", status: "mastered", x: 50, y: 80, media: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500", notes: "Pull from the same point; verify squareness using 3-4-5 rule.", parentId: null },
         { id: "f2", title: "Chop & Table Saw", status: "mastered", x: 35, y: 55, media: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=500", notes: "Never reach across blade path. Account for 1/8-inch kerf.", parentId: "f1" },
-        { id: "f3", title: "Wall Framing", status: "learning", x: 65, y: 55, media: "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=500", notes: "16-inch on center layout. Crown all 2x4 studs facing up.", parentId: "f1" },
+        { id: "f3", title: "Wall Framing", status: "learning", x: 65, y: 55, media: "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=500", notes: "16-inch on center layout. Crown studs facing up.", parentId: "f1" },
         { id: "f4", title: "Truss Assembly", status: "locked", x: 50, y: 30, media: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=500", notes: "Ensure pitch match and compression bracing angles are secured.", parentId: "f3" }
       ]
     };
 
     let userTreeData = JSON.parse(JSON.stringify(defaultData));
 
-    // UI Elements
     const authScreen = document.getElementById("authScreen");
     const authEmail = document.getElementById("authEmail");
     const authPassword = document.getElementById("authPassword");
@@ -142,7 +136,6 @@
     }
     window.addEventListener("resize", resizeCanvas);
 
-    // Auth Listeners
     signUpBtn.onclick = async () => {
       authError.classList.add("hidden");
       const { data, error } = await supabase.auth.signUp({ email: authEmail.value, password: authPassword.value });
@@ -150,7 +143,7 @@
         authError.textContent = error.message;
         authError.classList.remove("hidden");
       } else {
-        alert("Account created! Check your email to confirm or sign in.");
+        alert("Account created! Check your email to confirm or log in.");
       }
     };
 
@@ -178,7 +171,6 @@
       }
     });
 
-    // Cloud Data Sync
     async function loadUserData() {
       const { data, error } = await supabase.from("user_trees").select("data").eq("user_id", currentUser.id).maybeSingle();
       if (data && data.data) {
@@ -195,13 +187,11 @@
       await supabase.from("user_trees").update({ data: userTreeData, updated_at: new Date() }).eq("user_id", currentUser.id);
     }
 
-    // Render Constellations
     function renderTree() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       nodesContainer.innerHTML = "";
       const currentNodes = userTreeData[selectedTree] || [];
 
-      // Draw constellation lines
       currentNodes.forEach(node => {
         if (node.parentId) {
           const parent = currentNodes.find(n => n.id === node.parentId);
@@ -223,7 +213,6 @@
         }
       });
 
-      // Render interactive star nodes
       currentNodes.forEach(node => {
         const div = document.createElement("div");
         div.className = "absolute pointer-events-auto flex flex-col items-center -translate-x-1/2 -translate-y-1/2 cursor-pointer";
@@ -299,7 +288,7 @@
         x: 50,
         y: Math.max(15, 80 - currentNodes.length * 15),
         media: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500",
-        notes: "Foundation details and common pitfalls to avoid.",
+        notes: "Key concepts and practical execution notes.",
         parentId: currentNodes.length > 0 ? currentNodes[currentNodes.length - 1].id : null
       };
       currentNodes.push(newNode);
@@ -307,7 +296,6 @@
       await saveUserData();
     };
 
-    // Initialize display
     resizeCanvas();
   </script>
 </body>

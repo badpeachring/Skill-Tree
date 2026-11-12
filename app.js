@@ -23,14 +23,9 @@ window.addEventListener("popstate", () => {
   const ctx = c.getContext("2d"); let stars = [];
   function resize() { c.width = window.innerWidth; c.height = window.innerHeight; stars = Array.from({ length: 160 }, () => ({ x: Math.random() * c.width, y: Math.random() * c.height, r: Math.random() * 1.5 + 0.3, a: Math.random() * 0.8 + 0.2, s: (Math.random() - 0.5) * 0.015, tint: Math.random() > 0.8 ? "#7dd3fc" : "#ffffff" })); }
   window.addEventListener("resize", resize); resize();
-  function draw() {
-    ctx.clearRect(0, 0, c.width, c.height);
-    stars.forEach(st => { st.a += st.s; if (st.a > 1 || st.a < 0.15) st.s *= -1; ctx.globalAlpha = st.a; ctx.fillStyle = st.tint; ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2); ctx.fill(); });
-    ctx.globalAlpha = 1; requestAnimationFrame(draw);
-  }
+  function draw() { ctx.clearRect(0, 0, c.width, c.height); stars.forEach(st => { st.a += st.s; if (st.a > 1 || st.a < 0.15) st.s *= -1; ctx.globalAlpha = st.a; ctx.fillStyle = st.tint; ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2); ctx.fill(); }); ctx.globalAlpha = 1; requestAnimationFrame(draw); }
   draw();
 })();
-
 const quotes = [
   { t: "A disciplined mind focuses on what lies within its own control, finding unshakable strength regardless of external chaos.", a: "Stoic Principle" },
   { t: "True mastery begins the moment you examine the hidden patterns of your own habits and consciously shape them.", a: "Depth Psychology" },
@@ -54,19 +49,8 @@ async function adminBoostNodes() {
 }
 async function adminWipeMe() { if (!confirm("Reset character back to Level 0 and wipe all trees?")) return; userTrees = {}; selectedTree = null; await saveUserData(); alert("Character reset to Level 0."); if (!document.getElementById("viewTrees").classList.contains("hidden")) renderMyTreesView(); }
 
-function openMainMenu(fromPop = false) {
-  ["viewTrees", "viewServer", "viewStats", "viewLeaderboard", "viewTrophies", "viewCommunity", "viewSettings"].forEach(id => document.getElementById(id).classList.add("hidden"));
-  document.getElementById("topBar").classList.add("hidden"); document.getElementById("viewMenu").classList.remove("hidden");
-  if (!fromPop) window.history.replaceState({ view: "menu" }, ""); updateGlobalUI();
-}
-function navigate(viewId, title) {
-  window.history.pushState({ view: viewId }, ""); document.getElementById("viewMenu").classList.add("hidden");
-  ["viewTrees", "viewServer", "viewStats", "viewLeaderboard", "viewTrophies", "viewCommunity", "viewSettings"].forEach(id => document.getElementById(id).classList.add("hidden"));
-  document.getElementById("topBar").classList.remove("hidden"); document.getElementById("headerTitle").textContent = title; document.getElementById(viewId).classList.remove("hidden");
-  if (viewId === "viewTrees") renderMyTreesView(); if (viewId === "viewServer") loadServerRealm(); if (viewId === "viewStats") renderStats();
-  if (viewId === "viewLeaderboard") loadLeaderboard(); if (viewId === "viewTrophies") renderTrophies(); if (viewId === "viewCommunity") loadComments();
-}
-
+function openMainMenu(fromPop = false) { ["viewTrees", "viewServer", "viewStats", "viewLeaderboard", "viewTrophies", "viewCommunity", "viewSettings"].forEach(id => document.getElementById(id).classList.add("hidden")); document.getElementById("topBar").classList.add("hidden"); document.getElementById("viewMenu").classList.remove("hidden"); if (!fromPop) window.history.replaceState({ view: "menu" }, ""); updateGlobalUI(); }
+function navigate(viewId, title) { window.history.pushState({ view: viewId }, ""); document.getElementById("viewMenu").classList.add("hidden"); ["viewTrees", "viewServer", "viewStats", "viewLeaderboard", "viewTrophies", "viewCommunity", "viewSettings"].forEach(id => document.getElementById(id).classList.add("hidden")); document.getElementById("topBar").classList.remove("hidden"); document.getElementById("headerTitle").textContent = title; document.getElementById(viewId).classList.remove("hidden"); if (viewId === "viewTrees") renderMyTreesView(); if (viewId === "viewServer") loadServerRealm(); if (viewId === "viewStats") renderStats(); if (viewId === "viewLeaderboard") loadLeaderboard(); if (viewId === "viewTrophies") renderTrophies(); if (viewId === "viewCommunity") loadComments(); }
 const tutSteps = [
   { b: "Step 1 of 4 • The Living Tree", t: "Grow Your Tree of Mastery", d: "Every skill you add sprouts a new branch on your living tree, blooming as luminous fruit against the night sky. Drag any skill fruit anywhere to shape your tree." },
   { b: "Step 2 of 4 • Level 0 Blank Slate", t: "Build or Harvest Your Path", d: "You start at Level 0 with a young sapling. Forge your own trees from scratch, or open The Server Realm to inspect 25+ concept trees and harvest single skills." },
@@ -94,29 +78,12 @@ if (auth) {
     document.getElementById("settingsAuthBtn").classList.toggle("hidden", !!user);
     document.getElementById("logOutBtn").classList.toggle("hidden", !user);
     if (user && user.email && user.email.toLowerCase() === "sethmcnab13@gmail.com") { document.getElementById("adminBar").classList.remove("hidden"); document.getElementById("adminToggleBtn").classList.remove("hidden"); }
-    if (user && db) {
-      try {
-        const doc = await db.collection("user_trees").doc(user.uid).get();
-        if (doc.exists) { if (doc.data().customTrees && Object.keys(doc.data().customTrees).length) userTrees = doc.data().customTrees; if (doc.data().profile) userProfile = doc.data().profile; }
-        else await saveUserData();
-        document.getElementById("profileNameInput").value = userProfile.name || ""; document.getElementById("profileContactInput").value = userProfile.contact || "";
-      } catch (e) { console.error(e); }
-    }
+    if (user && db) { try { const doc = await db.collection("user_trees").doc(user.uid).get(); if (doc.exists) { if (doc.data().customTrees && Object.keys(doc.data().customTrees).length) userTrees = doc.data().customTrees; if (doc.data().profile) userProfile = doc.data().profile; } else await saveUserData(); document.getElementById("profileNameInput").value = userProfile.name || ""; document.getElementById("profileContactInput").value = userProfile.contact || ""; } catch (e) { console.error(e); } }
     updateGlobalUI();
   });
 }
-
-async function saveUserData() {
-  localStorage.setItem("skill_tree_local_trees", JSON.stringify(userTrees)); localStorage.setItem("skill_tree_local_profile", JSON.stringify(userProfile)); updateGlobalUI();
-  if (!db || !currentUser) return;
-  const st = calculateCharacterStats();
-  await db.collection("user_trees").doc(currentUser.uid).set({ customTrees: userTrees, profile: userProfile, leaderboard: { uid: currentUser.uid, name: userProfile.name || currentUser.email.split("@")[0], contact: userProfile.contact || "", level: st.level, totalNodes: st.totalNodes, masteredNodes: st.masteredNodes } }, { merge: true });
-}
-function calculateCharacterStats() {
-  const pts = { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 }; let totalNodes = 0, masteredNodes = 0, completedTrees = 0;
-  Object.values(userTrees).forEach(t => { const ns = t.nodes || [], a = t.attr || "WIS"; totalNodes += ns.length; if (ns.length >= 30) completedTrees++; ns.forEach(n => { if (n.status === "mastered") { masteredNodes++; pts[a] += 1; } else if (n.status === "learning") pts[a] += 0.5; }); });
-  return { pts, totalNodes, masteredNodes, completedTrees, level: Math.floor((totalNodes + masteredNodes * 2) / 3) };
-}
+async function saveUserData() { localStorage.setItem("skill_tree_local_trees", JSON.stringify(userTrees)); localStorage.setItem("skill_tree_local_profile", JSON.stringify(userProfile)); updateGlobalUI(); if (!db || !currentUser) return; const st = calculateCharacterStats(); await db.collection("user_trees").doc(currentUser.uid).set({ customTrees: userTrees, profile: userProfile, leaderboard: { uid: currentUser.uid, name: userProfile.name || currentUser.email.split("@")[0], contact: userProfile.contact || "", level: st.level, totalNodes: st.totalNodes, masteredNodes: st.masteredNodes } }, { merge: true }); }
+function calculateCharacterStats() { const pts = { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 }; let totalNodes = 0, masteredNodes = 0, completedTrees = 0; Object.values(userTrees).forEach(t => { const ns = t.nodes || [], a = t.attr || "WIS"; totalNodes += ns.length; if (ns.length >= 30) completedTrees++; ns.forEach(n => { if (n.status === "mastered") { masteredNodes++; pts[a] += 1; } else if (n.status === "learning") pts[a] += 0.5; }); }); return { pts, totalNodes, masteredNodes, completedTrees, level: Math.floor((totalNodes + masteredNodes * 2) / 3) }; }
 function updateGlobalUI() { const st = calculateCharacterStats(); document.getElementById("headerLvlBadge").textContent = `LVL ${st.level}`; document.getElementById("menuLvlText").textContent = `Level ${st.level} ${st.level === 0 ? "Initiate" : st.level < 10 ? "Apprentice" : "Master"}`; document.getElementById("menuNodeCount").textContent = `${st.totalNodes} Nodes`; }
 
 function renderMyTreesView() {
@@ -129,12 +96,7 @@ function renderMyTreesView() {
   setTimeout(resizeTreeCanvas, 30);
 }
 document.getElementById("treeSelect").onchange = (e) => { selectedTree = e.target.value; renderMyTreesView(); };
-async function createNewTree(t = null, a = null, n = null) {
-  const name = t || prompt("Name of your new Skill Tree:"); if (!name) return null; if (userTrees[name]) return name;
-  const attr = (a || prompt("Primary D&D Attribute (STR, DEX, CON, INT, WIS, or CHA):", "WIS") || "WIS").toUpperCase();
-  userTrees[name] = { attr: ["STR", "DEX", "CON", "INT", "WIS", "CHA"].includes(attr) ? attr : "WIS", nodes: n || [] };
-  selectedTree = name; await saveUserData(); renderMyTreesView(); return name;
-}
+async function createNewTree(t = null, a = null, n = null) { const name = t || prompt("Name of your new Skill Tree:"); if (!name) return null; if (userTrees[name]) return name; const attr = (a || prompt("Primary D&D Attribute (STR, DEX, CON, INT, WIS, or CHA):", "WIS") || "WIS").toUpperCase(); userTrees[name] = { attr: ["STR", "DEX", "CON", "INT", "WIS", "CHA"].includes(attr) ? attr : "WIS", nodes: n || [] }; selectedTree = name; await saveUserData(); renderMyTreesView(); return name; }
 function resizeTreeCanvas() { const c = document.getElementById("treeCanvas"); if (!c || !c.parentElement) return; c.width = c.parentElement.clientWidth; c.height = c.parentElement.clientHeight; drawConstellation(); }
 window.addEventListener("resize", resizeTreeCanvas);
 
@@ -180,4 +142,22 @@ document.querySelectorAll(".status-toggle").forEach(b => b.onclick = () => { if 
 document.getElementById("closeModalBtn").onclick = () => document.getElementById("detailModal").classList.add("hidden");
 document.getElementById("saveSkillBtn").onclick = async () => { if (!activeNode) return; activeNode.icon = document.getElementById("modalIcon").value; activeNode.color = document.getElementById("modalColor").value; activeNode.notes = document.getElementById("modalNotes").value; document.getElementById("detailModal").classList.add("hidden"); drawConstellation(); await saveUserData(); };
 
-async function publishCurrentTree() { if (!currentUser) return openAuthModal(); const tree = userTrees[selectedTree]; if (!tree || !(tree.nodes || []).length) return alert("Add at least 1 skill node first."); const tag = prompt("Tag as: Mentorship, Business, Hobby, or 21+ :", "Mentorship") || "Mentorship"; await db
+async function publishCurrentTree() { if (!currentUser) return openAuthModal(); const tree = userTrees[selectedTree]; if (!tree || !(tree.nodes || []).length) return alert("Add at least 1 skill node first."); const tag = prompt("Tag as: Mentorship, Business, Hobby, or 21+ :", "Mentorship") || "Mentorship"; await db.collection("public_trees").add({ title: selectedTree, attr: tree.attr || "WIS", tag, nsfw: tag.includes("21"), author: userProfile.name || currentUser.email.split("@")[0], contact: userProfile.contact || "", likes: 1, nodes: tree.nodes.map(n => ({ title: n.title, notes: n.notes })), createdAt: firebase.firestore.FieldValue.serverTimestamp() }); alert(`"${selectedTree}" published!`); }
+async function loadServerRealm() { let cloud = []; if (db) { try { const snap = await db.collection("public_trees").orderBy("createdAt", "desc").limit(40).get(); snap.forEach(d => cloud.push({ id: d.id, isCloud: true, ...d.data() })); } catch (e) { console.error(e); } } publicTreesCache = [...cloud, ...(typeof baseConceptTrees !== "undefined" ? baseConceptTrees : [])]; renderServerList(); }
+function filterServer(tag) { serverFilter = tag; renderServerList(); }
+function renderServerList() { const list = document.getElementById("serverList"), filtered = publicTreesCache.filter(t => (!t.nsfw || showNsfw) && (serverFilter === "ALL" || (serverFilter === "Concept" && t.tag === "Concept") || (serverFilter === "Community" && t.isCloud) || (serverFilter === "Business" && (t.tag || "").toLowerCase().includes("business")))); document.getElementById("serverCountBadge").textContent = `${filtered.length} Trees`; list.innerHTML = filtered.map(t => `<div class="glass-panel rounded-xl p-3.5 space-y-2"><div class="flex justify-between items-start"><div><div class="flex items-center space-x-1.5"><span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300">${t.attr}</span><span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-semibold">${t.tag}</span></div><h3 class="text-sm font-bold text-white skyrim-font mt-1">${t.title}</h3><p class="text-[11px] text-slate-400">By ${t.author} • ${(t.nodes || []).length} Skills</p></div><button onclick="likeServerTree('${t.id}', ${!!t.isCloud})" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs text-rose-400 font-bold">♥ ${t.likes || 0}</button></div><button onclick="inspectServerTree('${t.id}')" class="w-full py-2 bg-slate-800 rounded-lg text-xs font-bold text-sky-300">Inspect Skills & Harvest Nodes</button></div>`).join(""); }
+async function likeServerTree(id, isCloud) { const it = publicTreesCache.find(x => x.id === id); if (!it) return; it.likes = (it.likes || 0) + 1; renderServerList(); if (isCloud && db) await db.collection("public_trees").doc(id).update({ likes: firebase.firestore.FieldValue.increment(1) }); }
+function inspectServerTree(id) { const t = publicTreesCache.find(x => x.id === id); if (!t) return; window.history.pushState({ modal: "inspect" }, ""); document.getElementById("inspTag").textContent = `${t.attr} • ${t.tag}`; document.getElementById("inspTitle").textContent = t.title; document.getElementById("inspAuthor").textContent = `By ${t.author}`; document.getElementById("inspNodesList").innerHTML = (t.nodes || []).map((n, i) => `<div class="bg-slate-950/90 border border-slate-800 rounded-lg p-3 flex items-start justify-between gap-2"><div><div class="text-xs font-bold text-white">${n.title}</div><p class="text-[11px] text-slate-400 mt-0.5">${n.notes}</p></div><button onclick="harvestSingleNode('${t.id}', ${i})" class="px-2.5 py-1.5 bg-sky-500 text-slate-950 rounded text-[11px] font-bold shrink-0">+ Harvest</button></div>`).join(""); document.getElementById("serverInspectModal").classList.remove("hidden"); }
+async function harvestSingleNode(tid, idx) { const src = publicTreesCache.find(x => x.id === tid); if (!src) return; const sn = src.nodes[idx], keys = Object.keys(userTrees); let target = !keys.length ? await createNewTree(src.title, src.attr, []) : prompt(`Target tree (${keys.join(", ")}):`, keys[0]); if (!target) return; if (!userTrees[target]) await createNewTree(target, src.attr, []); const tn = userTrees[target].nodes, sx = [50, 26, 74, 34, 66, 18, 82, 42, 58]; tn.push({ id: "h_" + Date.now(), title: sn.title, status: "locked", icon: "✦", color: "#38bdf8", x: sx[tn.length % sx.length], y: Math.max(14, 62 - Math.floor(tn.length / 3) * 14), notes: sn.notes, parentId: tn.length ? tn[tn.length - 1].id : null }); await saveUserData(); alert(`Harvested "${sn.title}" onto "${target}"!`); }
+
+function renderStats() { const st = calculateCharacterStats(), lbl = { STR: "Strength", DEX: "Dexterity", CON: "Constitution", INT: "Intelligence", WIS: "Wisdom", CHA: "Charisma" }; document.getElementById("statCharTitle").textContent = `Level ${st.level} ${st.level === 0 ? "Initiate" : "Polymath"}`; document.getElementById("statTotalBreakdown").textContent = `${st.totalNodes} Nodes • ${st.masteredNodes} Mastered • ${st.completedTrees} Completed (30+)`; document.getElementById("dndAttributesList").innerHTML = Object.keys(st.pts).map(k => { const s = Math.floor(st.pts[k]), m = Math.floor((s - 10) / 2); return `<div class="space-y-1"><div class="flex justify-between text-xs"><span class="font-bold text-slate-200">${k} — ${lbl[k]}</span><span class="font-black text-sky-400">${s} (${m >= 0 ? "+" + m : m})</span></div><div class="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800"><div style="width:${Math.max(6, Math.min(100, ((s - 10) / 20) * 100))}%" class="h-full bg-sky-400"></div></div></div>`; }).join(""); }
+async function loadLeaderboard() { const list = document.getElementById("leaderboardList"); list.innerHTML = `<div class="text-xs text-slate-400 text-center py-4">Loading...</div>`; if (!db) return; try { const snap = await db.collection("user_trees").get(); let p = []; snap.forEach(d => { if (d.data().leaderboard) p.push(d.data().leaderboard); }); p.sort((a, b) => (b.level - a.level) || (b.masteredNodes - a.masteredNodes)); list.innerHTML = p.map((x, i) => `<div class="glass-panel rounded-xl p-3 flex items-center justify-between"><div class="flex items-center space-x-3"><span class="text-sm font-black text-sky-400">#${i + 1}</span><div><div class="text-xs font-bold text-white">${x.name}</div><div class="text-[10px] text-slate-400">${x.totalNodes} Nodes • ${x.masteredNodes} Mastered</div></div></div><span class="text-xs font-black px-2 py-1 rounded bg-sky-500/20 text-sky-300">LVL ${x.level}</span></div>`).join("") || `<div class="text-xs text-slate-400 text-center">No players yet.</div>`; } catch (e) { console.error(e); } }
+function renderTrophies() { const tiers = [{ c: 30, name: "Dragonborn Relic", desc: "Complete a tree (30+ nodes)." }, { c: 60, name: "Aetherial Crown", desc: "60+ nodes in one tree." }, { c: 90, name: "Elder Scroll", desc: "90+ nodes in one tree." }, { c: 120, name: "Sovngarde Emblem", desc: "120+ nodes in one tree." }, { c: 150, name: "Divine Core", desc: "150+ nodes in one tree." }]; let max = 0; Object.values(userTrees).forEach(t => { if ((t.nodes || []).length > max) max = t.nodes.length; }); document.getElementById("trophyGrid").innerHTML = tiers.map(t => `<div class="glass-panel rounded-xl p-4 flex items-center justify-between ${max >= t.c ? "opacity-100 border-amber-400/50" : "opacity-45"}"><div><div class="text-[10px] uppercase text-sky-400 font-bold">${t.c} Nodes</div><div class="text-sm font-bold text-white skyrim-font">${t.name}</div><div class="text-[11px] text-slate-400">${t.desc}</div></div><div class="text-2xl">${max >= t.c ? "🏆" : "🔒"}</div></div>`).join(""); }
+async function loadComments() { const list = document.getElementById("commentsList"); if (!db) return; try { const snap = await db.collection("community_comments").orderBy("createdAt", "desc").limit(30).get(); let h = ""; snap.forEach(d => { const c = d.data(); h += `<div class="glass-panel rounded-lg p-3"><div class="text-[11px] font-bold text-sky-400">${c.author}</div><p class="text-xs text-slate-200 mt-0.5">${c.text}</p></div>`; }); list.innerHTML = h || `<div class="text-xs text-slate-400 text-center py-6">Be the first to post!</div>`; } catch (e) { console.error(e); } }
+async function postComment() { if (!currentUser) return openAuthModal(); const inp = document.getElementById("commentInput"), txt = inp.value.trim(); if (!txt) return; inp.value = ""; await db.collection("community_comments").add({ author: userProfile.name || currentUser.email.split("@")[0], text: txt, createdAt: firebase.firestore.FieldValue.serverTimestamp() }); loadComments(); }
+function toggleNsfw() { showNsfw = document.getElementById("nsfwToggle").checked; localStorage.setItem("skill_tree_nsfw", showNsfw); }
+async function saveProfileSettings() { userProfile.name = document.getElementById("profileNameInput").value.trim() || "Initiate"; userProfile.contact = document.getElementById("profileContactInput").value.trim(); await saveUserData(); alert("Guild Profile saved!"); }
+
+updateGlobalUI();
+if (!localStorage.getItem("skill_tree_tut_v3")) openTutorial();
+  

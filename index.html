@@ -166,4 +166,59 @@
 
   <section id="viewCommunity" class="hidden relative z-10 flex-1 flex flex-col overflow-hidden p-4 space-y-3">
     <div class="glass-panel rounded-xl p-3 border-l-4 border-l-sky-400"><div class="text-xs font-bold text-sky-300">Welcome to the Town Square</div><p class="text-[11px] text-slate-300 mt-0.5">Share encouragement, propose new base skill trees, or drop ideas to make this world even better
+        <div id="authModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-6">
+    <div class="w-full max-w-sm glass-panel rounded-2xl p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h2 class="text-lg font-black text-sky-400 skyrim-font">CLOUD SYNC & ACCOUNT</h2>
+        <button onclick="document.getElementById('authModal').classList.add('hidden')" class="text-slate-400 text-base px-2">✕</button>
+      </div>
+      <p class="text-[11px] text-slate-300">Sign in to save your constellations across devices, publish trees, and rank on the World Leaderboard.</p>
+      <input type="email" id="authEmail" placeholder="Email" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-sky-400">
+      <input type="password" id="authPassword" placeholder="Password (6+ chars)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-sky-400">
+      <div id="authStatus" class="text-xs text-red-400 hidden"></div>
+      <button id="signInBtn" onclick="handleSignIn()" class="w-full py-2.5 bg-sky-500 text-slate-950 rounded-lg font-bold text-sm">Sign In</button>
+      <button id="signUpBtn" onclick="handleSignUp()" class="w-full py-2.5 bg-slate-800 rounded-lg font-semibold text-sm text-slate-200">Create New Account</button>
+    </div>
+  </div>
+
+  <div id="detailModal" class="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-4">
+    <div class="w-full max-w-md glass-panel rounded-2xl p-5 shadow-2xl max-h-[88vh] overflow-y-auto space-y-3">
+      <div class="flex justify-between items-center"><h2 id="modalTitle" class="text-lg font-bold text-sky-400 skyrim-font">Skill Details</h2><button id="closeModalBtn" class="text-slate-400 text-base px-2">✕</button></div>
+      <div class="grid grid-cols-3 gap-2">
+        <button data-status="locked" class="status-toggle py-1.5 text-xs rounded border border-slate-800 bg-slate-950 text-slate-400">Locked</button>
+        <button data-status="learning" class="status-toggle py-1.5 text-xs rounded border border-slate-800 bg-slate-950 text-slate-400">Learning</button>
+        <button data-status="mastered" class="status-toggle py-1.5 text-xs rounded border border-slate-800 bg-slate-950 text-slate-400">Mastered</button>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <select id="modalIcon" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white"><option value="✦">✦ Star</option><option value="★">★ Classic</option><option value="◆">◆ Diamond</option><option value="⚔">⚔ Blade</option><option value="🛡">🛡 Shield</option><option value="👑">👑 Crown</option><option value="🔥">🔥 Flame</option><option value="🌿">🌿 Leaf</option><option value="⚒">⚒ Anvil</option></select>
+        <select id="modalColor" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white"><option value="#38bdf8">Frost Cyan</option><option value="#f59e0b">Solar Gold</option><option value="#22c55e">Emerald</option><option value="#ef4444">Crimson</option><option value="#a855f7">Arcane Violet</option></select>
+      </div>
+      <textarea id="modalNotes" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 outline-none"></textarea>
+      <button id="saveSkillBtn" class="w-full py-2.5 bg-sky-500 text-slate-950 rounded-lg font-bold text-xs">Save Star Node</button>
+    </div>
+  </div>
+
+  <div id="serverInspectModal" class="fixed inset-0 z-40 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="w-full max-w-md glass-panel rounded-2xl p-5 shadow-2xl max-h-[88vh] flex flex-col space-y-3">
+      <div class="flex justify-between items-start">
+        <div><span id="inspTag" class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold">Concept</span><h2 id="inspTitle" class="text-lg font-bold text-white skyrim-font mt-1">Tree Name</h2><p id="inspAuthor" class="text-[11px] text-slate-400">By Architect</p></div>
+        <button onclick="document.getElementById('serverInspectModal').classList.add('hidden')" class="text-slate-400 text-base px-2">✕</button>
+      </div>
+      <div id="inspNodesList" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
+    </div>
+  </div>
+
+  <div id="tutorialModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-5">
+    <div class="w-full max-w-md glass-panel rounded-2xl p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center"><span id="tutStepBadge" class="text-[10px] font-bold uppercase tracking-widest text-sky-400">Step 1 of 4</span><button onclick="closeTutorial()" class="text-xs text-slate-400 underline">Skip</button></div>
+      <h2 id="tutTitle" class="text-xl font-black skyrim-font text-white">Welcome to Your Grimoire</h2>
+      <p id="tutBody" class="text-xs text-slate-300 leading-relaxed"></p>
+      <div class="flex justify-between pt-2"><button id="tutPrevBtn" class="px-4 py-2 bg-slate-800 rounded-lg text-xs font-semibold text-slate-300 hidden">Back</button><button id="tutNextBtn" class="ml-auto px-5 py-2 bg-sky-500 text-slate-950 rounded-lg text-xs font-bold">Next</button></div>
+    </div>
+  </div>
+
+  <script src="trees.js?v=25"></script>
+  <script src="app.js?v=25"></script>
+</body>
+    </html>
       

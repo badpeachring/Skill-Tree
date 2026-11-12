@@ -11,37 +11,24 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <style>
-    body {
-      background-color: #020617;
-      color: #f8fafc;
-      font-family: system-ui, -apple-system, sans-serif;
-      touch-action: manipulation;
-    }
-    .skyrim-font { font-family: Georgia, 'Times New Roman', serif; letter-spacing: 0.06em; }
-    .glass-panel {
-      background: rgba(15, 23, 42, 0.78);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(56, 189, 248, 0.22);
-    }
+    body { background: #020617; color: #f8fafc; font-family: system-ui, sans-serif; touch-action: manipulation; }
+    .skyrim-font { font-family: Georgia, serif; letter-spacing: 0.06em; }
+    .glass-panel { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(56, 189, 248, 0.22); }
     .menu-btn {
-      background: linear-gradient(90deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.75) 100%);
+      background: linear-gradient(90deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 41, 59, 0.78) 100%);
       border-left: 3px solid #38bdf8;
       border-top: 1px solid rgba(255,255,255,0.08);
       border-right: 1px solid rgba(255,255,255,0.08);
       border-bottom: 1px solid rgba(255,255,255,0.08);
-      transition: all 0.15s ease;
+      transition: transform 0.12s ease;
     }
     .menu-btn:active { transform: scale(0.98); border-left-color: #f59e0b; background: rgba(56, 189, 248, 0.15); }
     .node-glow { animation: starPulse 2.5s infinite ease-in-out; }
-    @keyframes starPulse {
-      0%, 100% { filter: drop-shadow(0 0 8px #38bdf8); }
-      50% { filter: drop-shadow(0 0 16px #7dd3fc); }
-    }
+    @keyframes starPulse { 0%, 100% { filter: drop-shadow(0 0 8px #38bdf8); } 50% { filter: drop-shadow(0 0 16px #7dd3fc); } }
   </style>
 </head>
 <body class="h-screen w-screen overflow-hidden flex flex-col select-none relative">
 
-  <!-- PROCEDURAL NIGHT SKY STARFIELD -->
   <canvas id="starfieldCanvas" class="fixed inset-0 w-full h-full pointer-events-none z-0"></canvas>
 
   <!-- AUTH SCREEN -->
@@ -65,32 +52,39 @@
     </div>
   </div>
 
-  <!-- TOP BAR (HIDDEN ON MAIN TITLE MENU, VISIBLE IN SUB-SCREENS) -->
-  <header id="topBar" class="hidden h-13 border-b border-sky-500/20 bg-slate-950/85 backdrop-blur-md px-4 py-2.5 flex items-center justify-between shrink-0 z-30">
-    <button onclick="openMainMenu()" class="flex items-center space-x-2 text-sky-400 font-bold text-xs uppercase tracking-wider">
-      <span>◀ Main Menu</span>
-    </button>
+  <!-- ARCHITECT ADMIN BAR (HIDDEN UNTIL UNLOCKED FOR OWNER) -->
+  <div id="adminBar" class="hidden relative z-40 bg-amber-950/95 border-b border-amber-500/60 px-3 py-1.5 flex items-center justify-between text-[11px]">
+    <span class="font-black text-amber-300 tracking-wider">⚡ ARCHITECT CONSOLE</span>
+    <div class="flex items-center space-x-1.5">
+      <button onclick="adminBoostNodes()" class="px-2 py-0.5 bg-amber-500 text-slate-950 font-bold rounded">+5 Test Stars</button>
+      <button onclick="adminWipeMe()" class="px-2 py-0.5 bg-red-900 text-red-200 font-bold rounded">Reset LVL 0</button>
+      <button onclick="document.getElementById('adminBar').classList.add('hidden')" class="px-1.5 text-amber-300">✕</button>
+    </div>
+  </div>
+
+  <!-- TOP NAVIGATION BAR -->
+  <header id="topBar" class="hidden relative z-30 border-b border-sky-500/20 bg-slate-950/85 backdrop-blur-md px-4 py-2.5 flex items-center justify-between shrink-0">
+    <button onclick="openMainMenu()" class="text-sky-400 font-bold text-xs uppercase tracking-wider">◀ Main Menu</button>
     <div class="flex items-center space-x-2">
       <span id="headerTitle" class="text-xs font-bold skyrim-font text-slate-200 uppercase">Constellations</span>
       <span id="headerLvlBadge" class="text-[10px] px-2 py-0.5 rounded bg-sky-500/20 border border-sky-400/40 text-sky-300 font-bold">LVL 0</span>
     </div>
   </header>
 
-  <!-- VIEW 0: GAME TITLE MAIN MENU (MINECRAFT/SKYRIM STYLE) -->
-  <section id="viewMenu" class="relative z-10 flex-1 flex flex-col justify-between p-6 overflow-y-auto">
-    <div class="text-center pt-4 space-y-1">
+  <!-- VIEW 0: GAME TITLE MAIN MENU -->
+  <section id="viewMenu" class="relative z-10 flex-1 flex flex-col justify-between p-5 overflow-y-auto">
+    <div class="text-center pt-2 space-y-1">
       <div class="text-[10px] uppercase tracking-[0.3em] text-sky-400 font-bold">Real-World Mastery System</div>
-      <h1 class="text-4xl font-black text-white skyrim-font tracking-widest drop-shadow-[0_0_15px_rgba(56,189,248,0.5)]">SKILL TREE</h1>
-      <div class="inline-flex items-center space-x-2 bg-slate-900/80 border border-sky-500/30 px-3 py-1 rounded-full mt-2">
+      <h1 id="mainTitleLogo" onclick="tapLogoSecret()" class="text-4xl font-black text-white skyrim-font tracking-widest drop-shadow-[0_0_15px_rgba(56,189,248,0.5)] cursor-pointer">SKILL TREE</h1>
+      <div class="inline-flex items-center space-x-2 bg-slate-900/85 border border-sky-500/30 px-3 py-1 rounded-full mt-1">
         <span id="menuLvlText" class="text-xs font-bold text-sky-300">Level 0 Initiate</span>
         <span class="text-slate-600">•</span>
         <span id="menuNodeCount" class="text-xs text-slate-300">0 Nodes</span>
       </div>
     </div>
 
-    <!-- Main Menu Stack -->
-    <div class="w-full max-w-md mx-auto space-y-2.5 my-4">
-      <button onclick="navigate('viewTrees', 'My Constellations')" class="menu-btn w-full py-3.5 px-4 rounded-r-xl flex items-center justify-between">
+    <div class="w-full max-w-md mx-auto space-y-2 my-3">
+      <button onclick="navigate('viewTrees', 'My Constellations')" class="menu-btn w-full py-3 px-4 rounded-r-xl flex items-center justify-between">
         <div class="text-left">
           <div class="text-sm font-bold text-white skyrim-font">MY CONSTELLATIONS</div>
           <div class="text-[11px] text-slate-400">Build, customize & level up your personal trees</div>
@@ -98,7 +92,7 @@
         <span class="text-sky-400 text-sm">➔</span>
       </button>
 
-      <button onclick="navigate('viewServer', 'The Server Realm')" class="menu-btn w-full py-3.5 px-4 rounded-r-xl flex items-center justify-between">
+      <button onclick="navigate('viewServer', 'The Server Realm')" class="menu-btn w-full py-3 px-4 rounded-r-xl flex items-center justify-between">
         <div class="text-left">
           <div class="text-sm font-bold text-white skyrim-font">THE SERVER REALM</div>
           <div class="text-[11px] text-slate-400">25+ Concept Trees, Community Cloud & Node Harvesting</div>
@@ -106,7 +100,7 @@
         <span class="text-sky-400 text-sm">➔</span>
       </button>
 
-      <button onclick="navigate('viewStats', 'D&D Character Sheet')" class="menu-btn w-full py-3.5 px-4 rounded-r-xl flex items-center justify-between">
+      <button onclick="navigate('viewStats', 'D&D Character Sheet')" class="menu-btn w-full py-3 px-4 rounded-r-xl flex items-center justify-between">
         <div class="text-left">
           <div class="text-sm font-bold text-white skyrim-font">CHARACTER SHEET & D&D STATS</div>
           <div class="text-[11px] text-slate-400">STR, DEX, CON, INT, WIS, CHA breakdown</div>
@@ -114,7 +108,7 @@
         <span class="text-sky-400 text-sm">➔</span>
       </button>
 
-      <button onclick="navigate('viewLeaderboard', 'World Leaderboard')" class="menu-btn w-full py-3.5 px-4 rounded-r-xl flex items-center justify-between">
+      <button onclick="navigate('viewLeaderboard', 'World Leaderboard')" class="menu-btn w-full py-3 px-4 rounded-r-xl flex items-center justify-between">
         <div class="text-left">
           <div class="text-sm font-bold text-white skyrim-font">WORLD LEADERBOARD</div>
           <div class="text-[11px] text-slate-400">Global rankings, Guilds & top mentors</div>
@@ -122,7 +116,7 @@
         <span class="text-sky-400 text-sm">➔</span>
       </button>
 
-      <button onclick="navigate('viewTrophies', 'Trophy Vault')" class="menu-btn w-full py-3.5 px-4 rounded-r-xl flex items-center justify-between">
+      <button onclick="navigate('viewTrophies', 'Trophy Vault')" class="menu-btn w-full py-3 px-4 rounded-r-xl flex items-center justify-between">
         <div class="text-left">
           <div class="text-sm font-bold text-white skyrim-font">TROPHY & RELIC VAULT</div>
           <div class="text-[11px] text-slate-400">30 / 60 / 90 / 120 / 150 Node Ascensions</div>
@@ -130,7 +124,7 @@
         <span class="text-sky-400 text-sm">➔</span>
       </button>
 
-      <button onclick="navigate('viewCommunity', 'Town Square')" class="menu-btn w-full py-3.5 px-4 rounded-r-xl flex items-center justify-between">
+      <button onclick="navigate('viewCommunity', 'Town Square')" class="menu-btn w-full py-3 px-4 rounded-r-xl flex items-center justify-between">
         <div class="text-left">
           <div class="text-sm font-bold text-white skyrim-font">TOWN SQUARE & IDEAS</div>
           <div class="text-[11px] text-slate-400">Community discussion & feature requests</div>
@@ -146,7 +140,6 @@
       </button>
     </div>
 
-    <!-- Philosophy Footer -->
     <div class="glass-panel rounded-xl p-3 max-w-md mx-auto w-full text-center">
       <p id="quoteText" class="text-[11px] italic text-slate-300">"You have power over your mind - not outside events. Realize this, and you will find strength."</p>
       <div class="flex justify-center items-center space-x-3 mt-1">
@@ -161,7 +154,7 @@
     <div id="emptyTreeBanner" class="hidden flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4">
       <div class="text-4xl">✨</div>
       <h2 class="text-xl font-bold skyrim-font text-white">Your Sky is Uncharted</h2>
-      <p class="text-xs text-slate-300 max-w-xs leading-relaxed">You start at Level 0 with no pre-assigned trees. Forge a custom tree from scratch, or visit The Server Realm to inspect 25+ concept trees and harvest individual skills.</p>
+      <p class="text-xs text-slate-300 max-w-xs leading-relaxed">You start at Level 0 with no pre-assigned trees. Forge a custom tree from scratch, or visit The Server Realm to inspect 25+ concept blueprints and harvest single skills.</p>
       <div class="flex flex-col w-full max-w-xs gap-2">
         <button onclick="createNewTree()" class="py-2.5 bg-sky-500 text-slate-950 font-bold rounded-lg text-xs">+ Forge Blank Skill Tree</button>
         <button onclick="navigate('viewServer', 'The Server Realm')" class="py-2.5 bg-slate-800 border border-sky-500/40 text-sky-300 font-bold rounded-lg text-xs">Browse 25+ Concept Trees</button>
@@ -191,7 +184,7 @@
     </div>
   </section>
 
-  <!-- VIEW 2: THE SERVER REALM (CONCEPT TREES & PUBLIC CLOUD) -->
+  <!-- VIEW 2: THE SERVER REALM -->
   <section id="viewServer" class="hidden relative z-10 flex-1 overflow-y-auto p-4 space-y-3">
     <div class="glass-panel rounded-xl p-3 space-y-2">
       <div class="flex justify-between items-center">
@@ -225,7 +218,7 @@
   <section id="viewLeaderboard" class="hidden relative z-10 flex-1 overflow-y-auto p-4 space-y-3">
     <div class="glass-panel rounded-xl p-4">
       <h2 class="text-sm font-bold text-sky-400 skyrim-font uppercase">Global Hall of Mastery</h2>
-      <p class="text-xs text-slate-400 mt-1">Ranked by Character Level, Mastered Nodes, and Community Hearts.</p>
+      <p class="text-xs text-slate-400 mt-1">Ranked by Character Level, Mastered Nodes, and Guild Prestige.</p>
     </div>
     <div id="leaderboardList" class="space-y-2"></div>
   </section>
@@ -239,7 +232,7 @@
     <div id="trophyGrid" class="space-y-2.5"></div>
   </section>
 
-  <!-- VIEW 6: TOWN SQUARE (COMMUNITY COMMENTS) -->
+  <!-- VIEW 6: TOWN SQUARE -->
   <section id="viewCommunity" class="hidden relative z-10 flex-1 flex flex-col overflow-hidden p-4 space-y-3">
     <div class="glass-panel rounded-xl p-3 border-l-4 border-l-sky-400">
       <div class="text-xs font-bold text-sky-300">Welcome to the Town Square</div>
@@ -271,6 +264,7 @@
 
     <div class="glass-panel rounded-xl p-4 space-y-2">
       <button onclick="openTutorial()" class="w-full py-2.5 bg-slate-800 rounded-lg text-xs font-bold text-white">Replay Tutorial & App Manifesto</button>
+      <button id="adminToggleBtn" onclick="document.getElementById('adminBar').classList.toggle('hidden')" class="hidden w-full py-2.5 bg-amber-950/70 border border-amber-500/50 rounded-lg text-xs font-bold text-amber-300">Toggle Architect Admin Bar</button>
       <button id="logOutBtn" class="w-full py-2.5 bg-red-950/60 border border-red-900 rounded-lg text-xs font-bold text-red-300">Log Out</button>
     </div>
   </section>
@@ -307,15 +301,4 @@
         </div>
         <div>
           <label class="block text-[11px] uppercase tracking-wider text-slate-400 mb-1">Star Aura</label>
-          <select id="modalColor" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white">
-            <option value="#38bdf8">Frost Cyan</option>
-            <option value="#f59e0b">Solar Gold</option>
-            <option value="#22c55e">Emerald</option>
-            <option value="#ef4444">Crimson</option>
-            <option value="#a855f7">Arcane Violet</option>
-          </select>
-        </div>
-      </div>
-      <div>
-        <label class="block text-[11px] uppercase tracking-wider text-slate-400 mb-1">Blueprint & Notes</label>
-        <textarea id="modalNotes" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 
+          <select id="mo

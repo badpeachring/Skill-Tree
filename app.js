@@ -7,18 +7,47 @@ const firebaseConfig = {
   appId: "1:482405207638:web:1a2a944ab4d8036e1ab5f7"
 };
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+let auth = null, db = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  auth = firebase.auth();
+  db = firebase.firestore();
+} catch (e) { console.error("Firebase init:", e); }
 
-let currentUser = null, userTrees = {}, selectedTree = null, activeNode = null, serverFilter = "ALL";
+let currentUser = null;
+let userTrees = JSON.parse(localStorage.getItem("skill_tree_local_trees") || "{}");
+let userProfile = JSON.parse(localStorage.getItem("skill_tree_local_profile") || '{"name":"Initiate","contact":""}');
+let selectedTree = null, activeNode = null, serverFilter = "ALL";
 let showNsfw = localStorage.getItem("skill_tree_nsfw") === "true";
-let userProfile = { name: "Initiate", contact: "" };
 let publicTreesCache = [];
 let logoTapCount = 0;
 
+// ANDROID HARDWARE / GESTURE BACK BUTTON INTERCEPTOR
+window.history.replaceState({ view: "menu" }, "");
+window.addEventListener("popstate", () => {
+  const modals = ["detailModal", "serverInspectModal", "authModal", "tutorialModal"];
+  let closedModal = false;
+  modals.forEach(m => {
+    const el = document.getElementById(m);
+    if (el && !el.classList.contains("hidden")) {
+      el.classList.add("hidden");
+      closedModal = true;
+    }
+  });
+  if (closedModal) {
+    window.history.pushState({ view: "sub" }, "");
+    return;
+  }
+  if (document.getElementById("viewMenu").classList.contains("hidden")) {
+    openMainMenu(true);
+  }
+});
+
+// PROCEDURAL STARFIELD
 (function initStarfield() {
-  const c = document.getElementById("starfieldCanvas"), ctx = c.getContext("2d");
+  const c = document.getElementById("starfieldCanvas");
+  if (!c) return;
+  const ctx = c.getContext("2d");
   let stars = [];
   function resize() {
     c.width = window.innerWidth; c.height = window.innerHeight;
@@ -83,22 +112,23 @@ async function adminBoostNodes() {
 }
 
 async function adminWipeMe() {
-  if (!confirm("Reset your character back to Level 0 and wipe all personal trees?")) return;
-  userTrees = {};
-  selectedTree = null;
+  if (!confirm("Reset character back to Level 0 and wipe all personal trees?")) return;
+  userTrees = {}; selectedTree = null;
   await saveUserData();
   alert("Character reset to Level 0 Initiate.");
   if (!document.getElementById("viewTrees").classList.contains("hidden")) renderMyTreesView();
 }
 
-function openMainMenu() {
+function openMainMenu(fromPop = false) {
   ["viewTrees", "viewServer", "viewStats", "viewLeaderboard", "viewTrophies", "viewCommunity", "viewSettings"].forEach(id => document.getElementById(id).classList.add("hidden"));
   document.getElementById("topBar").classList.add("hidden");
   document.getElementById("viewMenu").classList.remove("hidden");
+  if (!fromPop) window.history.replaceState({ view: "menu" }, "");
   updateGlobalUI();
 }
 
 function navigate(viewId, title) {
+  window.history.pushState({ view: viewId }, "");
   document.getElementById("viewMenu").classList.add("hidden");
   ["viewTrees", "viewServer", "viewStats", "viewLeaderboard", "viewTrophies", "viewCommunity", "viewSettings"].forEach(id => document.getElementById(id).classList.add("hidden"));
   document.getElementById("topBar").classList.remove("hidden");
@@ -112,15 +142,16 @@ function navigate(viewId, title) {
   if (viewId === "viewCommunity") loadComments();
 }
 
+// TUTORIAL
 const tutSteps = [
   { b: "Step 1 of 4 • The Vision", t: "Frame Life Like an Open-World RPG", d: "People spend thousands of hours leveling up game characters while letting real-world skills slip away. This app turns everything you master into permanent constellations." },
   { b: "Step 2 of 4 • Level 0 Blank Slate", t: "Build or Harvest Your Path", d: "You begin at Level 0 with an empty sky. Forge your own trees from scratch, or open The Server Realm to inspect 25+ concept blueprints and harvest single skills into your trees." },
   { b: "Step 3 of 4 • D&D Attributes & Relics", t: "Ascend Your Character Sheet", d: "Every mastered skill boosts your D&D attributes (STR, DEX, CON, INT, WIS, CHA). Reach 30 nodes to complete a tree, and unlock relics at 30, 60, 90, 120, and 150 nodes." },
-  { b: "Step 4 of 4 • Mentorship & Guilds", t: "Share Blueprints & Prove Mastery", d: "Publish your trees to the public cloud, tag them for Mentorship or Business/Pro portfolios, earn hearts on the World Leaderboard, and pass your exact blueprints down." }
+  { b: "Step 4 of 4 • Mentorship & Guilds", t: "Share Blueprints & Prove Mastery", d: "Sign in anytime to sync to the cloud, publish trees for Mentorship or Business/Pro portfolios, earn hearts on the World Leaderboard, and pass your blueprints down." }
 ];
 let tutIdx = 0;
-function openTutorial() { tutIdx = 0; renderTut(); document.getElementById("tutorialModal").classList.remove("hidden"); }
-function closeTutorial() { document.getElementById("tutorialModal").classList.add("hidden"); localStorage.setItem("skill_tree_tut_v2", "true"); }
+function openTutorial() { tutIdx = 0; renderTut(); window.history.pushState({ modal: "tut" }, ""); document.getElementById("tutorialModal").classList.remove("hidden"); }
+function closeTutorial() { document.getElementById("tutorialModal").classList.add("hidden"); localStorage.setItem("skill_tree_tut_v3", "true"); }
 function renderTut() {
   const s = tutSteps[tutIdx];
   document.getElementById("tutStepBadge").textContent = s.b; document.getElementById("tutTitle").textContent = s.t; document.getElementById("tutBody").textContent = s.d;
@@ -130,46 +161,70 @@ function renderTut() {
 document.getElementById("tutPrevBtn").onclick = () => { if (tutIdx > 0) { tutIdx--; renderTut(); } };
 document.getElementById("tutNextBtn").onclick = () => { tutIdx < tutSteps.length - 1 ? (tutIdx++, renderTut()) : closeTutorial(); };
 
+// OPTIONAL AUTH MODAL
+function openAuthModal() {
+  window.history.pushState({ modal: "auth" }, "");
+  document.getElementById("authStatus").classList.add("hidden");
+  document.getElementById("authModal").classList.remove("hidden");
+}
 function showAuth(msg, err = true) {
   const el = document.getElementById("authStatus"); el.textContent = msg;
   el.className = err ? "text-xs text-red-400" : "text-xs text-sky-400"; el.classList.remove("hidden");
 }
-document.getElementById("signUpBtn").onclick = async () => {
-  showAuth("Creating character...", false);
-  try { await auth.createUserWithEmailAndPassword(document.getElementById("authEmail").value.trim(), document.getElementById("authPassword").value); localStorage.removeItem("skill_tree_tut_v2"); }
-  catch (e) { showAuth(e.message, true); }
-};
-document.getElementById("signInBtn").onclick = async () => {
-  showAuth("Entering realm...", false);
-  try { await auth.signInWithEmailAndPassword(document.getElementById("authEmail").value.trim(), document.getElementById("authPassword").value); }
-  catch (e) { showAuth(e.message, true); }
-};
-document.getElementById("logOutBtn").onclick = () => auth.signOut();
+async function handleSignUp() {
+  if (!auth) return showAuth("Firebase unavailable offline.");
+  showAuth("Creating account...", false);
+  try {
+    await auth.createUserWithEmailAndPassword(document.getElementById("authEmail").value.trim(), document.getElementById("authPassword").value);
+    document.getElementById("authModal").classList.add("hidden");
+  } catch (e) { showAuth(e.message, true); }
+}
+async function handleSignIn() {
+  if (!auth) return showAuth("Firebase unavailable offline.");
+  showAuth("Signing in...", false);
+  try {
+    await auth.signInWithEmailAndPassword(document.getElementById("authEmail").value.trim(), document.getElementById("authPassword").value);
+    document.getElementById("authModal").classList.add("hidden");
+  } catch (e) { showAuth(e.message, true); }
+}
+document.getElementById("logOutBtn").onclick = () => { if (auth) auth.signOut(); };
 
-auth.onAuthStateChanged(async (user) => {
-  if (user) {
-    currentUser = user;
-    document.getElementById("authStatus").classList.add("hidden");
-    document.getElementById("authScreen").classList.add("hidden");
-    document.getElementById("nsfwToggle").checked = showNsfw;
-    if (user.email && user.email.toLowerCase() === "sethmcnab13@gmail.com") {
-      document.getElementById("adminBar").classList.remove("hidden");
-      document.getElementById("adminToggleBtn").classList.remove("hidden");
+if (auth) {
+  auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      currentUser = user;
+      document.getElementById("cloudStatusPill").textContent = "☁ Cloud Synced";
+      document.getElementById("cloudStatusPill").className = "text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-950 border border-emerald-500/40 text-emerald-300 font-bold";
+      document.getElementById("menuAuthBtn").textContent = user.email.split("@")[0];
+      document.getElementById("settingsAuthBtn").classList.add("hidden");
+      document.getElementById("logOutBtn").classList.remove("hidden");
+      if (user.email && user.email.toLowerCase() === "sethmcnab13@gmail.com") {
+        document.getElementById("adminBar").classList.remove("hidden");
+        document.getElementById("adminToggleBtn").classList.remove("hidden");
+      }
+      await loadCloudData();
+    } else {
+      currentUser = null;
+      document.getElementById("cloudStatusPill").textContent = "Guest Mode (Local)";
+      document.getElementById("cloudStatusPill").className = "text-[10px] px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-400";
+      document.getElementById("menuAuthBtn").textContent = "Sign In / Cloud Sync";
+      document.getElementById("settingsAuthBtn").classList.remove("hidden");
+      document.getElementById("logOutBtn").classList.add("hidden");
     }
-    await loadUserData(); openMainMenu();
-    if (!localStorage.getItem("skill_tree_tut_v2")) openTutorial();
-  } else { currentUser = null; document.getElementById("authScreen").classList.remove("hidden"); }
-});
+    updateGlobalUI();
+  });
+}
 
-async function loadUserData() {
+async function loadCloudData() {
+  if (!db || !currentUser) return;
   try {
     const doc = await db.collection("user_trees").doc(currentUser.uid).get();
     if (doc.exists) {
       const data = doc.data();
-      userTrees = data.customTrees || {};
-      userProfile = data.profile || { name: currentUser.email.split("@")[0], contact: "" };
+      if (data.customTrees && Object.keys(data.customTrees).length > 0) userTrees = data.customTrees;
+      if (data.profile) userProfile = data.profile;
     } else {
-      userTrees = {}; userProfile = { name: currentUser.email.split("@")[0], contact: "" }; await saveUserData();
+      await saveUserData();
     }
     document.getElementById("profileNameInput").value = userProfile.name || "";
     document.getElementById("profileContactInput").value = userProfile.contact || "";
@@ -178,13 +233,15 @@ async function loadUserData() {
 }
 
 async function saveUserData() {
-  if (!currentUser) return;
+  localStorage.setItem("skill_tree_local_trees", JSON.stringify(userTrees));
+  localStorage.setItem("skill_tree_local_profile", JSON.stringify(userProfile));
+  updateGlobalUI();
+  if (!db || !currentUser) return;
   const stats = calculateCharacterStats();
   await db.collection("user_trees").doc(currentUser.uid).set({
     customTrees: userTrees, profile: userProfile,
     leaderboard: { uid: currentUser.uid, name: userProfile.name || currentUser.email.split("@")[0], contact: userProfile.contact || "", level: stats.level, totalNodes: stats.totalNodes, masteredNodes: stats.masteredNodes }
   }, { merge: true });
-  updateGlobalUI();
 }
 
 function calculateCharacterStats() {
@@ -204,6 +261,7 @@ function updateGlobalUI() {
   document.getElementById("menuNodeCount").textContent = `${st.totalNodes} Nodes`;
 }
 
+// MY CONSTELLATIONS
 function renderMyTreesView() {
   const keys = Object.keys(userTrees);
   if (keys.length === 0) { document.getElementById("emptyTreeBanner").classList.remove("hidden"); document.getElementById("activeTreeWorkspace").classList.add("hidden"); return; }
@@ -263,7 +321,8 @@ document.getElementById("addNodeBtn").onclick = async () => {
 };
 
 function openSkillModal(n) {
-  activeNode = n; document.getElementById("modalTitle").textContent = n.title;
+  activeNode = n; window.history.pushState({ modal: "skill" }, "");
+  document.getElementById("modalTitle").textContent = n.title;
   document.getElementById("modalIcon").value = n.icon || "✦"; document.getElementById("modalColor").value = n.color || "#38bdf8"; document.getElementById("modalNotes").value = n.notes || "";
   updateStatusToggles(n.status); document.getElementById("detailModal").classList.remove("hidden");
 }
@@ -280,7 +339,9 @@ document.getElementById("saveSkillBtn").onclick = async () => {
   document.getElementById("detailModal").classList.add("hidden"); drawConstellation(); await saveUserData();
 };
 
+// SERVER REALM, LEADERBOARD, TROPHIES & TOWN SQUARE
 async function publishCurrentTree() {
+  if (!currentUser) return openAuthModal();
   const tree = userTrees[selectedTree]; if (!tree || (tree.nodes || []).length === 0) return alert("Add at least 1 skill node before publishing.");
   const tagChoice = prompt("Tag this tree as: Mentorship, Business, Hobby, or 21+ :", "Mentorship") || "Mentorship";
   await db.collection("public_trees").add({
@@ -293,10 +354,12 @@ async function publishCurrentTree() {
 
 async function loadServerRealm() {
   let cloudTrees = [];
-  try {
-    const snap = await db.collection("public_trees").orderBy("createdAt", "desc").limit(40).get();
-    snap.forEach(doc => cloudTrees.push({ id: doc.id, isCloud: true, ...doc.data() }));
-  } catch (e) { console.error(e); }
+  if (db) {
+    try {
+      const snap = await db.collection("public_trees").orderBy("createdAt", "desc").limit(40).get();
+      snap.forEach(doc => cloudTrees.push({ id: doc.id, isCloud: true, ...doc.data() }));
+    } catch (e) { console.error(e); }
+  }
   const concepts = typeof baseConceptTrees !== "undefined" ? baseConceptTrees : [];
   publicTreesCache = [...cloudTrees, ...concepts]; renderServerList();
 }
@@ -321,4 +384,91 @@ function renderServerList() {
     return true;
   });
   document.getElementById("serverCountBadge").textContent = `${filtered.length} Trees`;
-  list.innerHTML = filtered.map(t => `<div class="glass-panel rounded-xl p-3.5 space-y-2"><div class="flex justify-between items-start"><div><div class="flex items-center space-x-1.5"><span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300">${t.attr}</span><span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-semibold">${t.tag}</span>${t.nsfw ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-950 text-red-300 font-bold">21+</span>' : ''}</div><h3 class="text-sm font-bold text-white skyrim-font mt-1">${t.title}<
+  list.innerHTML = filtered.map(t => `<div class="glass-panel rounded-xl p-3.5 space-y-2"><div class="flex justify-between items-start"><div><div class="flex items-center space-x-1.5"><span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300">${t.attr}</span><span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-semibold">${t.tag}</span>${t.nsfw ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-950 text-red-300 font-bold">21+</span>' : ''}</div><h3 class="text-sm font-bold text-white skyrim-font mt-1">${t.title}</h3><p class="text-[11px] text-slate-400">By ${t.author} ${t.contact ? `• 📞 ${t.contact}` : ""} • ${(t.nodes || []).length} Skills</p></div><button onclick="likeServerTree('${t.id}', ${!!t.isCloud})" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs text-rose-400 font-bold">♥ ${t.likes || 0}</button></div><button onclick="inspectServerTree('${t.id}')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-bold text-sky-300">Inspect Skills & Harvest Nodes</button></div>`).join("");
+}
+
+async function likeServerTree(id, isCloud) {
+  const item = publicTreesCache.find(x => x.id === id); if (!item) return;
+  item.likes = (item.likes || 0) + 1; renderServerList();
+  if (isCloud && db) await db.collection("public_trees").doc(id).update({ likes: firebase.firestore.FieldValue.increment(1) });
+}
+
+function inspectServerTree(id) {
+  const tree = publicTreesCache.find(x => x.id === id); if (!tree) return;
+  window.history.pushState({ modal: "inspect" }, "");
+  document.getElementById("inspTag").textContent = `${tree.attr} • ${tree.tag}`;
+  document.getElementById("inspTitle").textContent = tree.title;
+  document.getElementById("inspAuthor").textContent = `By ${tree.author} ${tree.contact ? `(${tree.contact})` : ""}`;
+  document.getElementById("inspNodesList").innerHTML = (tree.nodes || []).map((n, idx) => `<div class="bg-slate-950/90 border border-slate-800 rounded-lg p-3 flex items-start justify-between gap-2"><div><div class="text-xs font-bold text-white">${n.title}</div><p class="text-[11px] text-slate-400 mt-0.5">${n.notes}</p></div><button onclick="harvestSingleNode('${tree.id}', ${idx})" class="px-2.5 py-1.5 bg-sky-500 text-slate-950 rounded text-[11px] font-bold shrink-0">+ Harvest</button></div>`).join("");
+  document.getElementById("serverInspectModal").classList.remove("hidden");
+}
+
+async function harvestSingleNode(treeId, nodeIdx) {
+  const srcTree = publicTreesCache.find(x => x.id === treeId); if (!srcTree) return;
+  const srcNode = srcTree.nodes[nodeIdx], existingKeys = Object.keys(userTrees);
+  let targetTreeName = existingKeys.length === 0 ? await createNewTree(srcTree.title, srcTree.attr, []) : prompt(`Which of your trees should receive "${srcNode.title}"?\nYour trees: ${existingKeys.join(", ")}`, existingKeys[0]);
+  if (!targetTreeName) return;
+  if (!userTrees[targetTreeName]) await createNewTree(targetTreeName, srcTree.attr, []);
+  const targetNodes = userTrees[targetTreeName].nodes, cols = [50, 28, 72, 50, 22, 78, 50];
+  targetNodes.push({ id: "h_" + Date.now(), title: srcNode.title, status: "locked", icon: "✦", color: "#38bdf8", x: cols[targetNodes.length % cols.length], y: Math.max(12, 82 - Math.floor(targetNodes.length / 2) * 12), notes: srcNode.notes, parentId: targetNodes.length ? targetNodes[targetNodes.length - 1].id : null });
+  await saveUserData(); alert(`Harvested "${srcNode.title}" into "${targetTreeName}"!`);
+}
+
+function renderStats() {
+  const st = calculateCharacterStats(), lbl = { STR: "Strength (Trades/Physical)", DEX: "Dexterity (Craft/Precision)", CON: "Constitution (Health/Grit)", INT: "Intelligence (Systems/Logic)", WIS: "Wisdom (Philosophy/Mastery)", CHA: "Charisma (Leadership/Teaching)" };
+  document.getElementById("statCharTitle").textContent = `Level ${st.level} ${st.level === 0 ? "Initiate" : "Polymath"}`;
+  document.getElementById("statTotalBreakdown").textContent = `${st.totalNodes} Total Nodes • ${st.masteredNodes} Mastered • ${st.completedTrees} Completed (30+)`;
+  document.getElementById("dndAttributesList").innerHTML = Object.keys(st.pts).map(k => {
+    const s = Math.floor(st.pts[k]), mod = Math.floor((s - 10) / 2);
+    return `<div class="space-y-1"><div class="flex justify-between text-xs"><span class="font-bold text-slate-200">${k} <span class="text-slate-400 font-normal text-[11px]">— ${lbl[k]}</span></span><span class="font-black text-sky-400">${s} (${mod >= 0 ? "+" + mod : mod})</span></div><div class="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800"><div style="width:${Math.max(6, Math.min(100, ((s - 10) / 20) * 100))}%" class="h-full bg-sky-400"></div></div></div>`;
+  }).join("");
+}
+
+async function loadLeaderboard() {
+  const list = document.getElementById("leaderboardList"); list.innerHTML = `<div class="text-xs text-slate-400 text-center py-4">Loading Global Rankings...</div>`;
+  if (!db) return;
+  try {
+    const snap = await db.collection("user_trees").get(); let players = [];
+    snap.forEach(doc => { if (doc.data().leaderboard) players.push(doc.data().leaderboard); });
+    players.sort((a, b) => (b.level - a.level) || (b.masteredNodes - a.masteredNodes));
+    list.innerHTML = players.map((p, i) => `<div class="glass-panel rounded-xl p-3 flex items-center justify-between"><div class="flex items-center space-x-3"><span class="text-sm font-black ${i === 0 ? "text-amber-400" : "text-sky-400"}">#${i + 1}</span><div><div class="text-xs font-bold text-white">${p.name}</div><div class="text-[10px] text-slate-400">${p.totalNodes} Nodes • ${p.masteredNodes} Mastered ${p.contact ? `• ${p.contact}` : ""}</div></div></div><span class="text-xs font-black px-2 py-1 rounded bg-sky-500/20 text-sky-300">LVL ${p.level}</span></div>`).join("") || `<div class="text-xs text-slate-400 text-center">Sign in and build a tree to claim #1!</div>`;
+  } catch (e) { console.error(e); }
+}
+
+function renderTrophies() {
+  const tiers = [
+    { c: 30, name: "Dragonborn Constellation Relic", desc: "Complete a skill tree with 30+ nodes." },
+    { c: 60, name: "Aetherial Crown of Mastery", desc: "Expand a single constellation to 60+ nodes." },
+    { c: 90, name: "Elder Scroll of the Architect", desc: "Forge a 90+ node master grimoire." },
+    { c: 120, name: "Sovngarde Ascendant Emblem", desc: "Reach 120+ nodes in a single discipline." },
+    { c: 150, name: "Divine Polymath Core", desc: "Achieve 150+ nodes of legendary depth." }
+  ];
+  let max = 0; Object.values(userTrees).forEach(t => { if ((t.nodes || []).length > max) max = t.nodes.length; });
+  document.getElementById("trophyGrid").innerHTML = tiers.map(t => `<div class="glass-panel rounded-xl p-4 flex items-center justify-between ${max >= t.c ? "opacity-100 border-amber-400/50" : "opacity-45"}"><div><div class="text-[10px] uppercase tracking-wider text-sky-400 font-bold">${t.c} Node Milestone</div><div class="text-sm font-bold text-white skyrim-font">${t.name}</div><div class="text-[11px] text-slate-400">${t.desc}</div></div><div class="text-2xl">${max >= t.c ? "🏆" : "🔒"}</div></div>`).join("");
+}
+
+async function loadComments() {
+  const list = document.getElementById("commentsList"); if (!db) return;
+  try {
+    const snap = await db.collection("community_comments").orderBy("createdAt", "desc").limit(30).get(); let html = "";
+    snap.forEach(doc => { const c = doc.data(); html += `<div class="glass-panel rounded-lg p-3"><div class="text-[11px] font-bold text-sky-400">${c.author}</div><p class="text-xs text-slate-200 mt-0.5">${c.text}</p></div>`; });
+    list.innerHTML = html || `<div class="text-xs text-slate-400 text-center py-6">Be the first to share an idea or word of encouragement!</div>`;
+  } catch (e) { console.error(e); }
+}
+
+async function postComment() {
+  if (!currentUser) return openAuthModal();
+  const input = document.getElementById("commentInput"), txt = input.value.trim(); if (!txt) return; input.value = "";
+  await db.collection("community_comments").add({ author: userProfile.name || currentUser.email.split("@")[0], text: txt, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  loadComments();
+}
+
+function toggleNsfw() { showNsfw = document.getElementById("nsfwToggle").checked; localStorage.setItem("skill_tree_nsfw", showNsfw); }
+async function saveProfileSettings() {
+  userProfile.name = document.getElementById("profileNameInput").value.trim() || "Initiate";
+  userProfile.contact = document.getElementById("profileContactInput").value.trim();
+  await saveUserData(); alert("Guild Profile saved!");
+}
+
+updateGlobalUI();
+if (!localStorage.getItem("skill_tree_tut_v3")) openTutorial();

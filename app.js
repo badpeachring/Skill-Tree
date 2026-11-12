@@ -12,7 +12,7 @@ try {
   firebase.initializeApp(firebaseConfig);
   auth = firebase.auth();
   db = firebase.firestore();
-} catch (e) { console.error("Firebase init:", e); }
+} catch (e) { console.error(e); }
 
 let currentUser = null;
 let userTrees = JSON.parse(localStorage.getItem("skill_tree_local_trees") || "{}");
@@ -29,10 +29,7 @@ window.addEventListener("popstate", () => {
   let closedModal = false;
   modals.forEach(m => {
     const el = document.getElementById(m);
-    if (el && !el.classList.contains("hidden")) {
-      el.classList.add("hidden");
-      closedModal = true;
-    }
+    if (el && !el.classList.contains("hidden")) { el.classList.add("hidden"); closedModal = true; }
   });
   if (closedModal) { window.history.pushState({ view: "sub" }, ""); return; }
   if (document.getElementById("viewMenu").classList.contains("hidden")) openMainMenu(true);
@@ -155,31 +152,10 @@ function renderTut() {
 document.getElementById("tutPrevBtn").onclick = () => { if (tutIdx > 0) { tutIdx--; renderTut(); } };
 document.getElementById("tutNextBtn").onclick = () => { tutIdx < tutSteps.length - 1 ? (tutIdx++, renderTut()) : closeTutorial(); };
 
-function openAuthModal() {
-  window.history.pushState({ modal: "auth" }, "");
-  document.getElementById("authStatus").classList.add("hidden");
-  document.getElementById("authModal").classList.remove("hidden");
-}
-function showAuth(msg, err = true) {
-  const el = document.getElementById("authStatus"); el.textContent = msg;
-  el.className = err ? "text-xs text-red-400" : "text-xs text-sky-400"; el.classList.remove("hidden");
-}
-async function handleSignUp() {
-  if (!auth) return showAuth("Firebase unavailable offline.");
-  showAuth("Creating account...", false);
-  try {
-    await auth.createUserWithEmailAndPassword(document.getElementById("authEmail").value.trim(), document.getElementById("authPassword").value);
-    document.getElementById("authModal").classList.add("hidden");
-  } catch (e) { showAuth(e.message, true); }
-}
-async function handleSignIn() {
-  if (!auth) return showAuth("Firebase unavailable offline.");
-  showAuth("Signing in...", false);
-  try {
-    await auth.signInWithEmailAndPassword(document.getElementById("authEmail").value.trim(), document.getElementById("authPassword").value);
-    document.getElementById("authModal").classList.add("hidden");
-  } catch (e) { showAuth(e.message, true); }
-}
+function openAuthModal() { window.history.pushState({ modal: "auth" }, ""); document.getElementById("authStatus").classList.add("hidden"); document.getElementById("authModal").classList.remove("hidden"); }
+function showAuth(msg, err = true) { const el = document.getElementById("authStatus"); el.textContent = msg; el.className = err ? "text-xs text-red-400" : "text-xs text-sky-400"; el.classList.remove("hidden"); }
+async function handleSignUp() { if (!auth) return showAuth("Firebase unavailable offline."); showAuth("Creating account...", false); try { await auth.createUserWithEmailAndPassword(document.getElementById("authEmail").value.trim(), document.getElementById("authPassword").value); document.getElementById("authModal").classList.add("hidden"); } catch (e) { showAuth(e.message, true); } }
+async function handleSignIn() { if (!auth) return showAuth("Firebase unavailable offline."); showAuth("Signing in...", false); try { await auth.signInWithEmailAndPassword(document.getElementById("authEmail").value.trim(), document.getElementById("authPassword").value); document.getElementById("authModal").classList.add("hidden"); } catch (e) { showAuth(e.message, true); } }
 document.getElementById("logOutBtn").onclick = () => { if (auth) auth.signOut(); };
 if (auth) {
   auth.onAuthStateChanged(async (user) => {
@@ -278,7 +254,7 @@ window.addEventListener("resize", resizeTreeCanvas);
 
 function drawConstellation() {
   const tree = userTrees[selectedTree]; if (!tree) return;
-  const nodes = tree.nodes || [], c = document.getElementById("treeCanvas"), ctx = c.getContext("2d"), box = document.getElementById("nodesContainer");
+  const nodes = tree.nodes || [], c = document.getElementById("treeCanvas"), box = document.getElementById("nodesContainer");
   document.getElementById("treeNodeCount").textContent = `${nodes.length} / 30 Fruit Nodes • Drag to shape branches`;
   document.getElementById("treeMilestoneTag").textContent = nodes.length >= 150 ? "World Tree (150+)" : nodes.length >= 90 ? "Elder Tree (90+)" : nodes.length >= 30 ? "Full Canopy (30+)" : nodes.length > 0 ? "Growing Tree" : "Seedling";
   box.innerHTML = "";
@@ -344,52 +320,12 @@ document.querySelectorAll(".status-toggle").forEach(b => b.onclick = () => { if 
 document.getElementById("closeModalBtn").onclick = () => document.getElementById("detailModal").classList.add("hidden");
 document.getElementById("saveSkillBtn").onclick = async () => { if (!activeNode) return; activeNode.icon = document.getElementById("modalIcon").value; activeNode.color = document.getElementById("modalColor").value; activeNode.notes = document.getElementById("modalNotes").value; document.getElementById("detailModal").classList.add("hidden"); drawConstellation(); await saveUserData(); };
 
-async function publishCurrentTree() {
-  if (!currentUser) return openAuthModal();
-  const tree = userTrees[selectedTree]; if (!tree || (tree.nodes || []).length === 0) return alert("Add at least 1 skill node before publishing.");
-  const tagChoice = prompt("Tag this tree as: Mentorship, Business, Hobby, or 21+ :", "Mentorship") || "Mentorship";
-  await db.collection("public_trees").add({ title: selectedTree, attr: tree.attr || "WIS", tag: tagChoice, nsfw: tagChoice.includes("21"), author: userProfile.name || currentUser.email.split("@")[0], contact: userProfile.contact || "", likes: 1, nodes: tree.nodes.map(n => ({ title: n.title, notes: n.notes })), createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-  alert(`"${selectedTree}" is now live in The Server Realm!`);
-}
-
-async function loadServerRealm() {
-  let cloudTrees = [];
-  if (db) { try { const snap = await db.collection("public_trees").orderBy("createdAt", "desc").limit(40).get(); snap.forEach(doc => cloudTrees.push({ id: doc.id, isCloud: true, ...doc.data() })); } catch (e) { console.error(e); } }
-  publicTreesCache = [...cloudTrees, ...(typeof baseConceptTrees !== "undefined" ? baseConceptTrees : [])]; renderServerList();
-}
-
+async function publishCurrentTree() { if (!currentUser) return openAuthModal(); const tree = userTrees[selectedTree]; if (!tree || (tree.nodes || []).length === 0) return alert("Add at least 1 skill node before publishing."); const tagChoice = prompt("Tag this tree as: Mentorship, Business, Hobby, or 21+ :", "Mentorship") || "Mentorship"; await db.collection("public_trees").add({ title: selectedTree, attr: tree.attr || "WIS", tag: tagChoice, nsfw: tagChoice.includes("21"), author: userProfile.name || currentUser.email.split("@")[0], contact: userProfile.contact || "", likes: 1, nodes: tree.nodes.map(n => ({ title: n.title, notes: n.notes })), createdAt: firebase.firestore.FieldValue.serverTimestamp() }); alert(`"${selectedTree}" is now live in The Server Realm!`); }
+async function loadServerRealm() { let cloudTrees = []; if (db) { try { const snap = await db.collection("public_trees").orderBy("createdAt", "desc").limit(40).get(); snap.forEach(doc => cloudTrees.push({ id: doc.id, isCloud: true, ...doc.data() })); } catch (e) { console.error(e); } } publicTreesCache = [...cloudTrees, ...(typeof baseConceptTrees !== "undefined" ? baseConceptTrees : [])]; renderServerList(); }
 function filterServer(tag) { serverFilter = tag; document.querySelectorAll(".srv-filter").forEach(b => { b.className = b.textContent.toLowerCase().includes(tag.toLowerCase()) || (tag === "ALL" && b.textContent === "All") ? "srv-filter px-2.5 py-1 rounded bg-sky-500 text-slate-950 text-[11px] font-bold shrink-0" : "srv-filter px-2.5 py-1 rounded bg-slate-800 text-slate-300 text-[11px] shrink-0"; }); renderServerList(); }
-function renderServerList() {
-  const list = document.getElementById("serverList"), filtered = publicTreesCache.filter(t => (!t.nsfw || showNsfw) && (serverFilter === "ALL" || (serverFilter === "Concept" && t.tag === "Concept") || (serverFilter === "Community" && t.isCloud) || (serverFilter === "Business" && (t.tag || "").toLowerCase().includes("business"))));
-  document.getElementById("serverCountBadge").textContent = `${filtered.length} Trees`;
-  list.innerHTML = filtered.map(t => `<div class="glass-panel rounded-xl p-3.5 space-y-2"><div class="flex justify-between items-start"><div><div class="flex items-center space-x-1.5"><span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300">${t.attr}</span><span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-semibold">${t.tag}</span>${t.nsfw ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-950 text-red-300 font-bold">21+</span>' : ''}</div><h3 class="text-sm font-bold text-white skyrim-font mt-1">${t.title}</h3><p class="text-[11px] text-slate-400">By ${t.author} ${t.contact ? `• 📞 ${t.contact}` : ""} • ${(t.nodes || []).length} Skills</p></div><button onclick="likeServerTree('${t.id}', ${!!t.isCloud})" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs text-rose-400 font-bold">♥ ${t.likes || 0}</button></div><button onclick="inspectServerTree('${t.id}')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-bold text-sky-300">Inspect Skills & Harvest Nodes</button></div>`).join("");
-}
+function renderServerList() { const list = document.getElementById("serverList"), filtered = publicTreesCache.filter(t => (!t.nsfw || showNsfw) && (serverFilter === "ALL" || (serverFilter === "Concept" && t.tag === "Concept") || (serverFilter === "Community" && t.isCloud) || (serverFilter === "Business" && (t.tag || "").toLowerCase().includes("business")))); document.getElementById("serverCountBadge").textContent = `${filtered.length} Trees`; list.innerHTML = filtered.map(t => `<div class="glass-panel rounded-xl p-3.5 space-y-2"><div class="flex justify-between items-start"><div><div class="flex items-center space-x-1.5"><span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300">${t.attr}</span><span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-semibold">${t.tag}</span>${t.nsfw ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-950 text-red-300 font-bold">21+</span>' : ''}</div><h3 class="text-sm font-bold text-white skyrim-font mt-1">${t.title}</h3><p class="text-[11px] text-slate-400">By ${t.author} ${t.contact ? `• 📞 ${t.contact}` : ""} • ${(t.nodes || []).length} Skills</p></div><button onclick="likeServerTree('${t.id}', ${!!t.isCloud})" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs text-rose-400 font-bold">♥ ${t.likes || 0}</button></div><button onclick="inspectServerTree('${t.id}')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-bold text-sky-300">Inspect Skills & Harvest Nodes</button></div>`).join(""); }
 async function likeServerTree(id, isCloud) { const item = publicTreesCache.find(x => x.id === id); if (!item) return; item.likes = (item.likes || 0) + 1; renderServerList(); if (isCloud && db) await db.collection("public_trees").doc(id).update({ likes: firebase.firestore.FieldValue.increment(1) }); }
-function inspectServerTree(id) {
-  const tree = publicTreesCache.find(x => x.id === id); if (!tree) return; window.history.pushState({ modal: "inspect" }, "");
-  document.getElementById("inspTag").textContent = `${tree.attr} • ${tree.tag}`; document.getElementById("inspTitle").textContent = tree.title; document.getElementById("inspAuthor").textContent = `By ${tree.author} ${tree.contact ? `(${tree.contact})` : ""}`;
-  document.getElementById("inspNodesList").innerHTML = (tree.nodes || []).map((n, idx) => `<div class="bg-slate-950/90 border border-slate-800 rounded-lg p-3 flex items-start justify-between gap-2"><div><div class="text-xs font-bold text-white">${n.title}</div><p class="text-[11px] text-slate-400 mt-0.5">${n.notes}</p></div><button onclick="harvestSingleNode('${tree.id}', ${idx})" class="px-2.5 py-1.5 bg-sky-500 text-slate-950 rounded text-[11px] font-bold shrink-0">+ Harvest</button></div>`).join("");
-  document.getElementById("serverInspectModal").classList.remove("hidden");
-}
-async function harvestSingleNode(treeId, nodeIdx) {
-  const srcTree = publicTreesCache.find(x => x.id === treeId); if (!srcTree) return;
-  const srcNode = srcTree.nodes[nodeIdx], existingKeys = Object.keys(userTrees);
-  let targetTreeName = existingKeys.length === 0 ? await createNewTree(srcTree.title, srcTree.attr, []) : prompt(`Which of your trees should receive "${srcNode.title}"?\nYour trees: ${existingKeys.join(", ")}`, existingKeys[0]);
-  if (!targetTreeName) return; if (!userTrees[targetTreeName]) await createNewTree(targetTreeName, srcTree.attr, []);
-  const targetNodes = userTrees[targetTreeName].nodes, spreadX = [50, 26, 74, 34, 66, 18, 82, 42, 58];
-  targetNodes.push({ id: "h_" + Date.now(), title: srcNode.title, status: "locked", icon: "✦", color: "#38bdf8", x: spreadX[targetNodes.length % spreadX.length], y: Math.max(14, 62 - Math.floor(targetNodes.length / 3) * 14), notes: srcNode.notes, parentId: targetNodes.length ? targetNodes[targetNodes.length - 1].id : null });
-  await saveUserData(); alert(`Harvested "${srcNode.title}" onto "${targetTreeName}"!`);
-}
-
-function renderStats() {
-  const st = calculateCharacterStats(), lbl = { STR: "Strength (Trades/Physical)", DEX: "Dexterity (Craft/Precision)", CON: "Constitution (Health/Grit)", INT: "Intelligence (Systems/Logic)", WIS: "Wisdom (Philosophy/Mastery)", CHA: "Charisma (Leadership/Teaching)" };
-  document.getElementById("statCharTitle").textContent = `Level ${st.level} ${st.level === 0 ? "Initiate" : "Polymath"}`; document.getElementById("statTotalBreakdown").textContent = `${st.totalNodes} Total Nodes • ${st.masteredNodes} Mastered • ${st.completedTrees} Completed (30+)`;
-  document.getElementById("dndAttributesList").innerHTML = Object.keys(st.pts).map(k => { const s = Math.floor(st.pts[k]), mod = Math.floor((s - 10) / 2); return `<div class="space-y-1"><div class="flex justify-between text-xs"><span class="font-bold text-slate-200">${k} <span class="text-slate-400 font-normal text-[11px]">— ${lbl[k]}</span></span><span class="font-black text-sky-400">${s} (${mod >= 0 ? "+" + mod : mod})</span></div><div class="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800"><div style="width:${Math.max(6, Math.min(100, ((s - 10) / 20) * 100))}%" class="h-full bg-sky-400"></div></div></div>`; }).join("");
-}
-
-async function loadLeaderboard() {
-  const list = document.getElementById("leaderboardList"); list.innerHTML = `<div class="text-xs text-slate-400 text-center py-4">Loading Global Rankings...</div>`; if (!db) return;
-  try {
-    const snap = await db.collection("user_trees").get(); let players = []; snap.forEach(doc => { if (doc.data().leaderboard) players.push(doc.data().leaderboard); });
-    players.sort((a, b) => (b.level - a.level) || (b.masteredNodes - a.masteredNodes));
-    list.innerHTML = players.map((p, i) => `<div class="glass-panel rounded-xl p-3 flex items-center justify-between"><div class="flex items-center space-x-3"><span class="text-sm font-black ${i === 0 ? "text-amber-400" : "text-sky-400"}">#${i + 1}</span><div><div class="text-xs font-bold text-white">${p.name}</div><div class="text-[10px] text-slate-400">${p.totalNodes} Nodes • ${p.masteredNodes} Mastered ${p.contact ? `• ${p.contact}` : ""}</div></div></div><span class="text-xs font-black px-2 py-1 rounded bg-sky-500/20 text-sky-300">LVL ${p.level}</span></div>`).join("") || `<div class="tex
+function inspectServerTree(id) { const tree = publicTreesCache.find(x => x.id === id); if (!tree) return; window.history.pushState({ modal: "inspect" }, ""); document.getElementById("inspTag").textContent = `${tree.attr} • ${tree.tag}`; document.getElementById("inspTitle").textContent = tree.title; document.getElementById("inspAuthor").textContent = `By ${tree.author} ${tree.contact ? `(${tree.contact})` : ""}`; document.getElementById("inspNodesList").innerHTML = (tree.nodes || []).map((n, idx) => `<div class="bg-slate-950/90 border border-slate-800 rounded-lg p-3 flex items-start justify-between gap-2"><div><div class="text-xs font-bold text-white">${n.title}</div><p class="text-[11px] text-slate-400 mt-0.5">${n.notes}</p></div><button onclick="harvestSingleNode('${tree.id}', ${idx})" class="px-2.5 py-1.5 bg-sky-500 text-slate-950 rounded text-[11px] font-bold shrink-0">+ Harvest</button></div>`).join(""); document.getElementById("serverInspectModal").classList.remove("hidden"); }
+async function harvestSingleNode(treeId, nodeIdx) { const srcTree = publicTreesCache.find(x => x.id === treeId); if (!srcTree) return; const srcNode = srcTree.nodes[nodeIdx], existingKeys = Object.keys(userTrees); let targetTreeName = existingKeys.length === 0 ? await createNewTree(srcTree.title, srcTree.attr, []) : prompt(`Which of your trees should receive "${srcNode.title}"?\nYour trees: ${existingKeys.join(", ")}`, existingKeys[0]); if (!targetTreeName) return; if (!userTrees[targetTreeName]) await createNewTree(targetTreeName, srcTree.attr, []); const targetNodes = userTrees[targetTreeName].nodes, spreadX = [50, 26, 74, 34, 66, 18, 82, 42, 58]; targetNodes.push({ id: "h_" + Date.now(), title: srcNode.title, status: "locked", icon: "✦", color: "#38bdf8", x: spreadX[targetNodes.length % spreadX.length], y: Math.max(14, 62 - Math.floor(targetNodes.length / 3) * 14), notes: srcNode.notes, parentId: targetNodes.length ? targetNodes[targetNodes.length - 1].id : null }); await saveUserData(); alert(`Harvested "${srcNode.title}" onto "${targetTreeName}"!`); }
+function renderStats() { const st = calculateCharacterStats(), lbl = { STR: "Strength (Trades/Physical)", DEX: "Dexterity (Craft/Precision)", CON: "Constitution (Health/Grit)", INT: "Intelligence (Systems/Logic)", WIS: "Wisdom (Philosophy/Mastery)", CHA: "Charisma (Leadership/Teaching)" }; document.getElementById("statCharTitle").textContent = `Level ${st.level} ${st.level === 0 ? "Initiate" : "Polymath"}`; document.getElementById("statTotalBreakdown").textContent = `${st.totalNodes} Total Nodes • ${st.masteredNodes} Mastered • ${st.completedTrees} Completed (30+)`; document.getElementById("dndAttributesList").innerHTML = Object.keys(st.pts).map(k => { const s = Math.floor(st.pts[k]), mod = Math.floor((s - 10) / 2); return `<div class="space-y-1"><div class="flex justify-between text-xs"><span class="font-bold text-slate-200">${k} <span class="text-slate-400 font-normal text-[11px]">— ${lbl[k]}</span></span><span class="font-black text-sky-400">${s} (${mod >= 0 ? "+" + mod : mod})</span></div><div class="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800"><div style="width:${Math.max(6, Math.min(100, ((s - 10) / 20) * 100))}%" class="h-full bg-sky-400"></div></div></div>`; }).join(""); }
+async function loadLeaderboard() { const list = document.getElementById("leaderboardList"); list.innerHTML = `<div class="text-xs text-slate-400 text-center py-4">Loading Global Rankings...</div>`; if (!db) return; try { const snap = await db.collection("user_trees").get(); let players = []; snap.forEach(doc => { if (doc.data().leaderboard) players.push(doc.data().leaderboard); }); players.sort((a, b) => (b.level - a.level) || (b.masteredNodes - a.masteredNodes)); list.innerHTML = players.map((p, i) => `<div class="glass-panel rounded-xl p-3 flex items-center justify-between"><div class="flex items-center space-x-3"><span class="text-sm font-black ${i === 0 ? "text-amber-400" : "text-sky-400"}">#${i + 1}</span><div><div class="text-xs font-bold text-white">${p.name}</div><div class="text-[10px] text-slate-400">${p.totalNodes} Nodes • ${p.masteredNodes} Mastered ${p.contact ? `• ${p.contact}` : ""}</div></div></div><span class="text-xs font-black px-2 py-1 rounded bg-sky-500/20 text-sky-300">LVL ${p.level}</span></div>`).join("") || `<div class="text-xs text-slate-400 text-center">Sign in and build a tree to claim #1!</div>`; } catch (e) { con

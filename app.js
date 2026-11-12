@@ -11,162 +11,123 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-let currentUser = null;
-let selectedTree = "Culinary Arts";
-let activeNode = null;
+let currentUser = null, selectedTree = "Culinary Arts", activeNode = null, quoteIdx = 0;
 let currentTheme = localStorage.getItem("skill_tree_theme") || "skyrim";
-let quoteIdx = 0;
 
-const philosophyQuotes = [
-  { text: "A disciplined mind focuses on what lies within its own control, finding unshakable strength regardless of external chaos.", author: "Stoic Principle" },
-  { text: "True mastery begins the moment you examine the hidden patterns of your own habits and consciously shape them.", author: "Depth Psychology" },
-  { text: "We are shaped by our repeated actions; excellence is never a single event, but a deliberate daily craft.", author: "Classical Ethics" },
-  { text: "The meaning of life is not merely to exist, but to keep pressing forward into higher capability and deeper understanding.", author: "Existential Reflection" },
-  { text: "When you treat skill acquisition like an open-world quest, every setback becomes experience points rather than defeat.", author: "The Grimoire" }
+const quotes = [
+  { t: "A disciplined mind focuses on what lies within its own control, finding unshakable strength regardless of external chaos.", a: "Stoic Principle" },
+  { t: "True mastery begins the moment you examine the hidden patterns of your own habits and consciously shape them.", a: "Depth Psychology" },
+  { t: "We are shaped by our repeated actions; excellence is never a single event, but a deliberate daily craft.", a: "Classical Ethics" },
+  { t: "When you treat skill acquisition like an open-world quest, every setback becomes experience points rather than defeat.", a: "The Grimoire" }
 ];
 
 const defaultTrees = {
   "Culinary Arts": {
     attr: "WIS",
     nodes: [
-      { id: "c1", title: "Knife Fundamentals", status: "mastered", icon: "⚔", color: "theme", x: 50, y: 82, media: "https://images.unsplash.com/photo-1590794056226-79ef3a8147e1?w=500", notes: "Curl guide fingers inward; use a smooth rocking motion across the board.", parentId: null },
-      { id: "c2", title: "Thermal Control", status: "learning", icon: "🔥", color: "theme", x: 30, y: 58, media: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=500", notes: "Preheat heavy pans thoroughly; allow proteins to sear and release naturally.", parentId: "c1" },
-      { id: "c3", title: "Broths & Reductions", status: "locked", icon: "🌿", color: "theme", x: 70, y: 58, media: "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=500", notes: "Maintain a gentle bare simmer to extract gelatin without clouding.", parentId: "c1" },
-      { id: "c4", title: "Pan Emulsions", status: "locked", icon: "★", color: "theme", x: 50, y: 34, media: "https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=500", notes: "Deglaze browned fond with stock, reduce, and swirl cold fat off direct heat.", parentId: "c2" }
+      { id: "c1", title: "Knife Fundamentals", status: "mastered", icon: "⚔", color: "theme", x: 50, y: 82, media: "https://images.unsplash.com/photo-1590794056226-79ef3a8147e1?w=500", notes: "Curl guide fingers inward; use a smooth rocking motion.", parentId: null },
+      { id: "c2", title: "Thermal Control", status: "learning", icon: "🔥", color: "theme", x: 30, y: 58, media: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=500", notes: "Preheat heavy pans thoroughly; let proteins release naturally.", parentId: "c1" },
+      { id: "c3", title: "Broths & Reductions", status: "locked", icon: "🌿", color: "theme", x: 70, y: 58, media: "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=500", notes: "Bare simmer to extract gelatin without clouding.", parentId: "c1" }
     ]
   },
   "Structural Framing": {
     attr: "STR",
     nodes: [
-      { id: "f1", title: "Layout & Square", status: "mastered", icon: "◆", color: "theme", x: 50, y: 82, media: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500", notes: "Pull measurements from a single reference edge; confirm 90-degree corners with 3-4-5.", parentId: null },
-      { id: "f2", title: "Precision Sawing", status: "mastered", icon: "⚒", color: "theme", x: 32, y: 58, media: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=500", notes: "Account for 1/8-inch blade kerf on the waste side of every mark.", parentId: "f1" },
-      { id: "f3", title: "Wall Assemblies", status: "learning", icon: "🛡", color: "theme", x: 68, y: 58, media: "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=500", notes: "16-inch on-center layout; orient lumber crowns consistently upward.", parentId: "f1" },
-      { id: "f4", title: "Compression Bracing", status: "locked", icon: "👑", color: "theme", x: 50, y: 34, media: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=500", notes: "Install diagonal bracing at optimal angles to prevent lateral racking.", parentId: "f3" }
+      { id: "f1", title: "Layout & Square", status: "mastered", icon: "◆", color: "theme", x: 50, y: 82, media: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500", notes: "Pull from one reference edge; confirm square with 3-4-5.", parentId: null },
+      { id: "f2", title: "Precision Sawing", status: "mastered", icon: "⚒", color: "theme", x: 32, y: 58, media: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=500", notes: "Account for 1/8-inch blade kerf on the waste side.", parentId: "f1" },
+      { id: "f3", title: "Wall Assemblies", status: "learning", icon: "🛡", color: "theme", x: 68, y: 58, media: "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=500", notes: "16-inch on-center layout; orient lumber crowns upward.", parentId: "f1" }
     ]
   }
 };
 
 let userTreeData = JSON.parse(JSON.stringify(defaultTrees));
 
-const tutorialSteps = [
-  { badge: "Step 1 of 4 • The Quest Board", title: "Treat Real Life Like an RPG", body: "Most people spend thousands of hours leveling up video game characters while letting their real-world skills fade from memory. This grimoire turns everything you learn—from trades and athletics to philosophy and cooking—into permanent constellations." },
-  { badge: "Step 2 of 4 • Building Constellations", title: "Map Every Skill & Blueprint", body: "Open 'My Constellations' to add trees and skill nodes. Tap any star node to set its rank (Locked, Learning, or Mastered), pick custom icons and colors, and record the exact step-by-step notes so you never forget how you did it." },
-  { badge: "Step 3 of 4 • D&D Attributes & Relics", title: "Level Up Your Character Sheet", body: "Every tree feeds into your D&D attributes (STR, DEX, CON, INT, WIS, CHA). Adding 30 nodes completes a constellation and unlocks your first relic, with higher ascensions at 60, 90, 120, and 150 nodes." },
-  { badge: "Step 4 of 4 • The Vision & Manifesto", title: "Hold Onto Mastery & Pass It Forward", body: "Knowledge shouldn't be locked away or forgotten. By cataloging your masteries clearly, you build a living manual you can revisit anytime—and effortlessly share with friends, apprentices, or teammates so they can learn directly from your path." }
+const tutSteps = [
+  { b: "Step 1 of 4 • The Quest Board", t: "Treat Real Life Like an RPG", d: "Most people spend thousands of hours leveling up video game characters while letting real-world skills fade. This grimoire turns everything you learn into permanent constellations." },
+  { b: "Step 2 of 4 • Building Constellations", t: "Map Every Skill & Blueprint", d: "Tap any star node to set its rank (Locked, Learning, Mastered), pick custom icons and colors, and record step-by-step notes so you never forget." },
+  { b: "Step 3 of 4 • D&D Attributes & Relics", t: "Level Up Your Character Sheet", d: "Every tree feeds into STR, DEX, CON, INT, WIS, and CHA. Adding 30 nodes completes a constellation and unlocks relics at 30, 60, 90, 120, and 150 nodes." },
+  { b: "Step 4 of 4 • The Manifesto", t: "Hold Onto Mastery & Pass It Forward", d: "Catalog your masteries clearly so you build a living manual you can revisit anytime and effortlessly share with friends or apprentices." }
 ];
-let tutIndex = 0;
+let tutIdx = 0;
 
-const authScreen = document.getElementById("authScreen");
-const authEmail = document.getElementById("authEmail");
-const authPassword = document.getElementById("authPassword");
-const authStatus = document.getElementById("authStatus");
-const treeSelect = document.getElementById("treeSelect");
-const canvas = document.getElementById("treeCanvas");
-const ctx = canvas.getContext("2d");
-const nodesContainer = document.getElementById("nodesContainer");
-const detailModal = document.getElementById("detailModal");
-
-function setTheme(themeName) {
-  currentTheme = themeName;
-  localStorage.setItem("skill_tree_theme", themeName);
-  document.body.className = `theme-${themeName} h-screen w-screen overflow-hidden flex flex-col select-none`;
-  renderTree();
-  renderTrophies();
+function setTheme(t) {
+  currentTheme = t;
+  localStorage.setItem("skill_tree_theme", t);
+  document.body.className = `theme-${t} h-screen w-screen overflow-hidden flex flex-col select-none`;
+  renderTree(); renderTrophies();
 }
 setTheme(currentTheme);
 
-function switchView(viewId) {
-  ["viewHome", "viewTrees", "viewStats", "viewTrophies", "viewSettings"].forEach(id => {
-    document.getElementById(id).classList.add("hidden");
-  });
-  document.getElementById(viewId).classList.remove("hidden");
-  if (viewId === "viewTrees") setTimeout(resizeCanvas, 30);
-  if (viewId === "viewStats") renderStats();
-  if (viewId === "viewTrophies") renderTrophies();
+function switchView(id) {
+  ["viewHome", "viewTrees", "viewStats", "viewTrophies", "viewSettings"].forEach(v => document.getElementById(v).classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
+  if (id === "viewTrees") setTimeout(resizeCanvas, 30);
+  if (id === "viewStats") renderStats();
+  if (id === "viewTrophies") renderTrophies();
 }
 
 document.getElementById("homeNavBtn").onclick = () => switchView("viewHome");
 document.getElementById("navTreesBtn").onclick = () => switchView("viewTrees");
 document.getElementById("navStatsBtn").onclick = () => switchView("viewStats");
 document.getElementById("navSettingsBtn").onclick = () => switchView("viewSettings");
-
 document.getElementById("nextQuoteBtn").onclick = () => {
-  quoteIdx = (quoteIdx + 1) % philosophyQuotes.length;
-  document.getElementById("quoteText").textContent = `"${philosophyQuotes[quoteIdx].text}"`;
-  document.getElementById("quoteAuthor").textContent = `— ${philosophyQuotes[quoteIdx].author}`;
+  quoteIdx = (quoteIdx + 1) % quotes.length;
+  document.getElementById("quoteText").textContent = `"${quotes[quoteIdx].t}"`;
+  document.getElementById("quoteAuthor").textContent = `— ${quotes[quoteIdx].a}`;
 };
 
-function openTutorial() {
-  tutIndex = 0;
-  updateTutorialUI();
-  document.getElementById("tutorialModal").classList.remove("hidden");
+function openTutorial() { tutIdx = 0; updateTut(); document.getElementById("tutorialModal").classList.remove("hidden"); }
+function closeTutorial() { document.getElementById("tutorialModal").classList.add("hidden"); localStorage.setItem("skill_tree_tut_seen", "true"); }
+function updateTut() {
+  const s = tutSteps[tutIdx];
+  document.getElementById("tutStepBadge").textContent = s.b;
+  document.getElementById("tutTitle").textContent = s.t;
+  document.getElementById("tutBody").textContent = s.d;
+  document.getElementById("tutPrevBtn").classList.toggle("hidden", tutIdx === 0);
+  document.getElementById("tutNextBtn").textContent = tutIdx === tutSteps.length - 1 ? "Begin Journey" : "Next";
 }
+document.getElementById("tutPrevBtn").onclick = () => { if (tutIdx > 0) { tutIdx--; updateTut(); } };
+document.getElementById("tutNextBtn").onclick = () => { tutIdx < tutSteps.length - 1 ? (tutIdx++, updateTut()) : closeTutorial(); };
 
-function closeTutorial() {
-  document.getElementById("tutorialModal").classList.add("hidden");
-  localStorage.setItem("skill_tree_tut_seen", "true");
-}
-
-function updateTutorialUI() {
-  const step = tutorialSteps[tutIndex];
-  document.getElementById("tutStepBadge").textContent = step.badge;
-  document.getElementById("tutTitle").textContent = step.title;
-  document.getElementById("tutBody").textContent = step.body;
-  document.getElementById("tutPrevBtn").classList.toggle("hidden", tutIndex === 0);
-  document.getElementById("tutNextBtn").textContent = tutIndex === tutorialSteps.length - 1 ? "Begin Journey" : "Next";
-}
-
-document.getElementById("tutPrevBtn").onclick = () => { if (tutIndex > 0) { tutIndex--; updateTutorialUI(); } };
-document.getElementById("tutNextBtn").onclick = () => {
-  if (tutIndex < tutorialSteps.length - 1) { tutIndex++; updateTutorialUI(); }
-  else { closeTutorial(); }
-};
-
-function showAuthStatus(msg, isError = true) {
-  authStatus.textContent = msg;
-  authStatus.className = isError ? "text-xs text-red-400" : "text-xs text-sky-400";
-  authStatus.classList.remove("hidden");
+function showAuth(msg, err = true) {
+  const el = document.getElementById("authStatus");
+  el.textContent = msg;
+  el.className = err ? "text-xs text-red-400" : "text-xs text-sky-400";
+  el.classList.remove("hidden");
 }
 
 document.getElementById("signUpBtn").onclick = async () => {
-  showAuthStatus("Forging account...", false);
-  try {
-    await auth.createUserWithEmailAndPassword(authEmail.value.trim(), authPassword.value);
-    localStorage.removeItem("skill_tree_tut_seen");
-  } catch (err) { showAuthStatus(err.message, true); }
+  showAuth("Forging account...", false);
+  try { await auth.createUserWithEmailAndPassword(document.getElementById("authEmail").value.trim(), document.getElementById("authPassword").value); localStorage.removeItem("skill_tree_tut_seen"); }
+  catch (e) { showAuth(e.message, true); }
 };
-
 document.getElementById("signInBtn").onclick = async () => {
-  showAuthStatus("Entering realm...", false);
-  try {
-    await auth.signInWithEmailAndPassword(authEmail.value.trim(), authPassword.value);
-  } catch (err) { showAuthStatus(err.message, true); }
+  showAuth("Entering realm...", false);
+  try { await auth.signInWithEmailAndPassword(document.getElementById("authEmail").value.trim(), document.getElementById("authPassword").value); }
+  catch (e) { showAuth(e.message, true); }
 };
-
 document.getElementById("logOutBtn").onclick = () => auth.signOut();
 
 auth.onAuthStateChanged(async (user) => {
   if (user) {
     currentUser = user;
-    authStatus.classList.add("hidden");
-    authScreen.classList.add("hidden");
+    document.getElementById("authStatus").classList.add("hidden");
+    document.getElementById("authScreen").classList.add("hidden");
     await loadUserData();
     if (!localStorage.getItem("skill_tree_tut_seen")) openTutorial();
   } else {
     currentUser = null;
-    authScreen.classList.remove("hidden");
+    document.getElementById("authScreen").classList.remove("hidden");
   }
 });
 
 async function loadUserData() {
   try {
     const doc = await db.collection("user_trees").doc(currentUser.uid).get();
-    if (doc.exists && doc.data().rpgTrees) { userTreeData = doc.data().rpgTrees; }
+    if (doc.exists && doc.data().rpgTrees) userTreeData = doc.data().rpgTrees;
     else { userTreeData = JSON.parse(JSON.stringify(defaultTrees)); await saveUserData(); }
   } catch (e) { console.error(e); }
-  updateTreeDropdown();
-  renderStats();
-  renderTree();
+  updateTreeDropdown(); renderStats(); renderTree();
 }
 
 async function saveUserData() {
@@ -177,41 +138,27 @@ async function saveUserData() {
 
 function updateTreeDropdown() {
   const keys = Object.keys(userTreeData);
-  if (!keys.includes(selectedTree) && keys.length > 0) selectedTree = keys[0];
-  treeSelect.innerHTML = keys.map(k => `<option value="${k}" ${k === selectedTree ? "selected" : ""}>${k}</option>`).join("");
+  if (!keys.includes(selectedTree) && keys.length) selectedTree = keys[0];
+  document.getElementById("treeSelect").innerHTML = keys.map(k => `<option value="${k}" ${k === selectedTree ? "selected" : ""}>${k}</option>`).join("");
   document.getElementById("treeAttrBadge").textContent = userTreeData[selectedTree]?.attr || "WIS";
 }
-
-treeSelect.onchange = (e) => { selectedTree = e.target.value; updateTreeDropdown(); renderTree(); };
+document.getElementById("treeSelect").onchange = (e) => { selectedTree = e.target.value; updateTreeDropdown(); renderTree(); };
 
 document.getElementById("newTreeBtn").onclick = async () => {
   const name = prompt("Name of your new Skill Tree:");
   if (!name || userTreeData[name]) return;
-  const attrInput = (prompt("Primary D&D Attribute (STR, DEX, CON, INT, WIS, or CHA):", "WIS") || "WIS").toUpperCase();
-  const chosenAttr = ["STR", "DEX", "CON", "INT", "WIS", "CHA"].includes(attrInput) ? attrInput : "WIS";
+  const a = (prompt("Primary D&D Attribute (STR, DEX, CON, INT, WIS, or CHA):", "WIS") || "WIS").toUpperCase();
   userTreeData[name] = {
-    attr: chosenAttr,
+    attr: ["STR", "DEX", "CON", "INT", "WIS", "CHA"].includes(a) ? a : "WIS",
     nodes: [{ id: "n_" + Date.now(), title: "Core Foundation", status: "learning", icon: "★", color: "theme", x: 50, y: 82, media: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500", notes: "Foundational principles for " + name, parentId: null }]
   };
-  selectedTree = name;
-  updateTreeDropdown();
-  renderTree();
-  await saveUserData();
+  selectedTree = name; updateTreeDropdown(); renderTree(); await saveUserData();
 };
 
-function getMilestoneLabel(count) {
-  if (count >= 150) return "Mythic Ascension (150+)";
-  if (count >= 120) return "Grandmaster Saga (120+)";
-  if (count >= 90) return "Mastery Forge (90+)";
-  if (count >= 60) return "Adept Grimoire (60+)";
-  if (count >= 30) return "Constellation Complete (30+)";
-  return "Novice Constellation";
-}
-
 function resizeCanvas() {
-  if (!canvas.parentElement) return;
-  canvas.width = canvas.parentElement.clientWidth;
-  canvas.height = canvas.parentElement.clientHeight;
+  const c = document.getElementById("treeCanvas");
+  if (!c.parentElement) return;
+  c.width = c.parentElement.clientWidth; c.height = c.parentElement.clientHeight;
   renderTree();
 }
 window.addEventListener("resize", resizeCanvas);
@@ -219,156 +166,104 @@ window.addEventListener("resize", resizeCanvas);
 function renderTree() {
   const treeObj = userTreeData[selectedTree];
   if (!treeObj) return;
-  const currentNodes = treeObj.nodes || [];
-  document.getElementById("treeNodeCount").textContent = `${currentNodes.length} / 30 Nodes to Complete`;
-  document.getElementById("treeMilestoneTag").textContent = getMilestoneLabel(currentNodes.length);
+  const nodes = treeObj.nodes || [], c = document.getElementById("treeCanvas"), ctx = c.getContext("2d"), box = document.getElementById("nodesContainer");
+  document.getElementById("treeNodeCount").textContent = `${nodes.length} / 30 Nodes to Complete`;
+  document.getElementById("treeMilestoneTag").textContent = nodes.length >= 150 ? "Mythic (150+)" : nodes.length >= 120 ? "Grandmaster (120+)" : nodes.length >= 90 ? "Mastery (90+)" : nodes.length >= 60 ? "Adept (60+)" : nodes.length >= 30 ? "Complete (30+)" : "Novice Constellation";
+  ctx.clearRect(0, 0, c.width, c.height); box.innerHTML = "";
+  const accent = getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#38bdf8";
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  nodesContainer.innerHTML = "";
-  const accentHex = getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#38bdf8";
-
-  currentNodes.forEach(node => {
-    if (node.parentId) {
-      const parent = currentNodes.find(n => n.id === node.parentId);
-      if (parent) {
-        ctx.beginPath();
-        ctx.moveTo((parent.x / 100) * canvas.width, (parent.y / 100) * canvas.height);
-        ctx.lineTo((node.x / 100) * canvas.width, (node.y / 100) * canvas.height);
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = node.status === "mastered" ? accentHex : (node.status === "learning" ? "#eab308" : "#374151");
-        ctx.setLineDash(node.status === "locked" ? [4, 4] : []);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
+  nodes.forEach(n => {
+    const p = nodes.find(x => x.id === n.parentId);
+    if (p) {
+      ctx.beginPath(); ctx.moveTo((p.x / 100) * c.width, (p.y / 100) * c.height); ctx.lineTo((n.x / 100) * c.width, (n.y / 100) * c.height);
+      ctx.lineWidth = 2; ctx.strokeStyle = n.status === "mastered" ? accent : n.status === "learning" ? "#eab308" : "#374151";
+      ctx.setLineDash(n.status === "locked" ? [4, 4] : []); ctx.stroke(); ctx.setLineDash([]);
     }
   });
 
-  currentNodes.forEach(node => {
+  nodes.forEach(n => {
     const div = document.createElement("div");
     div.className = "absolute pointer-events-auto flex flex-col items-center -translate-x-1/2 -translate-y-1/2 cursor-pointer";
-    div.style.left = `${node.x}%`;
-    div.style.top = `${node.y}%`;
-    const customColor = node.color && node.color !== "theme" ? node.color : accentHex;
-    const isMastered = node.status === "mastered";
-    const isLearning = node.status === "learning";
-    const circleStyle = isMastered
-      ? `background-color: ${customColor}; border-color: #ffffff; box-shadow: 0 0 14px ${customColor};`
-      : (isLearning ? `background-color: #f59e0b; border-color: #fef3c7;` : `background-color: #1f2937; border-color: #4b5563;`);
-    const shapeClass = currentTheme === "minecraft" ? "rounded-none" : "rounded-full";
-    div.innerHTML = `
-      <div style="${circleStyle}" class="w-8 h-8 ${shapeClass} border-2 ${isMastered ? 'node-pulse' : ''} flex items-center justify-center text-xs font-bold ${isMastered || isLearning ? 'text-gray-950' : 'text-gray-300'}">${node.icon || "★"}</div>
-      <span class="text-[11px] font-semibold tracking-wide text-gray-200 mt-1 whitespace-nowrap bg-gray-950/85 px-2 py-0.5 rounded border border-gray-800">${node.title}</span>
-    `;
-    div.onclick = () => openModal(node);
-    nodesContainer.appendChild(div);
+    div.style.left = `${n.x}%`; div.style.top = `${n.y}%`;
+    const col = n.color && n.color !== "theme" ? n.color : accent;
+    const m = n.status === "mastered", l = n.status === "learning";
+    const style = m ? `background-color:${col};border-color:#fff;box-shadow:0 0 14px ${col};` : l ? `background-color:#f59e0b;border-color:#fef3c7;` : `background-color:#1f2937;border-color:#4b5563;`;
+    div.innerHTML = `<div style="${style}" class="w-8 h-8 ${currentTheme === "minecraft" ? "rounded-none" : "rounded-full"} border-2 ${m ? "node-pulse" : ""} flex items-center justify-center text-xs font-bold ${m || l ? "text-gray-950" : "text-gray-300"}">${n.icon || "★"}</div><span class="text-[11px] font-semibold text-gray-200 mt-1 whitespace-nowrap bg-gray-950/85 px-2 py-0.5 rounded border border-gray-800">${n.title}</span>`;
+    div.onclick = () => openModal(n);
+    box.appendChild(div);
   });
 }
 
-function openModal(node) {
-  activeNode = node;
-  document.getElementById("modalTitle").textContent = node.title;
-  document.getElementById("modalMedia").src = node.media || "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500";
-  document.getElementById("modalMediaUrl").value = node.media || "";
-  document.getElementById("modalIcon").value = node.icon || "★";
-  document.getElementById("modalColor").value = node.color || "theme";
-  document.getElementById("modalNotes").value = node.notes || "";
-  updateStatusToggles(node.status);
-  detailModal.classList.remove("hidden");
+function openModal(n) {
+  activeNode = n;
+  document.getElementById("modalTitle").textContent = n.title;
+  document.getElementById("modalMedia").src = n.media || "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500";
+  document.getElementById("modalMediaUrl").value = n.media || "";
+  document.getElementById("modalIcon").value = n.icon || "★";
+  document.getElementById("modalColor").value = n.color || "theme";
+  document.getElementById("modalNotes").value = n.notes || "";
+  updateStatusToggles(n.status);
+  document.getElementById("detailModal").classList.remove("hidden");
 }
 
-function updateStatusToggles(status) {
-  document.querySelectorAll(".status-toggle").forEach(btn => {
-    btn.className = btn.dataset.status === status
-      ? "status-toggle py-1.5 text-xs rounded border border-white rpg-bg-accent font-bold"
-      : "status-toggle py-1.5 text-xs rounded border border-gray-800 bg-gray-950 text-gray-400";
+function updateStatusToggles(st) {
+  document.querySelectorAll(".status-toggle").forEach(b => {
+    b.className = b.dataset.status === st ? "status-toggle py-1.5 text-xs rounded border border-white rpg-bg-accent font-bold" : "status-toggle py-1.5 text-xs rounded border border-gray-800 bg-gray-950 text-gray-400";
   });
 }
-
-document.querySelectorAll(".status-toggle").forEach(btn => {
-  btn.onclick = () => { if (activeNode) activeNode.status = btn.dataset.status; updateStatusToggles(btn.dataset.status); };
-});
-
-document.getElementById("closeModalBtn").onclick = () => detailModal.classList.add("hidden");
+document.querySelectorAll(".status-toggle").forEach(b => b.onclick = () => { if (activeNode) activeNode.status = b.dataset.status; updateStatusToggles(b.dataset.status); });
+document.getElementById("closeModalBtn").onclick = () => document.getElementById("detailModal").classList.add("hidden");
 
 document.getElementById("saveSkillBtn").onclick = async () => {
-  if (activeNode) {
-    activeNode.notes = document.getElementById("modalNotes").value;
-    activeNode.icon = document.getElementById("modalIcon").value;
-    activeNode.color = document.getElementById("modalColor").value;
-    const urlVal = document.getElementById("modalMediaUrl").value.trim();
-    if (urlVal) activeNode.media = urlVal;
-    detailModal.classList.add("hidden");
-    renderTree();
-    await saveUserData();
-  }
+  if (!activeNode) return;
+  activeNode.notes = document.getElementById("modalNotes").value;
+  activeNode.icon = document.getElementById("modalIcon").value;
+  activeNode.color = document.getElementById("modalColor").value;
+  const u = document.getElementById("modalMediaUrl").value.trim();
+  if (u) activeNode.media = u;
+  document.getElementById("detailModal").classList.add("hidden");
+  renderTree(); await saveUserData();
 };
 
 document.getElementById("addNodeBtn").onclick = async () => {
   const name = prompt("Name of the new skill node:");
   if (!name) return;
-  const currentNodes = userTreeData[selectedTree].nodes;
-  const xCols = [50, 28, 72, 50, 22, 78, 50];
-  const row = Math.floor(currentNodes.length / 2);
-  currentNodes.push({
+  const nodes = userTreeData[selectedTree].nodes, cols = [50, 28, 72, 50, 22, 78, 50];
+  nodes.push({
     id: "s_" + Date.now(), title: name, status: "locked", icon: "★", color: "theme",
-    x: xCols[currentNodes.length % xCols.length], y: Math.max(12, 82 - row * 12),
-    media: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500",
-    notes: "Step-by-step execution notes and key lessons.",
-    parentId: currentNodes.length > 0 ? currentNodes[currentNodes.length - 1].id : null
+    x: cols[nodes.length % cols.length], y: Math.max(12, 82 - Math.floor(nodes.length / 2) * 12),
+    media: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500", notes: "Step-by-step execution notes.",
+    parentId: nodes.length ? nodes[nodes.length - 1].id : null
   });
-  renderTree();
-  await saveUserData();
+  renderTree(); await saveUserData();
 };
 
 function renderStats() {
-  const attrPoints = { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 };
-  const attrLabels = { STR: "Strength (Physical & Trades)", DEX: "Dexterity (Precision & Craft)", CON: "Constitution (Health & Grit)", INT: "Intelligence (Systems & Logic)", WIS: "Wisdom (Philosophy & Mastery)", CHA: "Charisma (Leadership & Teaching)" };
-  let totalNodes = 0, masteredNodes = 0, completedTrees = 0;
-
-  Object.values(userTreeData).forEach(tree => {
-    const nodes = tree.nodes || [];
-    const attr = tree.attr || "WIS";
-    totalNodes += nodes.length;
-    if (nodes.length >= 30) completedTrees++;
-    nodes.forEach(n => {
-      if (n.status === "mastered") { masteredNodes++; attrPoints[attr] = (attrPoints[attr] || 10) + 1; }
-      else if (n.status === "learning") { attrPoints[attr] = (attrPoints[attr] || 10) + 0.5; }
-    });
+  const pts = { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 };
+  const lbl = { STR: "Strength (Trades/Physical)", DEX: "Dexterity (Craft/Precision)", CON: "Constitution (Health/Grit)", INT: "Intelligence (Systems/Logic)", WIS: "Wisdom (Philosophy/Mastery)", CHA: "Charisma (Leadership/Teaching)" };
+  let tot = 0, mas = 0, comp = 0;
+  Object.values(userTreeData).forEach(t => {
+    const ns = t.nodes || [], a = t.attr || "WIS"; tot += ns.length; if (ns.length >= 30) comp++;
+    ns.forEach(n => { if (n.status === "mastered") { mas++; pts[a] += 1; } else if (n.status === "learning") pts[a] += 0.5; });
   });
-
-  const charLevel = 1 + Math.floor((totalNodes + masteredNodes * 2) / 5);
-  document.getElementById("headerLvlBadge").textContent = `LVL ${charLevel}`;
-  document.getElementById("statCharTitle").textContent = `Level ${charLevel} Polymath`;
-  document.getElementById("statTotalBreakdown").textContent = `${totalNodes} Total Nodes • ${masteredNodes} Mastered • ${completedTrees} Trees Completed (30+)`;
-
-  document.getElementById("dndAttributesList").innerHTML = Object.keys(attrPoints).map(key => {
-    const score = Math.floor(attrPoints[key]);
-    const mod = Math.floor((score - 10) / 2);
-    const pct = Math.min(100, ((score - 10) / 20) * 100);
-    return `
-      <div class="space-y-1">
-        <div class="flex justify-between text-xs">
-          <span class="font-bold text-gray-200">${key} <span class="text-gray-400 font-normal text-[11px]">— ${attrLabels[key]}</span></span>
-          <span class="font-black rpg-accent">${score} (${mod >= 0 ? "+" + mod : mod})</span>
-        </div>
-        <div class="w-full h-2 bg-gray-950 rounded-full overflow-hidden border border-gray-800">
-          <div style="width: ${Math.max(8, pct)}%" class="h-full rpg-bg-accent transition-all"></div>
-        </div>
-      </div>`;
+  const lvl = 1 + Math.floor((tot + mas * 2) / 5);
+  document.getElementById("headerLvlBadge").textContent = `LVL ${lvl}`;
+  document.getElementById("statCharTitle").textContent = `Level ${lvl} Polymath`;
+  document.getElementById("statTotalBreakdown").textContent = `${tot} Total Nodes • ${mas} Mastered • ${comp} Trees Completed (30+)`;
+  document.getElementById("dndAttributesList").innerHTML = Object.keys(pts).map(k => {
+    const s = Math.floor(pts[k]), mod = Math.floor((s - 10) / 2);
+    return `<div class="space-y-1"><div class="flex justify-between text-xs"><span class="font-bold text-gray-200">${k} <span class="text-gray-400 font-normal text-[11px]">— ${lbl[k]}</span></span><span class="font-black rpg-accent">${s} (${mod >= 0 ? "+" + mod : mod})</span></div><div class="w-full h-2 bg-gray-950 rounded-full overflow-hidden border border-gray-800"><div style="width:${Math.max(8, Math.min(100, ((s - 10) / 20) * 100))}%" class="h-full rpg-bg-accent"></div></div></div>`;
   }).join("");
 }
 
 function renderTrophies() {
   const tiers = [
-    { count: 30, skyrim: "Dragonborn Constellation Relic", lotr: "Star of the Evenstar", minecraft: "Emerald Beacon", desc: "Complete a skill tree with 30+ nodes." },
-    { count: 60, skyrim: "Aetherial Crown", lotr: "Mithril Coat of Moria", minecraft: "Enchanted Golden Apple", desc: "Expand a single tree to 60+ nodes." },
-    { count: 90, skyrim: "Elder Scroll of Mastery", lotr: "Phial of Galadriel", minecraft: "Totem of Undying", desc: "Forge a 90+ node master grimoire." },
-    { count: 120, skyrim: "Sovngarde Ascendant", lotr: "Crown of Gondor", minecraft: "Dragon Egg Relic", desc: "Reach 120+ nodes in a single discipline." },
-    { count: 150, skyrim: "Divine Architect", lotr: "Silmaril of Light", minecraft: "Netherite Command Core", desc: "Achieve 150+ nodes of legendary depth." }
+    { c: 30, skyrim: "Dragonborn Constellation Relic", lotr: "Star of the Evenstar", minecraft: "Emerald Beacon", d: "Complete a tree with 30+ nodes." },
+    { c: 60, skyrim: "Aetherial Crown", lotr: "Mithril Coat of Moria", minecraft: "Enchanted Golden Apple", d: "Expand a tree to 60+ nodes." },
+    { c: 90, skyrim: "Elder Scroll of Mastery", lotr: "Phial of Galadriel", minecraft: "Totem of Undying", d: "Forge a 90+ node grimoire." },
+    { c: 120, skyrim: "Sovngarde Ascendant", lotr: "Crown of Gondor", minecraft: "Dragon Egg Relic", d: "Reach 120+ nodes in one discipline." },
+    { c: 150, skyrim: "Divine Architect", lotr: "Silmaril of Light", minecraft: "Netherite Command Core", d: "Achieve 150+ nodes of depth." }
   ];
-  let maxNodes = 0;
-  Object.values(userTreeData).forEach(t => { if ((t.nodes || []).length > maxNodes) maxNodes = t.nodes.length; });
-  document.getElementById("trophyGrid").innerHTML = tiers.map(tier => {
-    const unlocked = maxNodes >= tier.count;
-    return `
-      <div c
+  let max = 0; Object.values(userTreeData).forEach(t => { if ((t.nodes || []).length > max) max = t.nodes.length; });
+  document.getElementById("trophyGrid").innerHTML = tiers.map(t => `<div class="rpg-card border rounded-xl p-4 flex items-center justify-between ${max >= t.c ? "opacity-100" : "opacity-45"}"><div><div class="text-[10px] uppercase tracking-wider rpg-accent font-bold">${t.c} Node Milestone</div><div class="text-sm font-bold text-white rpg-title">${t[currentTheme] || t.skyrim}</div><div class="text-[11px] text-gray-400">${t.d}</div></div><div class="text-2xl">${max >= t.c ? "🏆" : "🔒"}</div></div>`).join("");
+}

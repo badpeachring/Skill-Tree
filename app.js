@@ -1,64 +1,31 @@
-const firebaseConfig = {
-  apiKey: "AIzaSyBaAcBLfnUulVRxlGx8YKyXFQrm-fIYsms",
-  authDomain: "skill-tree-4cffd.firebaseapp.com",
-  projectId: "skill-tree-4cffd",
-  storageBucket: "skill-tree-4cffd.firebasestorage.app",
-  messagingSenderId: "482405207638",
-  appId: "1:482405207638:web:1a2a944ab4d8036e1ab5f7"
-};
-
+const firebaseConfig = { apiKey: "AIzaSyBaAcBLfnUulVRxlGx8YKyXFQrm-fIYsms", authDomain: "skill-tree-4cffd.firebaseapp.com", projectId: "skill-tree-4cffd", storageBucket: "skill-tree-4cffd.firebasestorage.app", messagingSenderId: "482405207638", appId: "1:482405207638:web:1a2a944ab4d8036e1ab5f7" };
 let auth = null, db = null;
-try {
-  firebase.initializeApp(firebaseConfig);
-  auth = firebase.auth();
-  db = firebase.firestore();
-} catch (e) { console.error(e); }
+try { firebase.initializeApp(firebaseConfig); auth = firebase.auth(); db = firebase.firestore(); } catch (e) { console.error(e); }
 
-let currentUser = null;
+let currentUser = null, selectedTree = null, activeNode = null, serverFilter = "ALL", logoTapCount = 0, draggingNode = null, dragMoved = false;
 let userTrees = JSON.parse(localStorage.getItem("skill_tree_local_trees") || "{}");
 let userProfile = JSON.parse(localStorage.getItem("skill_tree_local_profile") || '{"name":"Initiate","contact":""}');
-let selectedTree = null, activeNode = null, serverFilter = "ALL";
-let showNsfw = localStorage.getItem("skill_tree_nsfw") === "true";
-let publicTreesCache = [];
-let logoTapCount = 0;
-let draggingNode = null, dragMoved = false;
+let showNsfw = localStorage.getItem("skill_tree_nsfw") === "true", publicTreesCache = [];
 
 window.history.replaceState({ view: "menu" }, "");
 window.addEventListener("popstate", () => {
-  const modals = ["detailModal", "serverInspectModal", "authModal", "tutorialModal"];
-  let closedModal = false;
-  modals.forEach(m => {
+  let closed = false;
+  ["detailModal", "serverInspectModal", "authModal", "tutorialModal"].forEach(m => {
     const el = document.getElementById(m);
-    if (el && !el.classList.contains("hidden")) { el.classList.add("hidden"); closedModal = true; }
+    if (el && !el.classList.contains("hidden")) { el.classList.add("hidden"); closed = true; }
   });
-  if (closedModal) { window.history.pushState({ view: "sub" }, ""); return; }
+  if (closed) { window.history.pushState({ view: "sub" }, ""); return; }
   if (document.getElementById("viewMenu").classList.contains("hidden")) openMainMenu(true);
 });
 
 (function initStarfield() {
-  const c = document.getElementById("starfieldCanvas");
-  if (!c) return;
-  const ctx = c.getContext("2d");
-  let stars = [];
-  function resize() {
-    c.width = window.innerWidth; c.height = window.innerHeight;
-    stars = Array.from({ length: 180 }, () => ({
-      x: Math.random() * c.width, y: Math.random() * c.height, r: Math.random() * 1.6 + 0.2,
-      a: Math.random() * 0.8 + 0.2, s: (Math.random() - 0.5) * 0.015,
-      tint: Math.random() > 0.8 ? "#7dd3fc" : (Math.random() > 0.9 ? "#fde68a" : "#ffffff")
-    }));
-  }
+  const c = document.getElementById("starfieldCanvas"); if (!c) return;
+  const ctx = c.getContext("2d"); let stars = [];
+  function resize() { c.width = window.innerWidth; c.height = window.innerHeight; stars = Array.from({ length: 160 }, () => ({ x: Math.random() * c.width, y: Math.random() * c.height, r: Math.random() * 1.5 + 0.3, a: Math.random() * 0.8 + 0.2, s: (Math.random() - 0.5) * 0.015, tint: Math.random() > 0.8 ? "#7dd3fc" : "#ffffff" })); }
   window.addEventListener("resize", resize); resize();
   function draw() {
     ctx.clearRect(0, 0, c.width, c.height);
-    const grad = ctx.createRadialGradient(c.width * 0.5, c.height * 0.25, 20, c.width * 0.5, c.height * 0.5, c.width * 0.9);
-    grad.addColorStop(0, "rgba(14,116,144,0.14)"); grad.addColorStop(0.5, "rgba(30,27,75,0.12)"); grad.addColorStop(1, "rgba(2,6,23,0)");
-    ctx.fillStyle = grad; ctx.fillRect(0, 0, c.width, c.height);
-    stars.forEach(st => {
-      st.a += st.s; if (st.a > 1 || st.a < 0.15) st.s *= -1;
-      ctx.globalAlpha = st.a; ctx.fillStyle = st.tint;
-      ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2); ctx.fill();
-    });
+    stars.forEach(st => { st.a += st.s; if (st.a > 1 || st.a < 0.15) st.s *= -1; ctx.globalAlpha = st.a; ctx.fillStyle = st.tint; ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2); ctx.fill(); });
     ctx.globalAlpha = 1; requestAnimationFrame(draw);
   }
   draw();
@@ -68,168 +35,93 @@ const quotes = [
   { t: "A disciplined mind focuses on what lies within its own control, finding unshakable strength regardless of external chaos.", a: "Stoic Principle" },
   { t: "True mastery begins the moment you examine the hidden patterns of your own habits and consciously shape them.", a: "Depth Psychology" },
   { t: "We are shaped by our repeated actions; excellence is never a single event, but a deliberate daily craft.", a: "Classical Ethics" },
-  { t: "He who has a why to live can bear almost any how.", a: "Existential Philosophy" },
   { t: "When you treat real life like an open-world RPG, every hard lesson becomes permanent experience points.", a: "The Grimoire" }
 ];
 let qIdx = 0;
-document.getElementById("nextQuoteBtn").onclick = () => {
-  qIdx = (qIdx + 1) % quotes.length;
-  document.getElementById("quoteText").textContent = `"${quotes[qIdx].t}"`;
-  document.getElementById("quoteAuthor").textContent = `— ${quotes[qIdx].a}`;
-};
+document.getElementById("nextQuoteBtn").onclick = () => { qIdx = (qIdx + 1) % quotes.length; document.getElementById("quoteText").textContent = `"${quotes[qIdx].t}"`; document.getElementById("quoteAuthor").textContent = `— ${quotes[qIdx].a}`; };
 
-function tapLogoSecret() {
-  logoTapCount++;
-  if (logoTapCount >= 5) { logoTapCount = 0; document.getElementById("adminBar").classList.toggle("hidden"); }
-}
-
+function tapLogoSecret() { if (++logoTapCount >= 5) { logoTapCount = 0; document.getElementById("adminBar").classList.toggle("hidden"); } }
 async function adminBoostNodes() {
   const keys = Object.keys(userTrees);
   let target = keys.length ? keys[0] : await createNewTree("Architect Sandbox", "INT", []);
-  const nodes = userTrees[target].nodes;
-  const presets = [{ x: 50, y: 65 }, { x: 26, y: 52 }, { x: 74, y: 50 }, { x: 36, y: 32 }, { x: 65, y: 28 }];
+  const nodes = userTrees[target].nodes, presets = [{ x: 50, y: 65 }, { x: 26, y: 52 }, { x: 74, y: 50 }, { x: 36, y: 32 }, { x: 65, y: 28 }];
   for (let i = 0; i < 5; i++) {
     const pos = presets[(nodes.length + i) % presets.length];
-    nodes.push({
-      id: "adm_" + Date.now() + "_" + i, title: `Mastered Fruit #${nodes.length + 1}`, status: "mastered",
-      icon: "✦", color: i % 2 === 0 ? "#38bdf8" : "#f59e0b",
-      x: Math.min(88, Math.max(12, pos.x + (Math.random() * 10 - 5))),
-      y: Math.min(76, Math.max(14, pos.y - Math.floor(nodes.length / 5) * 8)),
-      notes: "Generated by Architect Console.", parentId: nodes.length ? nodes[nodes.length - 1].id : null
-    });
+    nodes.push({ id: "adm_" + Date.now() + "_" + i, title: `Mastered Fruit #${nodes.length + 1}`, status: "mastered", icon: "✦", color: i % 2 === 0 ? "#38bdf8" : "#f59e0b", x: Math.min(88, Math.max(12, pos.x + (Math.random() * 10 - 5))), y: Math.min(76, Math.max(14, pos.y - Math.floor(nodes.length / 5) * 8)), notes: "Generated by Architect Console.", parentId: nodes.length ? nodes[nodes.length - 1].id : null });
   }
-  await saveUserData();
-  alert(`Grew 5 Mastered Skill Fruits on "${target}"!`);
+  await saveUserData(); alert(`Grew 5 Mastered Skill Fruits on "${target}"!`);
   if (!document.getElementById("viewTrees").classList.contains("hidden")) renderMyTreesView();
 }
-
-async function adminWipeMe() {
-  if (!confirm("Reset character back to Level 0 and wipe all personal trees?")) return;
-  userTrees = {}; selectedTree = null;
-  await saveUserData();
-  alert("Character reset to Level 0 Initiate.");
-  if (!document.getElementById("viewTrees").classList.contains("hidden")) renderMyTreesView();
-}
+async function adminWipeMe() { if (!confirm("Reset character back to Level 0 and wipe all trees?")) return; userTrees = {}; selectedTree = null; await saveUserData(); alert("Character reset to Level 0."); if (!document.getElementById("viewTrees").classList.contains("hidden")) renderMyTreesView(); }
 
 function openMainMenu(fromPop = false) {
   ["viewTrees", "viewServer", "viewStats", "viewLeaderboard", "viewTrophies", "viewCommunity", "viewSettings"].forEach(id => document.getElementById(id).classList.add("hidden"));
-  document.getElementById("topBar").classList.add("hidden");
-  document.getElementById("viewMenu").classList.remove("hidden");
-  if (!fromPop) window.history.replaceState({ view: "menu" }, "");
-  updateGlobalUI();
+  document.getElementById("topBar").classList.add("hidden"); document.getElementById("viewMenu").classList.remove("hidden");
+  if (!fromPop) window.history.replaceState({ view: "menu" }, ""); updateGlobalUI();
 }
-
 function navigate(viewId, title) {
-  window.history.pushState({ view: viewId }, "");
-  document.getElementById("viewMenu").classList.add("hidden");
+  window.history.pushState({ view: viewId }, ""); document.getElementById("viewMenu").classList.add("hidden");
   ["viewTrees", "viewServer", "viewStats", "viewLeaderboard", "viewTrophies", "viewCommunity", "viewSettings"].forEach(id => document.getElementById(id).classList.add("hidden"));
-  document.getElementById("topBar").classList.remove("hidden");
-  document.getElementById("headerTitle").textContent = title;
-  document.getElementById(viewId).classList.remove("hidden");
-  if (viewId === "viewTrees") renderMyTreesView();
-  if (viewId === "viewServer") loadServerRealm();
-  if (viewId === "viewStats") renderStats();
-  if (viewId === "viewLeaderboard") loadLeaderboard();
-  if (viewId === "viewTrophies") renderTrophies();
-  if (viewId === "viewCommunity") loadComments();
+  document.getElementById("topBar").classList.remove("hidden"); document.getElementById("headerTitle").textContent = title; document.getElementById(viewId).classList.remove("hidden");
+  if (viewId === "viewTrees") renderMyTreesView(); if (viewId === "viewServer") loadServerRealm(); if (viewId === "viewStats") renderStats();
+  if (viewId === "viewLeaderboard") loadLeaderboard(); if (viewId === "viewTrophies") renderTrophies(); if (viewId === "viewCommunity") loadComments();
 }
 
 const tutSteps = [
-  { b: "Step 1 of 4 • The Living Tree", t: "Grow Your Tree of Mastery", d: "Every skill you add sprouts a new branch on your living tree, with your skills blooming as luminous fruit against the night sky. Drag any skill fruit anywhere to shape your tree." },
-  { b: "Step 2 of 4 • Level 0 Blank Slate", t: "Build or Harvest Your Path", d: "You start at Level 0 with a young sapling. Forge your own trees from scratch, or open The Server Realm to inspect 25+ concept trees and harvest single skills onto your branches." },
+  { b: "Step 1 of 4 • The Living Tree", t: "Grow Your Tree of Mastery", d: "Every skill you add sprouts a new branch on your living tree, blooming as luminous fruit against the night sky. Drag any skill fruit anywhere to shape your tree." },
+  { b: "Step 2 of 4 • Level 0 Blank Slate", t: "Build or Harvest Your Path", d: "You start at Level 0 with a young sapling. Forge your own trees from scratch, or open The Server Realm to inspect 25+ concept trees and harvest single skills." },
   { b: "Step 3 of 4 • D&D Attributes & Relics", t: "Ascend Your Character Sheet", d: "Every mastered skill boosts your D&D attributes (STR, DEX, CON, INT, WIS, CHA). Reach 30 nodes to complete a tree, and unlock relics at 30, 60, 90, 120, and 150 nodes." },
-  { b: "Step 4 of 4 • Mentorship & Guilds", t: "Share Blueprints & Prove Mastery", d: "Sign in anytime to sync to the cloud, publish trees for Mentorship or Business/Pro portfolios, earn hearts on the World Leaderboard, and pass your blueprints down." }
+  { b: "Step 4 of 4 • Mentorship & Guilds", t: "Share Blueprints & Prove Mastery", d: "Sign in anytime to sync to the cloud, publish trees for Mentorship or Business portfolios, earn hearts on the World Leaderboard, and pass your blueprints down." }
 ];
 let tutIdx = 0;
 function openTutorial() { tutIdx = 0; renderTut(); window.history.pushState({ modal: "tut" }, ""); document.getElementById("tutorialModal").classList.remove("hidden"); }
 function closeTutorial() { document.getElementById("tutorialModal").classList.add("hidden"); localStorage.setItem("skill_tree_tut_v3", "true"); }
-function renderTut() {
-  const s = tutSteps[tutIdx];
-  document.getElementById("tutStepBadge").textContent = s.b; document.getElementById("tutTitle").textContent = s.t; document.getElementById("tutBody").textContent = s.d;
-  document.getElementById("tutPrevBtn").classList.toggle("hidden", tutIdx === 0);
-  document.getElementById("tutNextBtn").textContent = tutIdx === tutSteps.length - 1 ? "Enter Main Menu" : "Next";
-}
+function renderTut() { const s = tutSteps[tutIdx]; document.getElementById("tutStepBadge").textContent = s.b; document.getElementById("tutTitle").textContent = s.t; document.getElementById("tutBody").textContent = s.d; document.getElementById("tutPrevBtn").classList.toggle("hidden", tutIdx === 0); document.getElementById("tutNextBtn").textContent = tutIdx === tutSteps.length - 1 ? "Enter Main Menu" : "Next"; }
 document.getElementById("tutPrevBtn").onclick = () => { if (tutIdx > 0) { tutIdx--; renderTut(); } };
 document.getElementById("tutNextBtn").onclick = () => { tutIdx < tutSteps.length - 1 ? (tutIdx++, renderTut()) : closeTutorial(); };
 
 function openAuthModal() { window.history.pushState({ modal: "auth" }, ""); document.getElementById("authStatus").classList.add("hidden"); document.getElementById("authModal").classList.remove("hidden"); }
 function showAuth(msg, err = true) { const el = document.getElementById("authStatus"); el.textContent = msg; el.className = err ? "text-xs text-red-400" : "text-xs text-sky-400"; el.classList.remove("hidden"); }
-async function handleSignUp() { if (!auth) return showAuth("Firebase unavailable offline."); showAuth("Creating account...", false); try { await auth.createUserWithEmailAndPassword(document.getElementById("authEmail").value.trim(), document.getElementById("authPassword").value); document.getElementById("authModal").classList.add("hidden"); } catch (e) { showAuth(e.message, true); } }
-async function handleSignIn() { if (!auth) return showAuth("Firebase unavailable offline."); showAuth("Signing in...", false); try { await auth.signInWithEmailAndPassword(document.getElementById("authEmail").value.trim(), document.getElementById("authPassword").value); document.getElementById("authModal").classList.add("hidden"); } catch (e) { showAuth(e.message, true); } }
+async function handleSignUp() { if (!auth) return showAuth("Firebase unavailable."); showAuth("Creating account...", false); try { await auth.createUserWithEmailAndPassword(document.getElementById("authEmail").value.trim(), document.getElementById("authPassword").value); document.getElementById("authModal").classList.add("hidden"); } catch (e) { showAuth(e.message, true); } }
+async function handleSignIn() { if (!auth) return showAuth("Firebase unavailable."); showAuth("Signing in...", false); try { await auth.signInWithEmailAndPassword(document.getElementById("authEmail").value.trim(), document.getElementById("authPassword").value); document.getElementById("authModal").classList.add("hidden"); } catch (e) { showAuth(e.message, true); } }
 document.getElementById("logOutBtn").onclick = () => { if (auth) auth.signOut(); };
+
 if (auth) {
   auth.onAuthStateChanged(async (user) => {
-    if (user) {
-      currentUser = user;
-      document.getElementById("cloudStatusPill").textContent = "☁ Cloud Synced";
-      document.getElementById("cloudStatusPill").className = "text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-950 border border-emerald-500/40 text-emerald-300 font-bold";
-      document.getElementById("menuAuthBtn").textContent = user.email.split("@")[0];
-      document.getElementById("settingsAuthBtn").classList.add("hidden");
-      document.getElementById("logOutBtn").classList.remove("hidden");
-      if (user.email && user.email.toLowerCase() === "sethmcnab13@gmail.com") {
-        document.getElementById("adminBar").classList.remove("hidden");
-        document.getElementById("adminToggleBtn").classList.remove("hidden");
-      }
-      await loadCloudData();
-    } else {
-      currentUser = null;
-      document.getElementById("cloudStatusPill").textContent = "Guest Mode (Local)";
-      document.getElementById("cloudStatusPill").className = "text-[10px] px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-400";
-      document.getElementById("menuAuthBtn").textContent = "Sign In / Cloud Sync";
-      document.getElementById("settingsAuthBtn").classList.remove("hidden");
-      document.getElementById("logOutBtn").classList.add("hidden");
+    currentUser = user || null;
+    document.getElementById("cloudStatusPill").textContent = user ? "☁ Cloud Synced" : "Guest Mode (Local)";
+    document.getElementById("menuAuthBtn").textContent = user ? user.email.split("@")[0] : "Sign In / Cloud Sync";
+    document.getElementById("settingsAuthBtn").classList.toggle("hidden", !!user);
+    document.getElementById("logOutBtn").classList.toggle("hidden", !user);
+    if (user && user.email && user.email.toLowerCase() === "sethmcnab13@gmail.com") { document.getElementById("adminBar").classList.remove("hidden"); document.getElementById("adminToggleBtn").classList.remove("hidden"); }
+    if (user && db) {
+      try {
+        const doc = await db.collection("user_trees").doc(user.uid).get();
+        if (doc.exists) { if (doc.data().customTrees && Object.keys(doc.data().customTrees).length) userTrees = doc.data().customTrees; if (doc.data().profile) userProfile = doc.data().profile; }
+        else await saveUserData();
+        document.getElementById("profileNameInput").value = userProfile.name || ""; document.getElementById("profileContactInput").value = userProfile.contact || "";
+      } catch (e) { console.error(e); }
     }
     updateGlobalUI();
   });
 }
 
-async function loadCloudData() {
-  if (!db || !currentUser) return;
-  try {
-    const doc = await db.collection("user_trees").doc(currentUser.uid).get();
-    if (doc.exists) {
-      const data = doc.data();
-      if (data.customTrees && Object.keys(data.customTrees).length > 0) userTrees = data.customTrees;
-      if (data.profile) userProfile = data.profile;
-    } else { await saveUserData(); }
-    document.getElementById("profileNameInput").value = userProfile.name || "";
-    document.getElementById("profileContactInput").value = userProfile.contact || "";
-  } catch (e) { console.error(e); }
-  updateGlobalUI();
-}
-
 async function saveUserData() {
-  localStorage.setItem("skill_tree_local_trees", JSON.stringify(userTrees));
-  localStorage.setItem("skill_tree_local_profile", JSON.stringify(userProfile));
-  updateGlobalUI();
+  localStorage.setItem("skill_tree_local_trees", JSON.stringify(userTrees)); localStorage.setItem("skill_tree_local_profile", JSON.stringify(userProfile)); updateGlobalUI();
   if (!db || !currentUser) return;
-  const stats = calculateCharacterStats();
-  await db.collection("user_trees").doc(currentUser.uid).set({
-    customTrees: userTrees, profile: userProfile,
-    leaderboard: { uid: currentUser.uid, name: userProfile.name || currentUser.email.split("@")[0], contact: userProfile.contact || "", level: stats.level, totalNodes: stats.totalNodes, masteredNodes: stats.masteredNodes }
-  }, { merge: true });
+  const st = calculateCharacterStats();
+  await db.collection("user_trees").doc(currentUser.uid).set({ customTrees: userTrees, profile: userProfile, leaderboard: { uid: currentUser.uid, name: userProfile.name || currentUser.email.split("@")[0], contact: userProfile.contact || "", level: st.level, totalNodes: st.totalNodes, masteredNodes: st.masteredNodes } }, { merge: true });
 }
-
 function calculateCharacterStats() {
-  const pts = { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 };
-  let totalNodes = 0, masteredNodes = 0, completedTrees = 0;
-  Object.values(userTrees).forEach(t => {
-    const ns = t.nodes || [], a = t.attr || "WIS"; totalNodes += ns.length; if (ns.length >= 30) completedTrees++;
-    ns.forEach(n => { if (n.status === "mastered") { masteredNodes++; pts[a] += 1; } else if (n.status === "learning") pts[a] += 0.5; });
-  });
+  const pts = { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 }; let totalNodes = 0, masteredNodes = 0, completedTrees = 0;
+  Object.values(userTrees).forEach(t => { const ns = t.nodes || [], a = t.attr || "WIS"; totalNodes += ns.length; if (ns.length >= 30) completedTrees++; ns.forEach(n => { if (n.status === "mastered") { masteredNodes++; pts[a] += 1; } else if (n.status === "learning") pts[a] += 0.5; }); });
   return { pts, totalNodes, masteredNodes, completedTrees, level: Math.floor((totalNodes + masteredNodes * 2) / 3) };
 }
-
-function updateGlobalUI() {
-  const st = calculateCharacterStats();
-  document.getElementById("headerLvlBadge").textContent = `LVL ${st.level}`;
-  document.getElementById("menuLvlText").textContent = `Level ${st.level} ${st.level === 0 ? "Initiate" : st.level < 10 ? "Apprentice" : "Master"}`;
-  document.getElementById("menuNodeCount").textContent = `${st.totalNodes} Nodes`;
-}
+function updateGlobalUI() { const st = calculateCharacterStats(); document.getElementById("headerLvlBadge").textContent = `LVL ${st.level}`; document.getElementById("menuLvlText").textContent = `Level ${st.level} ${st.level === 0 ? "Initiate" : st.level < 10 ? "Apprentice" : "Master"}`; document.getElementById("menuNodeCount").textContent = `${st.totalNodes} Nodes`; }
 
 function renderMyTreesView() {
   const keys = Object.keys(userTrees);
-  if (keys.length === 0) { document.getElementById("emptyTreeBanner").classList.remove("hidden"); document.getElementById("activeTreeWorkspace").classList.add("hidden"); return; }
+  if (!keys.length) { document.getElementById("emptyTreeBanner").classList.remove("hidden"); document.getElementById("activeTreeWorkspace").classList.add("hidden"); return; }
   document.getElementById("emptyTreeBanner").classList.add("hidden"); document.getElementById("activeTreeWorkspace").classList.remove("hidden");
   if (!keys.includes(selectedTree)) selectedTree = keys[0];
   document.getElementById("treeSelect").innerHTML = keys.map(k => `<option value="${k}" ${k === selectedTree ? "selected" : ""}>${k}</option>`).join("");
@@ -237,84 +129,55 @@ function renderMyTreesView() {
   setTimeout(resizeTreeCanvas, 30);
 }
 document.getElementById("treeSelect").onchange = (e) => { selectedTree = e.target.value; renderMyTreesView(); };
-
-async function createNewTree(initialTitle = null, initialAttr = null, initialNodes = null) {
-  const name = initialTitle || prompt("Name of your new Skill Tree:");
-  if (!name) return null; if (userTrees[name]) return name;
-  const a = (initialAttr || prompt("Primary D&D Attribute (STR, DEX, CON, INT, WIS, or CHA):", "WIS") || "WIS").toUpperCase();
-  userTrees[name] = { attr: ["STR", "DEX", "CON", "INT", "WIS", "CHA"].includes(a) ? a : "WIS", nodes: initialNodes || [] };
+async function createNewTree(t = null, a = null, n = null) {
+  const name = t || prompt("Name of your new Skill Tree:"); if (!name) return null; if (userTrees[name]) return name;
+  const attr = (a || prompt("Primary D&D Attribute (STR, DEX, CON, INT, WIS, or CHA):", "WIS") || "WIS").toUpperCase();
+  userTrees[name] = { attr: ["STR", "DEX", "CON", "INT", "WIS", "CHA"].includes(attr) ? attr : "WIS", nodes: n || [] };
   selectedTree = name; await saveUserData(); renderMyTreesView(); return name;
 }
-
-function resizeTreeCanvas() {
-  const c = document.getElementById("treeCanvas"); if (!c || !c.parentElement) return;
-  c.width = c.parentElement.clientWidth; c.height = c.parentElement.clientHeight; drawConstellation();
-}
+function resizeTreeCanvas() { const c = document.getElementById("treeCanvas"); if (!c || !c.parentElement) return; c.width = c.parentElement.clientWidth; c.height = c.parentElement.clientHeight; drawConstellation(); }
 window.addEventListener("resize", resizeTreeCanvas);
 
 function drawConstellation() {
   const tree = userTrees[selectedTree]; if (!tree) return;
   const nodes = tree.nodes || [], c = document.getElementById("treeCanvas"), box = document.getElementById("nodesContainer");
   document.getElementById("treeNodeCount").textContent = `${nodes.length} / 30 Fruit Nodes • Drag to shape branches`;
-  document.getElementById("treeMilestoneTag").textContent = nodes.length >= 150 ? "World Tree (150+)" : nodes.length >= 90 ? "Elder Tree (90+)" : nodes.length >= 30 ? "Full Canopy (30+)" : nodes.length > 0 ? "Growing Tree" : "Seedling";
-  box.innerHTML = "";
-  drawBranchesOnly();
-  if (nodes.length === 0) { box.innerHTML = `<div class="h-full flex items-center justify-center pb-24 text-xs text-slate-400">Tap <strong class="text-sky-400 mx-1">+ Node</strong> above to sprout your first branch</div>`; return; }
-
+  document.getElementById("treeMilestoneTag").textContent = nodes.length >= 150 ? "World Tree (150+)" : nodes.length >= 30 ? "Full Canopy (30+)" : nodes.length ? "Growing Tree" : "Seedling";
+  box.innerHTML = ""; drawBranchesOnly();
+  if (!nodes.length) { box.innerHTML = `<div class="h-full flex items-center justify-center pb-24 text-xs text-slate-400">Tap <strong class="text-sky-400 mx-1">+ Node</strong> above to sprout your first branch</div>`; return; }
   nodes.forEach(n => {
-    const div = document.createElement("div");
-    div.className = "absolute pointer-events-auto flex flex-col items-center -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing touch-none";
+    const div = document.createElement("div"); div.className = "absolute pointer-events-auto flex flex-col items-center -translate-x-1/2 -translate-y-1/2 cursor-grab touch-none";
     div.style.left = `${n.x}%`; div.style.top = `${n.y}%`;
     const col = n.color || "#38bdf8", m = n.status === "mastered", l = n.status === "learning";
-    const style = m ? `background-color:${col};border-color:#fff;box-shadow:0 0 16px ${col};` : l ? `background-color:#f59e0b;border-color:#fef3c7;box-shadow:0 0 10px #f59e0b;` : `background-color:#0f172a;border-color:#475569;`;
+    const style = m ? `background-color:${col};border-color:#fff;box-shadow:0 0 16px ${col};` : l ? `background-color:#f59e0b;border-color:#fef3c7;` : `background-color:#0f172a;border-color:#475569;`;
     div.innerHTML = `<div style="${style}" class="w-8 h-8 rounded-full border-2 ${m ? "node-glow" : ""} flex items-center justify-center text-xs font-bold ${m || l ? "text-slate-950" : "text-slate-300"}">${n.icon || "✦"}</div><span class="text-[11px] font-semibold text-slate-200 mt-1 whitespace-nowrap bg-slate-950/85 px-2 py-0.5 rounded border border-slate-800">${n.title}</span>`;
     div.onpointerdown = (e) => { e.stopPropagation(); draggingNode = n; dragMoved = false; div.setPointerCapture(e.pointerId); };
-    div.onpointermove = (e) => {
-      if (!draggingNode || draggingNode.id !== n.id) return;
-      dragMoved = true; const rect = c.getBoundingClientRect();
-      n.x = Math.min(92, Math.max(8, ((e.clientX - rect.left) / rect.width) * 100));
-      n.y = Math.min(82, Math.max(10, ((e.clientY - rect.top) / rect.height) * 100));
-      div.style.left = `${n.x}%`; div.style.top = `${n.y}%`; drawBranchesOnly();
-    };
-    div.onpointerup = async (e) => {
-      if (!draggingNode || draggingNode.id !== n.id) return;
-      div.releasePointerCapture(e.pointerId); draggingNode = null;
-      if (dragMoved) { drawConstellation(); await saveUserData(); } else { openSkillModal(n); }
-    };
+    div.onpointermove = (e) => { if (!draggingNode || draggingNode.id !== n.id) return; dragMoved = true; const r = c.getBoundingClientRect(); n.x = Math.min(92, Math.max(8, ((e.clientX - r.left) / r.width) * 100)); n.y = Math.min(82, Math.max(10, ((e.clientY - r.top) / r.height) * 100)); div.style.left = `${n.x}%`; div.style.top = `${n.y}%`; drawBranchesOnly(); };
+    div.onpointerup = async (e) => { if (!draggingNode || draggingNode.id !== n.id) return; div.releasePointerCapture(e.pointerId); draggingNode = null; if (dragMoved) { drawConstellation(); await saveUserData(); } else openSkillModal(n); };
     box.appendChild(div);
   });
 }
-
 function drawBranchesOnly() {
   const tree = userTrees[selectedTree]; if (!tree) return;
-  const nodes = tree.nodes || [], c = document.getElementById("treeCanvas"), ctx = c.getContext("2d");
-  ctx.clearRect(0, 0, c.width, c.height);
-  const rootX = c.width * 0.5, rootY = c.height * 0.94, trunkHeight = Math.min(c.height * 0.48, 70 + nodes.length * 14), trunkTopY = rootY - trunkHeight, trunkWidth = Math.min(26, 8 + nodes.length * 0.7);
+  const nodes = tree.nodes || [], c = document.getElementById("treeCanvas"), ctx = c.getContext("2d"); ctx.clearRect(0, 0, c.width, c.height);
+  const rootX = c.width * 0.5, rootY = c.height * 0.94, trunkH = Math.min(c.height * 0.48, 70 + nodes.length * 14), trunkTopY = rootY - trunkH, trunkW = Math.min(26, 8 + nodes.length * 0.7);
   ctx.save(); ctx.fillStyle = "#1e293b"; ctx.lineCap = "round";
-  ctx.beginPath(); ctx.moveTo(rootX - trunkWidth * 2.4, c.height); ctx.quadraticCurveTo(rootX, rootY - 12, rootX + trunkWidth * 2.4, c.height); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(rootX - trunkWidth * 0.75, rootY); ctx.quadraticCurveTo(rootX - trunkWidth * 0.3, rootY - trunkHeight * 0.5, rootX, trunkTopY); ctx.quadraticCurveTo(rootX + trunkWidth * 0.3, rootY - trunkHeight * 0.5, rootX + trunkWidth * 0.75, rootY); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(rootX - trunkW * 2.4, c.height); ctx.quadraticCurveTo(rootX, rootY - 12, rootX + trunkW * 2.4, c.height); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(rootX - trunkW * 0.75, rootY); ctx.quadraticCurveTo(rootX - trunkW * 0.3, rootY - trunkH * 0.5, rootX, trunkTopY); ctx.quadraticCurveTo(rootX + trunkW * 0.3, rootY - trunkH * 0.5, rootX + trunkW * 0.75, rootY); ctx.closePath(); ctx.fill();
   nodes.forEach((n, idx) => {
-    const nx = (n.x / 100) * c.width, ny = (n.y / 100) * c.height, parent = nodes.find(x => x.id === n.parentId);
-    let startX = rootX, startY = Math.max(trunkTopY, Math.min(rootY - 25, ny + 45)), thickness = Math.max(3, trunkWidth * 0.42 - idx * 0.15);
-    if (parent && idx > 0) {
-      const px = (parent.x / 100) * c.width, py = (parent.y / 100) * c.height;
-      if (Math.hypot(nx - px, ny - py) < c.width * 0.42) { startX = px; startY = py; thickness = Math.max(2.5, thickness * 0.75); }
-    }
-    ctx.beginPath(); ctx.moveTo(startX, startY); ctx.quadraticCurveTo((startX + nx) * 0.5, Math.max(startY, ny) + 18, nx, ny);
-    ctx.lineWidth = thickness; ctx.strokeStyle = n.status === "mastered" ? "#334155" : "#1e293b"; ctx.stroke();
-    if (n.status === "mastered") { ctx.beginPath(); ctx.moveTo(startX, startY); ctx.quadraticCurveTo((startX + nx) * 0.5, Math.max(startY, ny) + 18, nx, ny); ctx.lineWidth = 1.2; ctx.strokeStyle = "rgba(56,189,248,0.45)"; ctx.stroke(); }
+    const nx = (n.x / 100) * c.width, ny = (n.y / 100) * c.height, p = nodes.find(x => x.id === n.parentId);
+    let sx = rootX, sy = Math.max(trunkTopY, Math.min(rootY - 25, ny + 45)), th = Math.max(3, trunkW * 0.42 - idx * 0.15);
+    if (p && idx > 0) { const px = (p.x / 100) * c.width, py = (p.y / 100) * c.height; if (Math.hypot(nx - px, ny - py) < c.width * 0.42) { sx = px; sy = py; th = Math.max(2.5, th * 0.75); } }
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo((sx + nx) * 0.5, Math.max(sy, ny) + 18, nx, ny); ctx.lineWidth = th; ctx.strokeStyle = n.status === "mastered" ? "#334155" : "#1e293b"; ctx.stroke();
   });
   ctx.restore();
 }
 
-document.getElementById("addNodeBtn").onclick = async () => {
-  const name = prompt("Name of this new skill fruit:"); if (!name) return;
-  } catch (e) { console.error(e); } }
-function renderTrophies() { const tiers = [{ c: 30, name: "Dragonborn Constellation Relic", desc: "Complete a skill tree with 30+ nodes." }, { c: 60, name: "Aetherial Crown of Mastery", desc: "Expand a single constellation to 60+ nodes." }, { c: 90, name: "Elder Scroll of the Architect", desc: "Forge a 90+ node master grimoire." }, { c: 120, name: "Sovngarde Ascendant Emblem", desc: "Reach 120+ nodes in a single discipline." }, { c: 150, name: "Divine Polymath Core", desc: "Achieve 150+ nodes of legendary depth." }]; let max = 0; Object.values(userTrees).forEach(t => { if ((t.nodes || []).length > max) max = t.nodes.length; }); document.getElementById("trophyGrid").innerHTML = tiers.map(t => `<div class="glass-panel rounded-xl p-4 flex items-center justify-between ${max >= t.c ? "opacity-100 border-amber-400/50" : "opacity-45"}"><div><div class="text-[10px] uppercase tracking-wider text-sky-400 font-bold">${t.c} Node Milestone</div><div class="text-sm font-bold text-white skyrim-font">${t.name}</div><div class="text-[11px] text-slate-400">${t.desc}</div></div><div class="text-2xl">${max >= t.c ? "🏆" : "🔒"}</div></div>`).join(""); }
-async function loadComments() { const list = document.getElementById("commentsList"); if (!db) return; try { const snap = await db.collection("community_comments").orderBy("createdAt", "desc").limit(30).get(); let html = ""; snap.forEach(doc => { const c = doc.data(); html += `<div class="glass-panel rounded-lg p-3"><div class="text-[11px] font-bold text-sky-400">${c.author}</div><p class="text-xs text-slate-200 mt-0.5">${c.text}</p></div>`; }); list.innerHTML = html || `<div class="text-xs text-slate-400 text-center py-6">Be the first to share an idea or word of encouragement!</div>`; } catch (e) { console.error(e); } }
-async function postComment() { if (!currentUser) return openAuthModal(); const input = document.getElementById("commentInput"), txt = input.value.trim(); if (!txt) return; input.value = ""; await db.collection("community_comments").add({ author: userProfile.name || currentUser.email.split("@")[0], text: txt, createdAt: firebase.firestore.FieldValue.serverTimestamp() }); loadComments(); }
-function toggleNsfw() { showNsfw = document.getElementById("nsfwToggle").checked; localStorage.setItem("skill_tree_nsfw", showNsfw); }
-async function saveProfileSettings() { userProfile.name = document.getElementById("profileNameInput").value.trim() || "Initiate"; userProfile.contact = document.getElementById("profileContactInput").value.trim(); await saveUserData(); alert("Guild Profile saved!"); }
+document.getElementById("addNodeBtn").onclick = async () => { const name = prompt("Name of this new skill fruit:"); if (!name) return; const nodes = userTrees[selectedTree].nodes, sx = [50, 26, 74, 34, 66, 18, 82, 42, 58]; nodes.push({ id: "n_" + Date.now(), title: name, status: "locked", icon: "✦", color: "#38bdf8", x: sx[nodes.length % sx.length], y: Math.max(14, 62 - Math.floor(nodes.length / 3) * 14), notes: "Step-by-step execution blueprint.", parentId: nodes.length ? nodes[nodes.length - 1].id : null }); drawConstellation(); await saveUserData(); };
+function openSkillModal(n) { activeNode = n; window.history.pushState({ modal: "skill" }, ""); document.getElementById("modalTitle").textContent = n.title; document.getElementById("modalIcon").value = n.icon || "✦"; document.getElementById("modalColor").value = n.color || "#38bdf8"; document.getElementById("modalNotes").value = n.notes || ""; updateStatusToggles(n.status); document.getElementById("detailModal").classList.remove("hidden"); }
+function updateStatusToggles(st) { document.querySelectorAll(".status-toggle").forEach(b => { b.className = b.dataset.status === st ? "status-toggle py-1.5 text-xs rounded border border-white bg-sky-500 text-slate-950 font-bold" : "status-toggle py-1.5 text-xs rounded border border-slate-800 bg-slate-950 text-slate-400"; }); }
+document.querySelectorAll(".status-toggle").forEach(b => b.onclick = () => { if (activeNode) activeNode.status = b.dataset.status; updateStatusToggles(b.dataset.status); });
+document.getElementById("closeModalBtn").onclick = () => document.getElementById("detailModal").classList.add("hidden");
+document.getElementById("saveSkillBtn").onclick = async () => { if (!activeNode) return; activeNode.icon = document.getElementById("modalIcon").value; activeNode.color = document.getElementById("modalColor").value; activeNode.notes = document.getElementById("modalNotes").value; document.getElementById("detailModal").classList.add("hidden"); drawConstellation(); await saveUserData(); };
 
-updateGlobalUI();
-if (!localStorage.getItem("skill_tree_tut_v3")) openTutorial();
+async function publishCurrentTree() { if (!currentUser) return openAuthModal(); const tree = userTrees[selectedTree]; if (!tree || !(tree.nodes || []).length) return alert("Add at least 1 skill node first."); const tag = prompt("Tag as: Mentorship, Business, Hobby, or 21+ :", "Mentorship") || "Mentorship"; await db

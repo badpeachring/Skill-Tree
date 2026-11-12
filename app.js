@@ -1,5 +1,5 @@
 const firebaseConfig = {
-  apiKey: "AIzaSyBaAcBLfnUulVRxlGx8YKyXFQrm-fIYsns",
+  apiKey: "AIzaSyBaAcBLfnUulVRxlGx8YKyXFQrm-fIYsms",
   authDomain: "skill-tree-4cffd.firebaseapp.com",
   projectId: "skill-tree-4cffd",
   storageBucket: "skill-tree-4cffd.firebasestorage.app",

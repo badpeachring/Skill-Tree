@@ -11,58 +11,39 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-let currentUser = null;
-let userTrees = {};
-let selectedTree = null;
-let activeNode = null;
-let serverFilter = "ALL";
+let currentUser = null, userTrees = {}, selectedTree = null, activeNode = null, serverFilter = "ALL";
 let showNsfw = localStorage.getItem("skill_tree_nsfw") === "true";
 let userProfile = { name: "Initiate", contact: "" };
 let publicTreesCache = [];
+let logoTapCount = 0;
 
-// 1. PROCEDURAL STARFIELD & NEBULA
 (function initStarfield() {
-  const c = document.getElementById("starfieldCanvas");
-  const ctx = c.getContext("2d");
+  const c = document.getElementById("starfieldCanvas"), ctx = c.getContext("2d");
   let stars = [];
   function resize() {
-    c.width = window.innerWidth;
-    c.height = window.innerHeight;
+    c.width = window.innerWidth; c.height = window.innerHeight;
     stars = Array.from({ length: 180 }, () => ({
-      x: Math.random() * c.width,
-      y: Math.random() * c.height,
-      r: Math.random() * 1.6 + 0.2,
-      a: Math.random() * 0.8 + 0.2,
-      s: (Math.random() - 0.5) * 0.015,
+      x: Math.random() * c.width, y: Math.random() * c.height, r: Math.random() * 1.6 + 0.2,
+      a: Math.random() * 0.8 + 0.2, s: (Math.random() - 0.5) * 0.015,
       tint: Math.random() > 0.8 ? "#7dd3fc" : (Math.random() > 0.9 ? "#fde68a" : "#ffffff")
     }));
   }
-  window.addEventListener("resize", resize);
-  resize();
+  window.addEventListener("resize", resize); resize();
   function draw() {
     ctx.clearRect(0, 0, c.width, c.height);
     const grad = ctx.createRadialGradient(c.width * 0.5, c.height * 0.25, 20, c.width * 0.5, c.height * 0.5, c.width * 0.9);
-    grad.addColorStop(0, "rgba(14, 116, 144, 0.14)");
-    grad.addColorStop(0.5, "rgba(30, 27, 75, 0.12)");
-    grad.addColorStop(1, "rgba(2, 6, 23, 0)");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, c.width, c.height);
+    grad.addColorStop(0, "rgba(14,116,144,0.14)"); grad.addColorStop(0.5, "rgba(30,27,75,0.12)"); grad.addColorStop(1, "rgba(2,6,23,0)");
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, c.width, c.height);
     stars.forEach(st => {
-      st.a += st.s;
-      if (st.a > 1 || st.a < 0.15) st.s *= -1;
-      ctx.globalAlpha = st.a;
-      ctx.fillStyle = st.tint;
-      ctx.beginPath();
-      ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
-      ctx.fill();
+      st.a += st.s; if (st.a > 1 || st.a < 0.15) st.s *= -1;
+      ctx.globalAlpha = st.a; ctx.fillStyle = st.tint;
+      ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2); ctx.fill();
     });
-    ctx.globalAlpha = 1;
-    requestAnimationFrame(draw);
+    ctx.globalAlpha = 1; requestAnimationFrame(draw);
   }
   draw();
 })();
 
-// 2. PHILOSOPHY QUOTES
 const quotes = [
   { t: "A disciplined mind focuses on what lies within its own control, finding unshakable strength regardless of external chaos.", a: "Stoic Principle" },
   { t: "True mastery begins the moment you examine the hidden patterns of your own habits and consciously shape them.", a: "Depth Psychology" },
@@ -77,128 +58,39 @@ document.getElementById("nextQuoteBtn").onclick = () => {
   document.getElementById("quoteAuthor").textContent = `— ${quotes[qIdx].a}`;
 };
 
-// 3. 25 BASE CONCEPT TREES (VIEWABLE WITHOUT AUTO-ASSIGNING)
-const baseConceptTrees = [
-  { id: "b1", title: "Carpentry & Structural Framing", attr: "STR", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 42, nodes: [
-    { title: "3-4-5 Square & Reference Edge", notes: "Always pull tape from one primary edge; verify 90-degree corners with 3-4-5 triangles." },
-    { title: "Saw Kerf & Blade Control", notes: "Account for 1/8-inch kerf on the waste side of every layout line." },
-    { title: "16-Inch O.C. Wall Framing", notes: "Crown all studs upward; align top and bottom plates before nailing." },
-    { title: "Diagonal Compression Bracing", notes: "Install diagonal braces to transfer lateral loads directly into the frame." }
-  ]},
-  { id: "b2", title: "Surface Prep & Protective Coatings", attr: "STR", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 38, nodes: [
-    { title: "Concrete Diamond Grinding", notes: "Achieve proper Concrete Surface Profile (CSP) using planetary diamond tooling and HEPA extraction." },
-    { title: "Moisture Vapor Impedance Testing", notes: "Test substrate moisture levels before sealing to prevent osmotic blistering." },
-    { title: "Moisture-Barrier Epoxy Priming", notes: "Apply vapor-retarding primer within exact pot-life and recoat windows." },
-    { title: "Aliphatic Topcoat Application", notes: "Spray or back-roll UV-stable aliphatic coatings at uniform mil thickness." }
-  ]},
-  { id: "b3", title: "Welding & Metal Fabrication", attr: "DEX", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 31, nodes: [
-    { title: "Base Metal Prep & Mill Scale Removal", notes: "Grind bright clean steel 1 inch back from every joint." },
-    { title: "MIG Voltage & Wire Feed Tuning", notes: "Dial in steady bacon-sizzle arc sound with 10–15 degree push/drag angle." },
-    { title: "Tack Sequencing & Heat Control", notes: "Alternate tack welds across opposite corners to prevent warping." }
-  ]},
-  { id: "b4", title: "Electrical Systems & Diagnostics", attr: "INT", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 29, nodes: [
-    { title: "Lockout/Tagout & Multimeter Verification", notes: "Verify zero potential across hot-neutral and hot-ground before touching conductors." },
-    { title: "Load Calculation & Wire Gauge Sizing", notes: "Match breaker amperage to conductor gauge and continuous 80% load rules." },
-    { title: "Clean Panel Termination", notes: "Torque lugs to spec and maintain neat service loops." }
-  ]},
-  { id: "b5", title: "Diesel & Mechanical Diagnostics", attr: "INT", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 35, nodes: [
-    { title: "Air, Fuel & Compression Triad", notes: "Isolate fuel rail pressure, boost leaks, and cranking compression systematically." },
-    { title: "Fluid Analysis & Preventive Intervals", notes: "Track oil viscosity, coolant pH, and fuel-water separator drains." },
-    { title: "Torque Specs & Thread Locker", notes: "Follow factory torque sequences on suspension and drivetrain fasteners." }
-  ]},
-  { id: "b6", title: "Plumbing & Hydronics", attr: "DEX", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 22, nodes: [
-    { title: "DWV Slope & Venting", notes: "Maintain 1/4-inch per foot fall on drain lines and proper air admittance." },
-    { title: "PEX & Copper Sweating", notes: "Ream cut ends cleanly and pressure-test manifolds before closing walls." }
-  ]},
-  { id: "b7", title: "CAD & Systems Engineering", attr: "INT", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 27, nodes: [
-    { title: "Parametric Sketch Constraints", notes: "Fully constrain 2D geometry before extruding solid bodies." },
-    { title: "Tolerance Stack-Up Analysis", notes: "Account for real-world manufacturing clearances across mating parts." }
-  ]},
-  { id: "b8", title: "Hypertrophy & Strength Lifting", attr: "STR", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 48, nodes: [
-    { title: "Compound Hinge & Squat Mechanics", notes: "Brace intra-abdominal pressure before initiating descent." },
-    { title: "Progressive Overload Tracking", notes: "Add reps, load, or controlled tempo week over week." },
-    { title: "Deload & CNS Recovery", notes: "Reduce volume every 6–8 weeks to dissipate cumulative fatigue." }
-  ]},
-  { id: "b9", title: "Calisthenics & Handstand Balance", attr: "DEX", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 44, nodes: [
-    { title: "Scapular Protraction & Hollow Body", notes: "Lock ribs down and push tall through the shoulders." },
-    { title: "Finger-Pressure Balance Corrections", notes: "Press through fingertips to stop over-balance; heel of palm to stop under-balance." },
-    { title: "L-Sit to Bent-Arm Press", notes: "Build compression strength and anterior deltoid lean." }
-  ]},
-  { id: "b10", title: "Mobility, Acrobatic & Flip Mechanics", attr: "DEX", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 33, nodes: [
-    { title: "Thoracic & Hip Capsule Opening", notes: "Active end-range isometric holds for overhead and squat depth." },
-    { title: "Set, Tuck & Spotting Rotation", notes: "Drive hips upward before initiating tight rotational tuck." }
-  ]},
-  { id: "b11", title: "Endurance & Zone 2 Conditioning", attr: "CON", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 26, nodes: [
-    { title: "Nasal-Breathing Aerobic Base", notes: "Sustain conversational heart rate for 45+ minutes to build mitochondrial density." },
-    { title: "VO2 Max Intervals", notes: "4x4 minute high-output efforts with active recovery." }
-  ]},
-  { id: "b12", title: "Combat Arts & Striking Footwork", attr: "DEX", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 39, nodes: [
-    { title: "Stance, Guard & Weight Distribution", notes: "Keep center of gravity balanced on the balls of the feet." },
-    { title: "Distance Management & Angles", notes: "Step off the centerline while countering." }
-  ]},
-  { id: "b13", title: "Low-and-Slow Smoking & Butchery", attr: "WIS", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 51, nodes: [
-    { title: "Trimming & Aerodynamic Fat Cap", notes: "Remove hard silver skin and shape edges so smoke flows cleanly." },
-    { title: "Clean Blue Smoke & Fire Management", notes: "Burn seasoned splits with unobstructed exhaust airflow." },
-    { title: "The Stall, Wrap & Rest", notes: "Wrap in butcher paper once bark sets; rest until internal temp drops to 145°F." }
-  ]},
-  { id: "b14", title: "Culinary Knife Work & Emulsions", attr: "WIS", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 34, nodes: [
-    { title: "Claw Grip & Pinch Control", notes: "Pinch blade heel between thumb and index finger for maximum control." },
-    { title: "Pan Deglazing & Cold Fat Mounting", notes: "Reduce aromatics and swirl cold fat off heat for glossy sauces." }
-  ]},
-  { id: "b15", title: "Hydroponics & Indoor Crop Systems", attr: "WIS", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 41, nodes: [
-    { title: "EC / PPM & pH Nutrient Balancing", notes: "Maintain 5.6–6.0 pH so roots absorb macro and micronutrients." },
-    { title: "DLI & Full-Spectrum LED Positioning", notes: "Measure Daily Light Integral at canopy height to prevent stretch or burn." },
-    { title: "Dissolved Oxygen & Root Hygiene", notes: "Keep reservoir temperatures cool and oxygenated." }
-  ]},
-  { id: "b16", title: "Fermentation & Food Preservation", attr: "CON", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 25, nodes: [
-    { title: "2.5% Salinity Lacto-Fermentation", notes: "Weigh vegetables + water to calculate exact non-iodized salt ratio." },
-    { title: "Curing & Moisture Control", notes: "Balance salt, time, and airflow for safe shelf-stable proteins." }
-  ]},
-  { id: "b17", title: "Stoic & Existential Philosophy", attr: "WIS", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 62, nodes: [
-    { title: "Dichotomy of Control", notes: "Separate internal intent and character from external outcomes." },
-    { title: "Amor Fati & Voluntary Discomfort", notes: "Embrace obstacles as raw fuel for resilience." },
-    { title: "Memento Mori & Intentional Living", notes: "Use awareness of finite time to prioritize meaningful action." }
-  ]},
-  { id: "b18", title: "Human Psychology & Behavioral Mastery", attr: "WIS", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 55, nodes: [
-    { title: "Cognitive Biases & First Principles", notes: "Identify confirmation bias and reason from fundamental truths." },
-    { title: "Shadow Integration & Emotional Regulation", notes: "Observe triggers objectively before reacting." },
-    { title: "Habit Loops (Cue, Craving, Response, Reward)", notes: "Redesign environment friction to automate discipline." }
-  ]},
-  { id: "b19", title: "Political Systems, Governance & Civics", attr: "INT", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 30, nodes: [
-    { title: "Constitutional Republic vs. Direct Democracy", notes: "Understand separation of powers, federalism, and checks and balances." },
-    { title: "Economic Models & Monetary Policy", notes: "Compare free-market price signals, fiscal spending, and central banking." },
-    { title: "Media Literacy & Primary Source Verification", notes: "Trace claims back to actual legislation, court rulings, and raw data." }
-  ]},
-  { id: "b20", title: "Business Operations & Negotiation", attr: "CHA", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 47, nodes: [
-    { title: "Unit Economics & True Job Costing", notes: "Factor labor, mobilization, overhead, and contingency into every bid." },
-    { title: "Clear Scope & Change-Order Protection", notes: "Define deliverables in writing before mobilizing." },
-    { title: "High-Trust Client Communication", notes: "Set proactive expectations early and document every milestone." }
-  ]},
-  { id: "b21", title: "Mentorship & Teaching Systems", attr: "CHA", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 36, nodes: [
-    { title: "Show, Guide, Verify", notes: "Demonstrate at full standard, coach the first attempt, then verify independence." },
-    { title: "Chunking Complex Procedures", notes: "Break intimidating jobs into 3-step repeatable checklists." }
-  ]},
-  { id: "b22", title: "Wilderness Survival & Bushcraft", attr: "CON", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 43, nodes: [
-    { title: "Rule of 3s Prioritization", notes: "Shelter, water, fire, and signaling in order of immediate threat." },
-    { title: "Ferro Rod & Feather-Stick Ignition", notes: "Process dry inner heartwood into fine curls." }
-  ]},
-  { id: "b23", title: "Daily Home & Estate Stewardship", attr: "CON", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 21, nodes: [
-    { title: "15-Minute Evening Reset", notes: "Clear surfaces, prep tools/gear for morning, and maintain order." },
-    { title: "Seasonal HVAC, Water & Roof Checks", notes: "Inspect filters, drainage, and seals before extreme weather." }
-  ]},
-  { id: "b24", title: "Botanical Cannabis Cultivation (21+)", attr: "WIS", tag: "Concept", nsfw: true, author: "Guild Architect", likes: 68, nodes: [
-    { title: "VPD (Vapor Pressure Deficit) Control", notes: "Balance canopy temperature and relative humidity across seedling, veg, and flower." },
-    { title: "Living Soil vs. Coco/Hydro Feeding", notes: "Manage microbial biology or precise EC runoff and calcium-magnesium ratios." },
-    { title: "Low-Stress Training & Canopy Defoliation", notes: "Open lower bud sites to even light penetration and airflow." },
-    { title: "Trichome Harvest & 60/60 Slow Cure", notes: "Dry at 60°F / 60% RH for 10–14 days before curing in glass." }
-  ]},
-  { id: "b25", title: "Craft Brewing & Distillation Science (21+)", attr: "INT", tag: "Concept", nsfw: true, author: "Guild Architect", likes: 37, nodes: [
-    { title: "Sanitation & Mash Temperature Enzymes", notes: "Convert starches cleanly at 148–156°F; sanitize all cold-side gear." },
-    { title: "Yeast Pitch Rate & Fermentation Temp", notes: "Control esters and fusel alcohols with steady temperature control." }
-  ]}
-];
+function tapLogoSecret() {
+  logoTapCount++;
+  if (logoTapCount >= 5) {
+    logoTapCount = 0;
+    document.getElementById("adminBar").classList.toggle("hidden");
+  }
+}
 
-// 4. NAVIGATION & TUTORIAL
+async function adminBoostNodes() {
+  const keys = Object.keys(userTrees);
+  let target = keys.length ? keys[0] : await createNewTree("Architect Sandbox", "INT", []);
+  const nodes = userTrees[target].nodes, cols = [50, 28, 72, 50, 22, 78, 50];
+  for (let i = 1; i <= 5; i++) {
+    nodes.push({
+      id: "adm_" + Date.now() + "_" + i, title: `Mastered Test Star #${nodes.length + 1}`, status: "mastered",
+      icon: "✦", color: "#f59e0b", x: cols[nodes.length % cols.length], y: Math.max(10, 82 - Math.floor(nodes.length / 2) * 10),
+      notes: "Generated by Architect Console.", parentId: nodes.length ? nodes[nodes.length - 1].id : null
+    });
+  }
+  await saveUserData();
+  alert(`Added 5 Mastered Stars to "${target}"!`);
+  if (!document.getElementById("viewTrees").classList.contains("hidden")) renderMyTreesView();
+}
+
+async function adminWipeMe() {
+  if (!confirm("Reset your character back to Level 0 and wipe all personal trees?")) return;
+  userTrees = {};
+  selectedTree = null;
+  await saveUserData();
+  alert("Character reset to Level 0 Initiate.");
+  if (!document.getElementById("viewTrees").classList.contains("hidden")) renderMyTreesView();
+}
+
 function openMainMenu() {
   ["viewTrees", "viewServer", "viewStats", "viewLeaderboard", "viewTrophies", "viewCommunity", "viewSettings"].forEach(id => document.getElementById(id).classList.add("hidden"));
   document.getElementById("topBar").classList.add("hidden");
@@ -212,7 +104,6 @@ function navigate(viewId, title) {
   document.getElementById("topBar").classList.remove("hidden");
   document.getElementById("headerTitle").textContent = title;
   document.getElementById(viewId).classList.remove("hidden");
-
   if (viewId === "viewTrees") renderMyTreesView();
   if (viewId === "viewServer") loadServerRealm();
   if (viewId === "viewStats") renderStats();
@@ -232,28 +123,21 @@ function openTutorial() { tutIdx = 0; renderTut(); document.getElementById("tuto
 function closeTutorial() { document.getElementById("tutorialModal").classList.add("hidden"); localStorage.setItem("skill_tree_tut_v2", "true"); }
 function renderTut() {
   const s = tutSteps[tutIdx];
-  document.getElementById("tutStepBadge").textContent = s.b;
-  document.getElementById("tutTitle").textContent = s.t;
-  document.getElementById("tutBody").textContent = s.d;
+  document.getElementById("tutStepBadge").textContent = s.b; document.getElementById("tutTitle").textContent = s.t; document.getElementById("tutBody").textContent = s.d;
   document.getElementById("tutPrevBtn").classList.toggle("hidden", tutIdx === 0);
   document.getElementById("tutNextBtn").textContent = tutIdx === tutSteps.length - 1 ? "Enter Main Menu" : "Next";
 }
 document.getElementById("tutPrevBtn").onclick = () => { if (tutIdx > 0) { tutIdx--; renderTut(); } };
 document.getElementById("tutNextBtn").onclick = () => { tutIdx < tutSteps.length - 1 ? (tutIdx++, renderTut()) : closeTutorial(); };
 
-// 5. FIREBASE AUTH & LEVEL 0 INITIALIZATION
 function showAuth(msg, err = true) {
-  const el = document.getElementById("authStatus");
-  el.textContent = msg;
-  el.className = err ? "text-xs text-red-400" : "text-xs text-sky-400";
-  el.classList.remove("hidden");
+  const el = document.getElementById("authStatus"); el.textContent = msg;
+  el.className = err ? "text-xs text-red-400" : "text-xs text-sky-400"; el.classList.remove("hidden");
 }
 document.getElementById("signUpBtn").onclick = async () => {
   showAuth("Creating character...", false);
-  try {
-    await auth.createUserWithEmailAndPassword(document.getElementById("authEmail").value.trim(), document.getElementById("authPassword").value);
-    localStorage.removeItem("skill_tree_tut_v2");
-  } catch (e) { showAuth(e.message, true); }
+  try { await auth.createUserWithEmailAndPassword(document.getElementById("authEmail").value.trim(), document.getElementById("authPassword").value); localStorage.removeItem("skill_tree_tut_v2"); }
+  catch (e) { showAuth(e.message, true); }
 };
 document.getElementById("signInBtn").onclick = async () => {
   showAuth("Entering realm...", false);
@@ -268,13 +152,173 @@ auth.onAuthStateChanged(async (user) => {
     document.getElementById("authStatus").classList.add("hidden");
     document.getElementById("authScreen").classList.add("hidden");
     document.getElementById("nsfwToggle").checked = showNsfw;
-    await loadUserData();
-    openMainMenu();
+    if (user.email && user.email.toLowerCase() === "sethmcnab13@gmail.com") {
+      document.getElementById("adminBar").classList.remove("hidden");
+      document.getElementById("adminToggleBtn").classList.remove("hidden");
+    }
+    await loadUserData(); openMainMenu();
     if (!localStorage.getItem("skill_tree_tut_v2")) openTutorial();
-  } else {
-    currentUser = null;
-    document.getElementById("authScreen").classList.remove("hidden");
-  }
+  } else { currentUser = null; document.getElementById("authScreen").classList.remove("hidden"); }
 });
 
-async function loadUserData(
+async function loadUserData() {
+  try {
+    const doc = await db.collection("user_trees").doc(currentUser.uid).get();
+    if (doc.exists) {
+      const data = doc.data();
+      userTrees = data.customTrees || {};
+      userProfile = data.profile || { name: currentUser.email.split("@")[0], contact: "" };
+    } else {
+      userTrees = {}; userProfile = { name: currentUser.email.split("@")[0], contact: "" }; await saveUserData();
+    }
+    document.getElementById("profileNameInput").value = userProfile.name || "";
+    document.getElementById("profileContactInput").value = userProfile.contact || "";
+  } catch (e) { console.error(e); }
+  updateGlobalUI();
+}
+
+async function saveUserData() {
+  if (!currentUser) return;
+  const stats = calculateCharacterStats();
+  await db.collection("user_trees").doc(currentUser.uid).set({
+    customTrees: userTrees, profile: userProfile,
+    leaderboard: { uid: currentUser.uid, name: userProfile.name || currentUser.email.split("@")[0], contact: userProfile.contact || "", level: stats.level, totalNodes: stats.totalNodes, masteredNodes: stats.masteredNodes }
+  }, { merge: true });
+  updateGlobalUI();
+}
+
+function calculateCharacterStats() {
+  const pts = { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 };
+  let totalNodes = 0, masteredNodes = 0, completedTrees = 0;
+  Object.values(userTrees).forEach(t => {
+    const ns = t.nodes || [], a = t.attr || "WIS"; totalNodes += ns.length; if (ns.length >= 30) completedTrees++;
+    ns.forEach(n => { if (n.status === "mastered") { masteredNodes++; pts[a] += 1; } else if (n.status === "learning") pts[a] += 0.5; });
+  });
+  return { pts, totalNodes, masteredNodes, completedTrees, level: Math.floor((totalNodes + masteredNodes * 2) / 3) };
+}
+
+function updateGlobalUI() {
+  const st = calculateCharacterStats();
+  document.getElementById("headerLvlBadge").textContent = `LVL ${st.level}`;
+  document.getElementById("menuLvlText").textContent = `Level ${st.level} ${st.level === 0 ? "Initiate" : st.level < 10 ? "Apprentice" : "Master"}`;
+  document.getElementById("menuNodeCount").textContent = `${st.totalNodes} Nodes`;
+}
+
+function renderMyTreesView() {
+  const keys = Object.keys(userTrees);
+  if (keys.length === 0) { document.getElementById("emptyTreeBanner").classList.remove("hidden"); document.getElementById("activeTreeWorkspace").classList.add("hidden"); return; }
+  document.getElementById("emptyTreeBanner").classList.add("hidden"); document.getElementById("activeTreeWorkspace").classList.remove("hidden");
+  if (!keys.includes(selectedTree)) selectedTree = keys[0];
+  document.getElementById("treeSelect").innerHTML = keys.map(k => `<option value="${k}" ${k === selectedTree ? "selected" : ""}>${k}</option>`).join("");
+  document.getElementById("treeAttrBadge").textContent = userTrees[selectedTree]?.attr || "WIS";
+  setTimeout(resizeTreeCanvas, 30);
+}
+document.getElementById("treeSelect").onchange = (e) => { selectedTree = e.target.value; renderMyTreesView(); };
+
+async function createNewTree(initialTitle = null, initialAttr = null, initialNodes = null) {
+  const name = initialTitle || prompt("Name of your new Skill Tree:");
+  if (!name) return null; if (userTrees[name]) return name;
+  const a = (initialAttr || prompt("Primary D&D Attribute (STR, DEX, CON, INT, WIS, or CHA):", "WIS") || "WIS").toUpperCase();
+  userTrees[name] = { attr: ["STR", "DEX", "CON", "INT", "WIS", "CHA"].includes(a) ? a : "WIS", nodes: initialNodes || [] };
+  selectedTree = name; await saveUserData(); renderMyTreesView(); return name;
+}
+
+function resizeTreeCanvas() {
+  const c = document.getElementById("treeCanvas"); if (!c || !c.parentElement) return;
+  c.width = c.parentElement.clientWidth; c.height = c.parentElement.clientHeight; drawConstellation();
+}
+window.addEventListener("resize", resizeTreeCanvas);
+
+function drawConstellation() {
+  const tree = userTrees[selectedTree]; if (!tree) return;
+  const nodes = tree.nodes || [], c = document.getElementById("treeCanvas"), ctx = c.getContext("2d"), box = document.getElementById("nodesContainer");
+  document.getElementById("treeNodeCount").textContent = `${nodes.length} / 30 Nodes to Complete`;
+  document.getElementById("treeMilestoneTag").textContent = nodes.length >= 150 ? "Mythic (150+)" : nodes.length >= 120 ? "Grandmaster (120+)" : nodes.length >= 90 ? "Mastery (90+)" : nodes.length >= 60 ? "Adept (60+)" : nodes.length >= 30 ? "Complete (30+)" : "Charting";
+  ctx.clearRect(0, 0, c.width, c.height); box.innerHTML = "";
+  if (nodes.length === 0) { box.innerHTML = `<div class="h-full flex items-center justify-center text-xs text-slate-400">Tap <strong class="text-sky-400 mx-1">+ Node</strong> above to place your first star</div>`; return; }
+
+  nodes.forEach(n => {
+    const p = nodes.find(x => x.id === n.parentId);
+    if (p) {
+      ctx.beginPath(); ctx.moveTo((p.x / 100) * c.width, (p.y / 100) * c.height); ctx.lineTo((n.x / 100) * c.width, (n.y / 100) * c.height);
+      ctx.lineWidth = 2; ctx.strokeStyle = n.status === "mastered" ? "#38bdf8" : n.status === "learning" ? "#f59e0b" : "rgba(148,163,184,0.3)";
+      ctx.setLineDash(n.status === "locked" ? [4, 4] : []); ctx.stroke(); ctx.setLineDash([]);
+    }
+  });
+  nodes.forEach(n => {
+    const div = document.createElement("div"); div.className = "absolute pointer-events-auto flex flex-col items-center -translate-x-1/2 -translate-y-1/2 cursor-pointer";
+    div.style.left = `${n.x}%`; div.style.top = `${n.y}%`;
+    const col = n.color || "#38bdf8", m = n.status === "mastered", l = n.status === "learning";
+    const style = m ? `background-color:${col};border-color:#fff;box-shadow:0 0 14px ${col};` : l ? `background-color:#f59e0b;border-color:#fef3c7;` : `background-color:#0f172a;border-color:#475569;`;
+    div.innerHTML = `<div style="${style}" class="w-8 h-8 rounded-full border-2 ${m ? "node-glow" : ""} flex items-center justify-center text-xs font-bold ${m || l ? "text-slate-950" : "text-slate-300"}">${n.icon || "✦"}</div><span class="text-[11px] font-semibold text-slate-200 mt-1 whitespace-nowrap bg-slate-950/85 px-2 py-0.5 rounded border border-slate-800">${n.title}</span>`;
+    div.onclick = () => openSkillModal(n); box.appendChild(div);
+  });
+}
+
+document.getElementById("addNodeBtn").onclick = async () => {
+  const name = prompt("Name of this new skill star:"); if (!name) return;
+  const nodes = userTrees[selectedTree].nodes, cols = [50, 28, 72, 50, 22, 78, 50];
+  nodes.push({ id: "n_" + Date.now(), title: name, status: "locked", icon: "✦", color: "#38bdf8", x: cols[nodes.length % cols.length], y: Math.max(12, 82 - Math.floor(nodes.length / 2) * 12), notes: "Step-by-step execution blueprint.", parentId: nodes.length ? nodes[nodes.length - 1].id : null });
+  drawConstellation(); await saveUserData();
+};
+
+function openSkillModal(n) {
+  activeNode = n; document.getElementById("modalTitle").textContent = n.title;
+  document.getElementById("modalIcon").value = n.icon || "✦"; document.getElementById("modalColor").value = n.color || "#38bdf8"; document.getElementById("modalNotes").value = n.notes || "";
+  updateStatusToggles(n.status); document.getElementById("detailModal").classList.remove("hidden");
+}
+function updateStatusToggles(st) {
+  document.querySelectorAll(".status-toggle").forEach(b => {
+    b.className = b.dataset.status === st ? "status-toggle py-1.5 text-xs rounded border border-white bg-sky-500 text-slate-950 font-bold" : "status-toggle py-1.5 text-xs rounded border border-slate-800 bg-slate-950 text-slate-400";
+  });
+}
+document.querySelectorAll(".status-toggle").forEach(b => b.onclick = () => { if (activeNode) activeNode.status = b.dataset.status; updateStatusToggles(b.dataset.status); });
+document.getElementById("closeModalBtn").onclick = () => document.getElementById("detailModal").classList.add("hidden");
+document.getElementById("saveSkillBtn").onclick = async () => {
+  if (!activeNode) return;
+  activeNode.icon = document.getElementById("modalIcon").value; activeNode.color = document.getElementById("modalColor").value; activeNode.notes = document.getElementById("modalNotes").value;
+  document.getElementById("detailModal").classList.add("hidden"); drawConstellation(); await saveUserData();
+};
+
+async function publishCurrentTree() {
+  const tree = userTrees[selectedTree]; if (!tree || (tree.nodes || []).length === 0) return alert("Add at least 1 skill node before publishing.");
+  const tagChoice = prompt("Tag this tree as: Mentorship, Business, Hobby, or 21+ :", "Mentorship") || "Mentorship";
+  await db.collection("public_trees").add({
+    title: selectedTree, attr: tree.attr || "WIS", tag: tagChoice, nsfw: tagChoice.includes("21"),
+    author: userProfile.name || currentUser.email.split("@")[0], contact: userProfile.contact || "", likes: 1,
+    nodes: tree.nodes.map(n => ({ title: n.title, notes: n.notes })), createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  alert(`"${selectedTree}" is now live in The Server Realm!`);
+}
+
+async function loadServerRealm() {
+  let cloudTrees = [];
+  try {
+    const snap = await db.collection("public_trees").orderBy("createdAt", "desc").limit(40).get();
+    snap.forEach(doc => cloudTrees.push({ id: doc.id, isCloud: true, ...doc.data() }));
+  } catch (e) { console.error(e); }
+  const concepts = typeof baseConceptTrees !== "undefined" ? baseConceptTrees : [];
+  publicTreesCache = [...cloudTrees, ...concepts]; renderServerList();
+}
+
+function filterServer(tag) {
+  serverFilter = tag;
+  document.querySelectorAll(".srv-filter").forEach(b => {
+    b.className = b.textContent.toLowerCase().includes(tag.toLowerCase()) || (tag === "ALL" && b.textContent === "All")
+      ? "srv-filter px-2.5 py-1 rounded bg-sky-500 text-slate-950 text-[11px] font-bold shrink-0" : "srv-filter px-2.5 py-1 rounded bg-slate-800 text-slate-300 text-[11px] shrink-0";
+  });
+  renderServerList();
+}
+
+function renderServerList() {
+  const list = document.getElementById("serverList");
+  const filtered = publicTreesCache.filter(t => {
+    if (t.nsfw && !showNsfw) return false;
+    if (serverFilter === "ALL") return true;
+    if (serverFilter === "Concept") return t.tag === "Concept";
+    if (serverFilter === "Community") return t.isCloud === true;
+    if (serverFilter === "Business") return (t.tag || "").toLowerCase().includes("business");
+    return true;
+  });
+  document.getElementById("serverCountBadge").textContent = `${filtered.length} Trees`;
+  list.innerHTML = filtered.map(t => `<div class="glass-panel rounded-xl p-3.5 space-y-2"><div class="flex justify-between items-start"><div><div class="flex items-center space-x-1.5"><span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300">${t.attr}</span><span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-semibold">${t.tag}</span>${t.nsfw ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-950 text-red-300 font-bold">21+</span>' : ''}</div><h3 class="text-sm font-bold text-white skyrim-font mt-1">${t.title}<

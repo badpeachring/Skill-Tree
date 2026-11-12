@@ -56,7 +56,7 @@ const baseConceptTrees = [
     { title: "Stance, Guard & Weight Distribution", notes: "Keep center of gravity balanced on the balls of the feet." },
     { title: "Distance Management & Angles", notes: "Step off the centerline while countering." }
   ]},
-  { id: "b13", title: "Low-and-Slow Smoking & Butchery", attr: "WIS", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 51, nodes: [
+    { id: "b13", title: "Low-and-Slow Smoking & Butchery", attr: "WIS", tag: "Concept", nsfw: false, author: "Guild Architect", likes: 51, nodes: [
     { title: "Trimming & Aerodynamic Fat Cap", notes: "Remove hard silver skin and shape edges so smoke flows cleanly." },
     { title: "Clean Blue Smoke & Fire Management", notes: "Burn seasoned splits with unobstructed exhaust airflow." },
     { title: "The Stall, Wrap & Rest", notes: "Wrap in butcher paper once bark sets; rest until internal temp drops to 145F." }

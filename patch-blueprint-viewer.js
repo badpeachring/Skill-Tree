@@ -1,4 +1,16 @@
-(function installFullVisualBlueprints() {
+function installFullVisualBlueprints() {
+  const origFilterServer = window.filterServer;
+  window.filterServer = function(tag) {
+    if (origFilterServer) origFilterServer(tag);
+    const map = { ALL: "All", Concept: "Base Concepts", Community: "Player Cloud", Business: "Business / Pro" };
+    document.querySelectorAll(".srv-filter").forEach(btn => {
+      const isActive = btn.textContent.trim() === map[tag];
+      btn.className = isActive
+        ? "srv-filter px-2.5 py-1 rounded bg-sky-500 text-slate-950 text-[11px] font-bold shrink-0"
+        : "srv-filter px-2.5 py-1 rounded bg-slate-800 text-slate-300 text-[11px] shrink-0";
+    });
+  };
+
   const modal = document.getElementById("serverInspectModal");
   if (!modal) return;
 
@@ -107,4 +119,3 @@
     setTimeout(renderBpCanopy, 30);
   };
 })();
-                                                           

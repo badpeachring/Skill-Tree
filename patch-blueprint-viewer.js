@@ -12,7 +12,7 @@
   window.copyPresetTreeToUser = async function(id) {
     const t = findTreeById(id);
     if (!t) return;
-    const layout = (t.nodes || []).map((n, i) => ({ ...n }));
+    const layout = (t.nodes || []).map((n) => ({ ...n }));
     if (typeof window.computeOrganicTreePositions === "function") {
       window.computeOrganicTreePositions(layout);
     }
@@ -30,12 +30,13 @@
         x: n.x,
         y: n.y,
         notes: n.notes || "",
+        image: n.image || "",
         steps: n.steps || [],
         links: n.links || [],
         parentId: (pIdx >= 0 && ids[pIdx]) ? ids[pIdx] : null
       };
     });
-    await createNewTree(t.title, t.attr || "INT", cloned);
+    await createNewTree(t.title, t.attr || "DEX", cloned);
     const modal = document.getElementById("serverInspectModal");
     if (modal) modal.classList.add("hidden");
     navigate("viewTrees", "My Constellations");
@@ -67,14 +68,19 @@
         <div id="bpNodesLayer" class="absolute inset-0 origin-top-left"></div>
         <div class="absolute top-2.5 left-3 text-[10px] text-slate-400 bg-slate-950/85 px-2.5 py-1 rounded-full border border-slate-800">Pinch to zoom • Drag to pan • Tap any star node</div>
       </div>
-      <div id="bpNodeDrawer" class="hidden border-t border-sky-500/30 bg-slate-900 p-4 space-y-2 max-h-[42vh] overflow-y-auto shrink-0">
-        <div class="flex justify-between items-start gap-2"><div><span id="bpNodeTier" class="text-[10px] font-black uppercase text-amber-300"></span><h3 id="bpNodeTitle" class="text-sm font-bold text-white skyrim-font"></h3></div><button id="bpHarvestBtn" type="button" class="px-3 py-1.5 bg-sky-500 text-slate-950 rounded-lg text-xs font-bold shrink-0">+ Harvest Skill</button></div>
-        <p id="bpNodeNotes" class="text-xs text-slate-300 leading-relaxed"></p><div id="bpNodeMeta" class="space-y-1 text-[11px]"></div>
+      <div id="bpNodeDrawer" class="hidden border-t border-sky-500/30 bg-slate-900 p-4 space-y-2.5 max-h-[48vh] overflow-y-auto shrink-0">
+        <div class="flex justify-between items-start gap-2">
+          <div><span id="bpNodeTier" class="text-[10px] font-black uppercase text-amber-300"></span><h3 id="bpNodeTitle" class="text-sm font-bold text-white skyrim-font"></h3></div>
+          <button id="bpHarvestBtn" type="button" class="px-3 py-1.5 bg-sky-500 text-slate-950 rounded-lg text-xs font-bold shrink-0">+ Harvest Skill</button>
+        </div>
+        <div id="bpNodeImgWrap" class="hidden rounded-xl overflow-hidden border border-slate-700 bg-slate-950"></div>
+        <p id="bpNodeNotes" class="text-xs text-slate-200 leading-relaxed whitespace-pre-line"></p>
+        <div id="bpNodeMeta" class="space-y-1.5 text-[11px]"></div>
       </div>`;
 
     const wrap = document.getElementById("bpCanvasWrap");
     wrap.addEventListener("pointerdown", e => { ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (ptrs.size === 1) { panX = e.clientX; panY = e.clientY; origX = cam.x; origY = cam.y; } else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pDist = Math.hypot(b.x - a.x, b.y - a.y) || 1; pScale = cam.s; } });
-    wrap.addEventListener("pointermove", e => { if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (ptrs.size === 1) { cam.x = origX + (e.clientX - panX); cam.y = origY + (e.clientY - panY); renderBp(); } else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; cam.s = Math.min(2.6, Math.max(0.42, pScale * (Math.hypot(b.x - a.x, b.y - a.y) / pDist))); renderBp(); } });
+    wrap.addEventListener("pointermove", e => { if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (ptrs.size === 1) { cam.x = origX + (e.clientX - panX); cam.y = origY + (e.clientY - panY); renderBp(); } else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; cam.s = Math.min(2.6, Math.max(0.35, pScale * (Math.hypot(b.x - a.x, b.y - a.y) / pDist))); renderBp(); } });
     const endP = e => ptrs.delete(e.pointerId);
     wrap.addEventListener("pointerup", endP);
     wrap.addEventListener("pointercancel", endP);
@@ -113,8 +119,16 @@
       document.getElementById("bpNodeDrawer").classList.remove("hidden");
       document.getElementById("bpNodeTier").textContent = n.tier || "Concept Skill";
       document.getElementById("bpNodeTitle").textContent = n.title;
+      const imgWrap = document.getElementById("bpNodeImgWrap");
+      if (n.image) {
+        imgWrap.classList.remove("hidden");
+        imgWrap.innerHTML = `<img src="${n.image}" alt="${n.title}" class="w-full max-h-44 object-contain mx-auto">`;
+      } else {
+        imgWrap.classList.add("hidden");
+        imgWrap.innerHTML = "";
+      }
       document.getElementById("bpNodeNotes").textContent = n.notes || "";
-      document.getElementById("bpNodeMeta").innerHTML = (n.steps || []).map(s => `<div class="text-emerald-300">☑ ${s.text}</div>`).join("") + (n.links || []).map(l => `<a href="${l.url}" target="_blank" class="block text-sky-400 underline">🔗 ${l.label}</a>`).join("");
+      document.getElementById("bpNodeMeta").innerHTML = (n.steps || []).map(s => `<div class="text-emerald-300">☑ ${s.text}</div>`).join("") + (n.links || []).map(l => `<a href="${l.url}" target="_blank" class="block text-sky-400 font-bold underline">▶ ${l.label}</a>`).join("");
       document.getElementById("bpHarvestBtn").onclick = () => harvestSingleNode(activeBp.id, n._oi);
     });
   }
@@ -128,7 +142,7 @@
     }
     activeBp = { ...t, _layout: layout };
     const modal = ensureModal();
-    cam = layout.length >= 15 ? { s: 0.62, x: window.innerWidth * 0.19, y: 25 } : { s: 1, x: 0, y: 0 };
+    cam = layout.length >= 40 ? { s: 0.48, x: window.innerWidth * 0.26, y: 35 } : (layout.length >= 15 ? { s: 0.62, x: window.innerWidth * 0.19, y: 25 } : { s: 1, x: 0, y: 0 });
     document.getElementById("inspTag").textContent = `${t.attr} • ${t.tag}`;
     document.getElementById("inspTitle").textContent = t.title;
     document.getElementById("inspAuthor").textContent = `By ${t.author}`;

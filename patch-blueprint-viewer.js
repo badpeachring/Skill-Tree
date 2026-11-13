@@ -1,16 +1,15 @@
 (function installVisualBlueprintAndCopyEngine() {
   let activeBp = null, cam = { s: 1, x: 0, y: 0 }, ptrs = new Map(), pDist = 0, pScale = 1, panX = 0, panY = 0, origX = 0, origY = 0;
 
-  function findTreeById(id) {
-    const pool = [
+  function getAllTrees() {
+    return [
       ...(typeof publicTreesCache !== "undefined" ? publicTreesCache : []),
       ...(typeof baseConceptTrees !== "undefined" ? baseConceptTrees : [])
     ];
-    return pool.find(x => x.id === id);
   }
 
   window.copyPresetTreeToUser = async function(id) {
-    const t = findTreeById(id);
+    const t = getAllTrees().find(x => x.id === id);
     if (!t) return;
     const layout = (t.nodes || []).map((n) => ({ ...n }));
     if (typeof window.computeOrganicTreePositions === "function") {
@@ -21,18 +20,10 @@
     const cloned = layout.map((n, i) => {
       const pIdx = typeof n.parentIdx === "number" ? n.parentIdx : (typeof n._p === "number" ? n._p : -1);
       return {
-        id: ids[i],
-        title: n.title,
-        status: "locked",
-        tier: n.tier || "Tier I • Foundation",
-        icon: n.icon || "✦",
-        color: n.color || "#38bdf8",
-        x: n.x,
-        y: n.y,
-        notes: n.notes || "",
-        image: n.image || "",
-        steps: n.steps || [],
-        links: n.links || [],
+        id: ids[i], title: n.title, status: "locked",
+        tier: n.tier || "Tier I • Foundation", icon: n.icon || "✦", color: n.color || "#38bdf8",
+        x: n.x, y: n.y, notes: n.notes || "", image: n.image || "",
+        steps: n.steps || [], links: n.links || [],
         parentId: (pIdx >= 0 && ids[pIdx]) ? ids[pIdx] : null
       };
     });
@@ -58,7 +49,7 @@
           <h2 id="inspTitle" class="text-sm font-black text-white skyrim-font mt-0.5 truncate"></h2>
         </div>
         <div class="flex items-center space-x-1.5 shrink-0">
-          <button id="bpRegrowBtn" type="button" class="px-2 py-1.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded-lg text-xs font-bold" title="Re-Grow Organic Branches">🎲</button>
+          <button id="bpRegrowBtn" type="button" class="px-2 py-1.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded-lg text-xs font-bold">🎲</button>
           <button id="bpCloneAllBtn" type="button" class="px-2.5 py-1.5 bg-sky-500 text-slate-950 rounded-lg text-[11px] font-bold">+ Copy Tree</button>
           <button id="bpCloseBtn" type="button" class="px-2.5 py-1.5 bg-slate-800 text-slate-200 rounded-lg text-xs font-bold">✕</button>
         </div>
@@ -134,7 +125,7 @@
   }
 
   window.openVisualBlueprint = function(id) {
-    const t = findTreeById(id);
+    const t = getAllTrees().find(x => x.id === id);
     if (!t) return;
     const layout = (t.nodes || []).map((n, i) => ({ ...n, _oi: i }));
     if (typeof window.computeOrganicTreePositions === "function") {
@@ -151,13 +142,12 @@
   };
 
   function upgradeServerCards() {
-    document.querySelectorAll("#serverTreeList button").forEach(btn => {
-      const txt = btn.textContent || "";
-      if (!txt.includes("Inspect")) return;
+    const pool = getAllTrees();
+    document.querySelectorAll("button").forEach(btn => {
+      if (!(btn.textContent || "").includes("Inspect Skills")) return;
       const card = btn.closest(".glass-panel") || btn.parentElement;
-      const titleEl = card ? card.querySelector("h3, h4, .skyrim-font") : null;
+      const titleEl = card ? card.querySelector("h2, h3, h4, .skyrim-font") : null;
       const title = titleEl ? titleEl.textContent.trim() : "";
-      const pool = [...(typeof publicTreesCache !== "undefined" ? publicTreesCache : []), ...(typeof baseConceptTrees !== "undefined" ? baseConceptTrees : [])];
       const match = pool.find(x => x.title === title);
       if (!match) return;
 
@@ -173,13 +163,10 @@
   }
 
   window.inspectServerTree = window.openVisualBlueprint;
-  if (typeof window.renderServerTrees === "function") {
-    const orig = window.renderServerTrees;
-    window.renderServerTrees = function() {
-      orig();
-      window.inspectServerTree = window.openVisualBlueprint;
-      upgradeServerCards();
-    };
-    window.renderServerTrees();
-  }
+  const obs = new MutationObserver(() => {
+    window.inspectServerTree = window.openVisualBlueprint;
+    upgradeServerCards();
+  });
+  obs.observe(document.body, { childList: true, subtree: true });
+  setTimeout(upgradeServerCards, 300);
 })();

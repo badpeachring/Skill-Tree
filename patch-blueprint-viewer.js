@@ -1,5 +1,6 @@
 (function installVisualBlueprintAndAdminPresetEngine() {
-  let activeBp = null, cam = { s: 1, x: 0, y: 0 }, ptrs = new Map(), pDist = 0, pScale = 1, panX = 0, panY = 0, origX = 0, origY = 0;
+  let activeBp = null, bpAnimId = null;
+  let cam = { s: 1, x: 0, y: 0 }, ptrs = new Map(), pDist = 0, pScale = 1, panX = 0, panY = 0, origX = 0, origY = 0;
   const OVERRIDE_KEY = "skilltree_preset_overrides_v1";
   const HIDDEN_KEY = "skilltree_hidden_presets_v1";
 
@@ -13,9 +14,9 @@
   function saveHiddenIds(set) { localStorage.setItem(HIDDEN_KEY, JSON.stringify([...set])); }
 
   function isAdminActive() {
-    if (typeof isAdminMode !== "undefined" && isAdminMode) return true;
-    const badge = [...document.querySelectorAll("*")].find(el => el.children.length === 0 && (el.textContent || "").trim() === "ARCHITECT");
-    return Boolean(badge && badge.offsetParent !== null);
+    const bar = document.getElementById("adminBar");
+    const btn = document.getElementById("adminToggleBtn");
+    return Boolean((bar && !bar.classList.contains("hidden")) || (btn && !btn.classList.contains("hidden")));
   }
 
   function applyPresetOverrides() {
@@ -68,7 +69,6 @@
     navigate("viewTrees", "My Constellations");
   };
 
-  // Admin: Promote any User Tree in My Constellations to overwrite a Base Concept Preset
   window.adminPublishTreeAsPreset = async function(targetPresetId, sourceUserTree, extraTags = []) {
     const cleanNodes = (sourceUserTree.nodes || []).map((n) => {
       const pIdx = n.parentId ? (sourceUserTree.nodes || []).findIndex(p => p.id === n.parentId) : -1;
@@ -93,7 +93,7 @@
       tags: mergedTags,
       title: sourceUserTree.title,
       author: "sethmcnab13",
-      likes: 100,
+      likes: 0,
       nodes: cleanNodes
     };
     const ov = getOverrides();
@@ -101,7 +101,7 @@
     saveOverrides(ov);
     applyPresetOverrides();
     if (typeof db !== "undefined" && db) {
-      try { await db.collection("publicTrees").doc(targetPresetId).set(updated, { merge: true }); } catch (e) {}
+      try { await db.collection("publicTrees").doc(targetPresetId).set(updated, { merge: true }); } catch {}
     }
     if (typeof renderServerTrees === "function") renderServerTrees();
     alert(`Preset "${updated.title}" updated across The Server Realm!`);
@@ -147,30 +147,39 @@
       </div>`;
 
     const wrap = document.getElementById("bpCanvasWrap");
-    wrap.addEventListener("pointerdown", e => { ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (ptrs.size === 1) { panX = e.clientX; panY = e.clientY; origX = cam.x; origY = cam.y; } else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pDist = Math.hypot(b.x - a.x, b.y - a.y) || 1; pScale = cam.s; } });
-    wrap.addEventListener("pointermove", e => { if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (ptrs.size === 1) { cam.x = origX + (e.clientX - panX); cam.y = origY + (e.clientY - panY); renderBp(); } else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; cam.s = Math.min(2.6, Math.max(0.35, pScale * (Math.hypot(b.x - a.x, b.y - a.y) / pDist))); renderBp(); } });
+    wrap.addEventListener("pointerdown", e => {
+      ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (ptrs.size === 1) { panX = e.clientX; panY = e.clientY; origX = cam.x; origY = cam.y; }
+      else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pDist = Math.hypot(b.x - a.x, b.y - a.y) || 1; pScale = cam.s; }
+    });
+    wrap.addEventListener("pointermove", e => {
+      if (!ptrs.has(e.pointerId)) return;
+      ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (ptrs.size === 1) { cam.x = origX + (e.clientX - panX); cam.y = origY + (e.clientY - panY); renderBp(); }
+      else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; cam.s = Math.min(2.6, Math.max(0.22, pScale * (Math.hypot(b.x - a.x, b.y - a.y) / pDist))); renderBp(); }
+    });
     const endP = e => ptrs.delete(e.pointerId);
     wrap.addEventListener("pointerup", endP);
     wrap.addEventListener("pointercancel", endP);
-    document.getElementById("bpCloseBtn").onclick = () => modal.classList.add("hidden");
+    document.getElementById("bpCloseBtn").onclick = () => { modal.classList.add("hidden"); activeBp = null; };
     document.getElementById("bpRegrowBtn").onclick = () => {
       if (!activeBp) return;
-      window.computeOrganicTreePositions(activeBp._layout, Date.now());
+      activeBp._seed = Date.now();
+      window.computeOrganicTreePositions(activeBp._layout, activeBp._seed);
+      const layer = document.getElementById("bpNodesLayer");
+      if (layer) layer.dataset.renderedFor = "";
       renderBp();
     };
-    document.getElementById("bpCloneAllBtn").onclick = () => {
-      if (activeBp) window.copyPresetTreeToUser(activeBp.id);
-    };
+    document.getElementById("bpCloneAllBtn").onclick = () => { if (activeBp) window.copyPresetTreeToUser(activeBp.id); };
     return modal;
   }
 
-  function renderBp() {
+  function drawBpCanvasOnly() {
     if (!activeBp) return;
-    const c = document.getElementById("bpCanvas"), layer = document.getElementById("bpNodesLayer"), wrap = document.getElementById("bpCanvasWrap");
-    if (!c || !layer || !wrap) return;
-    c.width = wrap.clientWidth || window.innerWidth;
-    c.height = wrap.clientHeight || (window.innerHeight - 60);
-    layer.style.transform = `translate(${cam.x}px, ${cam.y}px) scale(${cam.s})`;
+    const c = document.getElementById("bpCanvas"), wrap = document.getElementById("bpCanvasWrap");
+    if (!c || !wrap) return;
+    if (c.width !== wrap.clientWidth) c.width = wrap.clientWidth || window.innerWidth;
+    if (c.height !== wrap.clientHeight) c.height = wrap.clientHeight || (window.innerHeight - 60);
     const ctx = c.getContext("2d");
     ctx.clearRect(0, 0, c.width, c.height);
     ctx.save();
@@ -180,8 +189,17 @@
       window.renderWorldTreeCanvas(ctx, c.width, c.height, activeBp._layout, true);
     }
     ctx.restore();
+  }
 
-    layer.innerHTML = activeBp._layout.map((n, i) => `<button type="button" data-i="${i}" style="left:${n.x}%;top:${n.y}%" class="bp-star absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"><div style="background:#0f172a;border-color:${n.color || "#38bdf8"};box-shadow:0 0 14px ${n.color || "#38bdf8"}66" class="w-9 h-9 rounded-full border-2 flex items-center justify-center text-xs text-white font-bold">${n.icon || "✦"}</div><span class="text-[10px] font-bold text-slate-100 bg-slate-950/90 px-2 py-0.5 rounded border border-slate-800 mt-1 whitespace-nowrap">${n.title}</span></button>`).join("");
+  function renderBp() {
+    if (!activeBp) return;
+    const layer = document.getElementById("bpNodesLayer");
+    if (layer) layer.style.transform = `translate(${cam.x}px, ${cam.y}px) scale(${cam.s})`;
+    drawBpCanvasOnly();
+    if (!layer || layer.dataset.renderedFor === activeBp.id + "_" + activeBp._seed) return;
+    layer.dataset.renderedFor = activeBp.id + "_" + activeBp._seed;
+
+    layer.innerHTML = activeBp._layout.map((n, i) => `<button type="button" data-i="${i}" style="left:${n.x}%;top:${n.y}%" class="bp-star absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"><div style="background:#0f172a;border-color:${n.color || "#38bdf8"};box-shadow:0 0 18px ${n.color || "#38bdf8"}88" class="w-11 h-11 rounded-full border-2 flex items-center justify-center text-sm text-white font-bold">${n.icon || "✦"}</div><span class="text-[11px] font-bold text-slate-100 bg-slate-950/90 px-2 py-0.5 rounded border border-slate-700 mt-1 whitespace-nowrap">${n.title}</span></button>`).join("");
     layer.querySelectorAll(".bp-star").forEach(b => b.onclick = () => {
       const n = activeBp._layout[Number(b.dataset.i)];
       document.getElementById("bpNodeDrawer").classList.remove("hidden");
@@ -206,21 +224,34 @@
     });
   }
 
+  function startBpLoop() {
+    if (bpAnimId) cancelAnimationFrame(bpAnimId);
+    function loop() {
+      const m = document.getElementById("serverInspectModal");
+      if (m && !m.classList.contains("hidden") && activeBp) drawBpCanvasOnly();
+      bpAnimId = requestAnimationFrame(loop);
+    }
+    bpAnimId = requestAnimationFrame(loop);
+  }
+
   window.openVisualBlueprint = function(id) {
     const t = getAllTrees().find(x => x.id === id);
     if (!t) return;
+    const seed = Date.now();
     const layout = (t.nodes || []).map((n, i) => ({ ...n, _oi: i }));
     if (typeof window.computeOrganicTreePositions === "function") {
-      window.computeOrganicTreePositions(layout);
+      window.computeOrganicTreePositions(layout, seed);
     }
-    activeBp = { ...t, _layout: layout };
+    activeBp = { ...t, _layout: layout, _seed: seed };
     const modal = ensureModal();
-    cam = layout.length >= 40 ? { s: 0.48, x: window.innerWidth * 0.26, y: 35 } : (layout.length >= 15 ? { s: 0.62, x: window.innerWidth * 0.19, y: 25 } : { s: 1, x: 0, y: 0 });
+    const s = layout.length >= 45 ? 0.36 : (layout.length >= 20 ? 0.45 : 0.72);
+    cam = { s, x: window.innerWidth * (0.5 - 0.5 * s), y: (window.innerHeight - 60) * (0.5 - 0.5 * s) };
     document.getElementById("inspTag").textContent = `${t.attr} • ${t.tag}`;
     document.getElementById("inspTitle").textContent = t.title;
     document.getElementById("inspAuthor").textContent = `By ${t.author}`;
     modal.classList.remove("hidden");
-    requestAnimationFrame(renderBp);
+    renderBp();
+    startBpLoop();
   };
 
   function upgradeServerCards() {
@@ -242,78 +273,21 @@
       }
 
       const row = document.createElement("div");
-      row.className = "space-y-1.5 mt-2";
-      row.innerHTML = `
-        <div class="flex items-center gap-2">
-          <button type="button" class="flex-1 py-2 bg-sky-500/20 border border-sky-500/40 text-sky-300 rounded-lg text-xs font-bold">🌳 View Tree</button>
-          <button type="button" class="px-3 py-2 bg-emerald-500 text-slate-950 rounded-lg text-xs font-bold">+ Copy Tree</button>
-        </div>
-        ${admin ? `
-        <div class="flex items-center gap-1.5 pt-1 border-t border-slate-800">
-          <button type="button" data-act="edit" class="flex-1 py-1 bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded text-[10px] font-bold">✏️ Edit Preset</button>
-          <button type="button" data-act="nsfw" class="px-2 py-1 bg-rose-500/20 border border-rose-500/40 text-rose-300 rounded text-[10px] font-bold">🔞 Tag NSFW</button>
-          <button type="button" data-act="hide" class="px-2 py-1 bg-slate-800 text-slate-300 rounded text-[10px] font-bold">${hidden.has(match.id) ? "👁 Unhide" : "🗑 Hide"}</button>
-        </div>` : ""}`;
-
-      const topBtns = row.children[0].querySelectorAll("button");
+      row.className = "flex items-center gap-2 mt-2";
+      row.innerHTML = `<button type="button" class="flex-1 py-2 bg-sky-500/20 border border-sky-500/40 text-sky-300 rounded-lg text-xs font-bold">🌳 View Tree</button><button type="button" class="px-3 py-2 bg-emerald-500 text-slate-950 rounded-lg text-xs font-bold">+ Copy Tree</button>`;
+      const topBtns = row.querySelectorAll("button");
       topBtns[0].onclick = (e) => { e.stopPropagation(); window.openVisualBlueprint(match.id); };
       topBtns[1].onclick = (e) => { e.stopPropagation(); window.copyPresetTreeToUser(match.id); };
-
-      if (admin && row.children[1]) {
-        row.children[1].querySelector('[data-act="edit"]').onclick = async (e) => {
-          e.stopPropagation();
-          await window.copyPresetTreeToUser(match.id);
-          window._pendingPresetOverwriteId = match.id;
-          alert(`Cloned "${match.title}" into My Constellations! Edit or expand nodes there, then tap "💾 Save Over Preset" in the top bar.`);
-        };
-        row.children[1].querySelector('[data-act="nsfw"]').onclick = async (e) => {
-          e.stopPropagation();
-          const ov = getOverrides();
-          const next = { ...match, nsfw: !match.nsfw, tags: match.nsfw ? (match.tags || []).filter(t => t !== "nsfw") : [...new Set([...(match.tags || []), "nsfw"])] };
-          ov[match.id] = next;
-          saveOverrides(ov);
-          applyPresetOverrides();
-          if (typeof db !== "undefined" && db) { try { await db.collection("publicTrees").doc(match.id).set(next, { merge: true }); } catch (err) {} }
-          if (typeof renderServerTrees === "function") renderServerTrees();
-        };
-        row.children[1].querySelector('[data-act="hide"]').onclick = (e) => {
-          e.stopPropagation();
-          const h = getHiddenIds();
-          if (h.has(match.id)) h.delete(match.id); else h.add(match.id);
-          saveHiddenIds(h);
-          if (typeof renderServerTrees === "function") renderServerTrees();
-        };
-      }
       btn.replaceWith(row);
     });
-
-    // Show "💾 Save Over Preset" button when Admin is editing a cloned Base Concept tree
-    if (admin && window._pendingPresetOverwriteId && typeof activeTreeId !== "undefined" && activeTreeId) {
-      const header = document.getElementById("activeTreeTitle")?.parentElement;
-      if (header && !document.getElementById("adminSavePresetBtn")) {
-        const sb = document.createElement("button");
-        sb.id = "adminSavePresetBtn";
-        sb.type = "button";
-        sb.textContent = "💾 Save Over Preset";
-        sb.className = "mt-1 px-2.5 py-1 bg-amber-500 text-slate-950 rounded text-[11px] font-black";
-        sb.onclick = async () => {
-          const cur = (userData?.trees || []).find(x => x.id === activeTreeId);
-          if (cur) {
-            await window.adminPublishTreeAsPreset(window._pendingPresetOverwriteId, cur);
-            window._pendingPresetOverwriteId = null;
-            sb.remove();
-          }
-        };
-        header.appendChild(sb);
-      }
-    }
   }
 
   applyPresetOverrides();
   window.inspectServerTree = window.openVisualBlueprint;
+  let scheduled = false;
   const obs = new MutationObserver(() => {
     window.inspectServerTree = window.openVisualBlueprint;
-    upgradeServerCards();
+    if (!scheduled) { scheduled = true; setTimeout(() => { scheduled = false; upgradeServerCards(); }, 150); }
   });
   obs.observe(document.body, { childList: true, subtree: true });
   setTimeout(upgradeServerCards, 300);

@@ -1,5 +1,4 @@
 (function installBlueprintAndFilterFix() {
-  // 1. Capture-phase click handler for Server Realm filter pills & Inspect buttons
   document.addEventListener("click", function(e) {
     const filterBtn = e.target.closest(".srv-filter");
     if (filterBtn) {
@@ -20,7 +19,6 @@
     }
   }, true);
 
-  // 2. Full-screen Visual Concept Tree Canopy Modal
   const modal = document.getElementById("serverInspectModal");
   if (!modal) return;
   modal.className = "fixed inset-0 z-50 bg-slate-950 hidden flex flex-col";
@@ -36,59 +34,29 @@
     </div>
     <div id="bpNodeDrawer" class="hidden border-t border-sky-500/30 bg-slate-900 p-4 space-y-2 max-h-[42vh] overflow-y-auto shrink-0">
       <div class="flex justify-between items-start gap-2"><div><span id="bpNodeTier" class="text-[10px] font-black uppercase text-amber-300"></span><h3 id="bpNodeTitle" class="text-sm font-bold text-white skyrim-font"></h3></div><button id="bpHarvestBtn" class="px-3 py-1.5 bg-sky-500 text-slate-950 rounded-lg text-xs font-bold shrink-0">+ Harvest Skill</button></div>
-      <p id="bpNodeNotes" class="text-xs text-slate-300"></p><div id="bpNodeMeta" class="space-y-1 text-[11px]"></div>
+      <p id="bpNodeNotes" class="text-xs text-slate-300 leading-relaxed"></p><div id="bpNodeMeta" class="space-y-1 text-[11px]"></div>
     </div>`;
 
-    let activeBp = null, cam = { s: 1, x: 0, y: 0 }, ptrs = new Map(), pDist = 0, pScale = 1, panX = 0, panY = 0, origX = 0, origY = 0;
+  let activeBp = null, cam = { s: 1, x: 0, y: 0 }, ptrs = new Map(), pDist = 0, pScale = 1, panX = 0, panY = 0, origX = 0, origY = 0;
 
   function renderBp() {
     if (!activeBp) return;
     const c = document.getElementById("bpCanvas"), layer = document.getElementById("bpNodesLayer"), wrap = document.getElementById("bpCanvasWrap");
-    c.width = wrap.clientWidth || window.innerWidth; c.height = wrap.clientHeight || (window.innerHeight - 60);
+    c.width = wrap.clientWidth || window.innerWidth;
+    c.height = wrap.clientHeight || (window.innerHeight - 60);
     layer.style.transform = `translate(${cam.x}px, ${cam.y}px) scale(${cam.s})`;
-    const ctx = c.getContext("2d"); ctx.clearRect(0, 0, c.width, c.height);
-    ctx.save(); ctx.translate(cam.x, cam.y); ctx.scale(cam.s, cam.s);
+    const ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.save();
+    ctx.translate(cam.x, cam.y);
+    ctx.scale(cam.s, cam.s);
     if (typeof window.renderWorldTreeCanvas === "function") {
       window.renderWorldTreeCanvas(ctx, c.width, c.height, activeBp._layout, true);
     }
     ctx.restore();
+
     layer.innerHTML = activeBp._layout.map((n, i) => `<button type="button" data-i="${i}" style="left:${n.x}%;top:${n.y}%" class="bp-star absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"><div style="background:#0f172a;border-color:${n.color || "#38bdf8"};box-shadow:0 0 14px ${n.color || "#38bdf8"}66" class="w-9 h-9 rounded-full border-2 flex items-center justify-center text-xs text-white font-bold">${n.icon || "✦"}</div><span class="text-[10px] font-bold text-slate-100 bg-slate-950/90 px-2 py-0.5 rounded border border-slate-800 mt-1 whitespace-nowrap">${n.title}</span></button>`).join("");
     layer.querySelectorAll(".bp-star").forEach(b => b.onclick = () => {
       const n = activeBp._layout[Number(b.dataset.i)];
-      document.getElementById("bpNodeDrawer").classList.remove("hidden");
-      document.getElementById("bpNodeTier").textContent = n.tier || "Concept Skill";
-      document.getElementById("bpNodeTitle").textContent = n.title;
-      document.getElementById("bpNodeNotes").textContent = n.notes || "";
-      document.getElementById("bpNodeMeta").innerHTML = (n.steps || []).map(s => `<div class="text-emerald-300">☑ ${s.text}</div>`).join("") + (n.links || []).map(l => `<a href="${l.url}" target="_blank" class="block text-sky-400 underline">🔗 ${l.label}</a>`).join("");
-      document.getElementById("bpHarvestBtn").onclick = () => harvestSingleNode(activeBp.id, n._oi);
-    });
-  }
-
-  function openVisualBlueprint(id) {
-    const t = publicTreesCache.find(x => x.id === id); if (!t) return;
-    const tiers = ["Tier I", "Tier II", "Tier III", "Tier IV"], bkts = [[], [], [], []];
-    (t.nodes || []).forEach((n, i) => { const k = tiers.findIndex(v => (n.tier || "").includes(v)); bkts[k >= 0 ? k : Math.min(3, Math.floor(i / 2))].push({ ...n, _oi: i }); });
-    const layout = [];
-    bkts.forEach((list, r) => {
-      const spread = 66 + r * 18;
-      list.forEach((n, c) => {
-        const frac = (c + 1) / (list.length + 1) - 0.5, arch = Math.cos(frac * Math.PI) * 9;
-        layout.push({ ...n, x: n.x || Math.round(50 + frac * spread), y: n.y || Math.round(66 - r * 16 - arch), _p: r === 0 ? -1 : Math.max(0, layout.length - list.length - 1) });
-      });
-    });
-    activeBp = { ...t, _layout: layout }; cam = { s: 1, x: 0, y: 0 };
-    document.getElementById("inspTag").textContent = `${t.attr} • ${t.tag}`;
-    document.getElementById("inspTitle").textContent = t.title;
-    document.getElementById("inspAuthor").textContent = `By ${t.author}`;
-    document.getElementById("bpNodeDrawer").classList.add("hidden");
-    modal.classList.remove("hidden");
-    requestAnimationFrame(renderBp);
-  }
-
-  const wrap = document.getElementById("bpCanvasWrap");
-  wrap.addEventListener("pointerdown", e => { ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (ptrs.size === 1) { panX = e.clientX; panY = e.clientY; origX = cam.x; origY = cam.y; } else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pDist = Math.hypot(b.x - a.x, b.y - a.y) || 1; pScale = cam.s; } });
-  wrap.addEventListener("pointermove", e => { if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (ptrs.size === 1) { cam.x = origX + (e.clientX - panX); cam.y = origY + (e.clientY - panY); renderBp(); } else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; cam.s = Math.min(2.6, Math.max(0.6, pScale * (Math.hypot(b.x - a.x, b.y - a.y) / pDist))); renderBp(); } });
-  const endP = e => ptrs.delete(e.pointerId); wrap.addEventListener("pointerup", endP); wrap.addEventListener("pointercancel", endP);
-  document.getElementById("bpCloseBtn").onclick = () => modal.classList.add("hidden");
-  document.getElementById("bpCloneAllBtn").onclick = async () => { if (!activeBp) return; const cloned = activeBp._layout.map((n, i) => ({ id: "cl_" + Date.now() + "_" + i, title: n.title, status: "locked", tier: n.tier || "Tier I • Foundation", icon: n.icon || "✦", color: n.color || "#38bdf8", x: n.x, y: n.y, notes: n.notes || "", steps: n.steps || [], links: n.links || [], parentId: null })); await createNewTree(activeBp.title, activeBp.attr, cloned); modal.classList.add("hidden"); navigate("viewTrees", "My Constellations"); };
-})();
+      document.
+        

@@ -1,17 +1,12 @@
-(function installOrganicTreeRender() {
+(function installWorldTreeGraphics() {
   const addBtn = document.getElementById("addNodeBtn");
   if (addBtn && !document.getElementById("autoLayoutBtn")) {
     const btn = document.createElement("button");
-    btn.id = "autoLayoutBtn";
-    btn.type = "button";
-    btn.textContent = "🌿";
-    btn.title = "Auto-Arrange Tree Canopy";
+    btn.id = "autoLayoutBtn"; btn.type = "button"; btn.textContent = "🌿"; btn.title = "Auto-Arrange Organic Canopy";
     btn.className = "px-2 py-1 bg-slate-800 border border-slate-700 text-emerald-300 rounded text-xs font-bold";
     btn.onclick = async () => {
-      const tree = userTrees[selectedTree];
-      if (!tree || !tree.nodes.length) return;
-      const byId = Object.fromEntries(tree.nodes.map(n => [n.id, n]));
-      const levels = {};
+      const tree = userTrees[selectedTree]; if (!tree || !tree.nodes.length) return;
+      const byId = Object.fromEntries(tree.nodes.map(n => [n.id, n])), levels = {};
       tree.nodes.forEach(n => {
         let d = 0, cur = n, seen = new Set();
         while (cur.parentId && byId[cur.parentId] && !seen.has(cur.id)) { seen.add(cur.id); cur = byId[cur.parentId]; d++; }
@@ -19,53 +14,81 @@
       });
       const maxD = Math.max(...Object.keys(levels).map(Number));
       Object.entries(levels).forEach(([dStr, list]) => {
-        const d = Number(dStr), y = maxD === 0 ? 52 : Math.max(14, 66 - (d / maxD) * 50);
-        list.forEach((n, i) => { n.x = Math.round(((i + 1) / (list.length + 1)) * 76 + 12); n.y = Math.round(y + (i % 2 === 0 ? -2 : 2)); });
+        const d = Number(dStr), spread = 64 + d * 18;
+        list.forEach((n, i) => {
+          const frac = (i + 1) / (list.length + 1) - 0.5;
+          const arch = Math.cos(frac * Math.PI) * 10;
+          n.x = Math.round(50 + frac * spread);
+          n.y = Math.round((maxD === 0 ? 48 : 64 - (d / Math.max(1, maxD)) * 52) - arch);
+        });
       });
+      if (window.resetTreeCamera) window.resetTreeCamera();
       drawConstellation();
       await saveUserData();
     };
     addBtn.parentElement.insertBefore(btn, addBtn);
   }
-    window.drawBranchesOnly = function() {
-    const tree = userTrees[selectedTree]; if (!tree) return;
-    const nodes = tree.nodes || [], c = document.getElementById("treeCanvas"), ctx = c.getContext("2d");
-    ctx.clearRect(0, 0, c.width, c.height);
-    const rootX = c.width * 0.5, rootY = c.height * 0.95;
-    const trunkH = Math.min(c.height * 0.34, 65 + nodes.length * 8), crownY = rootY - trunkH, trunkW = Math.min(24, 9 + nodes.length * 0.5);
-    ctx.save(); ctx.lineCap = "round";
-    const grad = ctx.createLinearGradient(0, crownY, 0, c.height);
-    grad.addColorStop(0, "#334155"); grad.addColorStop(1, "#0f172a");
-    ctx.fillStyle = grad;
-    ctx.beginPath(); ctx.moveTo(rootX - trunkW * 2.8, c.height); ctx.quadraticCurveTo(rootX, rootY - 14, rootX + trunkW * 2.8, c.height); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(rootX - trunkW * 0.85, rootY); ctx.bezierCurveTo(rootX - trunkW * 0.5, rootY - trunkH * 0.4, rootX - trunkW * 0.25, crownY + 20, rootX, crownY); ctx.bezierCurveTo(rootX + trunkW * 0.25, crownY + 20, rootX + trunkW * 0.5, rootY - trunkH * 0.4, rootX + trunkW * 0.85, rootY); ctx.closePath(); ctx.fill();
-    const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
+
+  window.renderWorldTreeCanvas = function(ctx, w, h, nodes, isBlueprint) {
+    const rx = w * 0.5, ry = h * 0.96, th = Math.min(h * 0.34, 95 + nodes.length * 6), cy = ry - th;
+    const tw = Math.min(28, 11 + nodes.length * 0.45);
+
+    ctx.save();
+    const mist = ctx.createRadialGradient(rx, cy - th * 0.35, 10, rx, cy - th * 0.35, Math.max(w * 0.55, 220));
+    mist.addColorStop(0, "rgba(56, 189, 248, 0.14)");
+    mist.addColorStop(0.55, "rgba(168, 85, 247, 0.06)");
+    mist.addColorStop(1, "rgba(15, 23, 42, 0)");
+    ctx.fillStyle = mist;
+    ctx.fillRect(-w, -h * 2, w * 3, h * 3);
+
+    const bark = ctx.createLinearGradient(rx - tw * 2, cy, rx + tw * 2, ry);
+    bark.addColorStop(0, "#1e293b"); bark.addColorStop(0.5, "#334155"); bark.addColorStop(1, "#0f172a");
+    ctx.fillStyle = bark;
+    ctx.beginPath();
+    ctx.moveTo(rx - tw * 3.6, h);
+    ctx.quadraticCurveTo(rx - tw * 1.1, ry - 6, rx - tw * 0.85, ry - 26);
+    ctx.bezierCurveTo(rx - tw * 0.55, ry - th * 0.45, rx - tw * 0.25, cy + 18, rx, cy);
+    ctx.bezierCurveTo(rx + tw * 0.25, cy + 18, rx + tw * 0.55, ry - th * 0.45, rx + tw * 0.85, ry - 26);
+    ctx.quadraticCurveTo(rx + tw * 1.1, ry - 6, rx + tw * 3.6, h);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(56, 189, 248, 0.35)";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(rx, ry); ctx.quadraticCurveTo(rx - 3, cy + th * 0.45, rx, cy); ctx.stroke();
+
+    ctx.lineCap = "round";
+    const byId = Object.fromEntries(nodes.map((n, i) => [n.id || i, n]));
     nodes.forEach((n, idx) => {
-      const nx = (n.x / 100) * c.width, ny = (n.y / 100) * c.height, p = n.parentId ? byId[n.parentId] : null;
-      const sx = p ? (p.x / 100) * c.width : rootX, sy = p ? (p.y / 100) * c.height : crownY + 6;
-      const th = p ? Math.max(2.5, trunkW * 0.28) : Math.max(4, trunkW * 0.45 - idx * 0.1);
-      ctx.beginPath(); ctx.moveTo(sx, sy);
-      ctx.bezierCurveTo(sx, (sy + ny) * 0.55, (sx + nx) * 0.5, ny + 18, nx, ny);
-      ctx.lineWidth = th; ctx.strokeStyle = n.status === "mastered" ? (n.color || "#38bdf8") : n.status === "learning" ? "#92400e" : "#334155";
-      ctx.globalAlpha = n.status === "mastered" ? 0.72 : 0.85; ctx.stroke();
+      const nx = (n.x / 100) * w, ny = (n.y / 100) * h;
+      const p = (n.parentId && byId[n.parentId]) ? byId[n.parentId] : (typeof n._p === "number" && n._p >= 0 ? nodes[n._p] : null);
+      const sx = p ? (p.x / 100) * w : rx, sy = p ? (p.y / 100) * h : cy + 8;
+      const ctrl1x = sx + (nx - sx) * 0.15, ctrl1y = sy - Math.abs(sy - ny) * 0.35;
+      const ctrl2x = sx + (nx - sx) * 0.55, ctrl2y = ny + 22;
+      const limbW = p ? Math.max(3, tw * 0.3) : Math.max(5, tw * 0.48 - idx * 0.08);
+      const active = isBlueprint || n.status === "mastered" || n.status === "learning";
+      const col = n.status === "learning" ? "#f59e0b" : (n.color || "#38bdf8");
+
+      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.bezierCurveTo(ctrl1x, ctrl1y, ctrl2x, ctrl2y, nx, ny);
+      ctx.lineWidth = limbW + 2.5; ctx.strokeStyle = "#0f172a"; ctx.globalAlpha = 0.9; ctx.stroke();
+      ctx.lineWidth = limbW; ctx.strokeStyle = active ? "#1e293b" : "#273549"; ctx.stroke();
+
+      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.bezierCurveTo(ctrl1x, ctrl1y, ctrl2x, ctrl2y, nx, ny);
+      ctx.lineWidth = active ? Math.max(1.8, limbW * 0.42) : 1.2;
+      ctx.strokeStyle = active ? col : "#475569";
+      ctx.shadowColor = active ? col : "transparent";
+      ctx.shadowBlur = active ? 10 : 0;
+      ctx.globalAlpha = active ? 0.85 : 0.45;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
     });
     ctx.restore();
   };
 
-  const origDraw = window.drawConstellation;
-  window.drawConstellation = function() {
-    origDraw();
-    const tree = userTrees[selectedTree], box = document.getElementById("nodesContainer");
-    if (!tree || !box) return;
-    Array.from(box.children).forEach((el, idx) => {
-      const n = tree.nodes[idx]; if (!n) return;
-      const steps = Array.isArray(n.steps) ? n.steps : [], links = Array.isArray(n.links) ? n.links : [];
-      if (!steps.length && !links.length) return;
-      const done = steps.filter(s => s.done).length;
-      const tag = document.createElement("span");
-      tag.className = "text-[9px] text-sky-300/90 bg-slate-900/90 px-1.5 rounded mt-0.5 border border-slate-800";
-      tag.textContent = `${steps.length ? `☑ ${done}/${steps.length}` : ""}${steps.length && links.length ? " • " : ""}${links.length ? `🔗 ${links.length}` : ""}`;
-      el.appendChild(tag);
-    });
+  window.drawBranchesOnly = function() {
+    const tree = userTrees[selectedTree]; if (!tree) return;
+    const c = document.getElementById("treeCanvas"), ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, c.width, c.height);
+    window.renderWorldTreeCanvas(ctx, c.width, c.height, tree.nodes || [], false);
   };
 })();

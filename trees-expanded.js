@@ -1,287 +1,353 @@
 (function installCleanBranchingTreesAndAppBlueprint() {
-  if (typeof baseConceptTrees === "undefined") return;
-
-  // 1. Purge any flooring, concrete, or commercial contracting trees
-  for (let i = baseConceptTrees.length - 1; i >= 0; i--) {
-    const t = baseConceptTrees[i];
-    const hay = `${t.title || ""} ${t.tag || ""}`.toLowerCase();
-    if (hay.includes("concrete") || hay.includes("coating") || hay.includes("contracting") || t.tag === "Business") {
-      baseConceptTrees.splice(i, 1);
-    }
-  }
-
   const yt = (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
 
-  const richTrees = [
+  window._app30Nodes = [
+    // --- 3 CORE FOUNDATION LIMBS AT TRUNK BASE (parentIdx: -1) ---
     {
-      id: "b_app30",
-      attr: "INT",
-      tag: "Concept",
-      title: "Mobile Web App & PWA Creation (30-Step Build)",
-      author: "sethmcnab13",
-      likes: 100,
-      nodes: [
-        // --- 3 CORE FOUNDATION LIMBS AT TRUNK BASE (parentIdx: -1) ---
-        {
-          parentIdx: -1, title: "1. AI Code Architect Workflow", tier: "Tier I • Foundation", icon: "🧠", color: "#38bdf8",
-          notes: "Use a capable AI coding partner to architect features, inspect bugs via screenshots, and generate modular code blocks iteratively from a phone browser.",
-          steps: [
-            { text: "Define core app concept, visual theme, and mobile-first constraints", done: true },
-            { text: "Break large features into clean, self-contained code modules", done: true }
-          ],
-          links: [{ label: "Google Gemini AI Workspace", url: "https://gemini.google.com" }]
-        },
-        {
-          parentIdx: -1, title: "2. GitHub Account & Public Repo", tier: "Tier I • Foundation", icon: "🧭", color: "#38bdf8",
-          notes: "Create a free GitHub account and initialize a public repository to store HTML, CSS, JS, JSON, and image assets with full commit history.",
-          steps: [
-            { text: "Create free GitHub account and public repository", done: true },
-            { text: "Practice mobile file creation, editing, and commit messages", done: true }
-          ],
-          links: [{ label: "GitHub Official Portal", url: "https://github.com" }]
-        },
-        {
-          parentIdx: -1, title: "3. Mobile HTML5 Single-Page Shell", tier: "Tier I • Foundation", icon: "📖", color: "#38bdf8",
-          notes: "Build index.html with mobile viewport scaling lock (user-scalable=no), semantic view containers, and modal overlays for zero-reload navigation.",
-          steps: [
-            { text: "Configure viewport meta tag and dark theme-color", done: true },
-            { text: "Structure main menu, workspace canvas, and modal shells", done: true }
-          ],
-          links: [{ label: "MDN HTML Viewport & Meta Reference", url: "https://developer.mozilla.org/en-US/docs/Web/HTML/Viewport_meta_tag" }]
-        },
+      parentIdx: -1, title: "1. AI Code Architect Workflow", tier: "Tier I • Foundation", icon: "🧠", color: "#38bdf8",
+      notes: "Use a capable AI coding partner to architect features, inspect bugs via screenshots, and generate modular code blocks iteratively from a phone browser.",
+      steps: [
+        { text: "Define core app concept, visual theme, and mobile-first constraints", done: true },
+        { text: "Break large features into clean, self-contained code modules", done: true }
+      ],
+      links: [{ label: "Google Gemini AI Workspace", url: "https://gemini.google.com" }]
+    },
+    {
+      parentIdx: -1, title: "2. GitHub Account & Public Repo", tier: "Tier I • Foundation", icon: "🧭", color: "#38bdf8",
+      notes: "Create a free GitHub account and initialize a public repository to store HTML, CSS, JS, JSON, and image assets with full commit history.",
+      steps: [
+        { text: "Create free GitHub account and public repository", done: true },
+        { text: "Practice mobile file creation, editing, and commit messages", done: true }
+      ],
+      links: [{ label: "GitHub Official Portal", url: "https://github.com" }]
+    },
+    {
+      parentIdx: -1, title: "3. Mobile HTML5 Single-Page Shell", tier: "Tier I • Foundation", icon: "📖", color: "#38bdf8",
+      notes: "Build index.html with mobile viewport scaling lock (user-scalable=no), semantic view containers, and modal overlays for zero-reload navigation.",
+      steps: [
+        { text: "Configure viewport meta tag and dark theme-color", done: true },
+        { text: "Structure main menu, workspace canvas, and modal shells", done: true }
+      ],
+      links: [{ label: "MDN HTML Viewport & Meta Reference", url: "https://developer.mozilla.org/en-US/docs/Web/HTML/Viewport_meta_tag" }]
+    },
+    {
+      parentIdx: 1, title: "4. GitHub Pages Static Hosting", tier: "Tier I • Foundation", icon: "⚡", color: "#38bdf8",
+      notes: "Enable GitHub Pages on the main branch so every commit automatically deploys to a live HTTPS URL within ~60 seconds.",
+      steps: [
+        { text: "Enable Pages deployment from main branch in Repo Settings", done: true },
+        { text: "Verify live HTTPS URL loads cleanly on mobile Chrome", done: true }
+      ],
+      links: [{ label: "GitHub Pages Documentation", url: "https://pages.github.com" }]
+    },
+    {
+      parentIdx: 3, title: "5. Query-String Cache Busting (?v=N)", tier: "Tier I • Foundation", icon: "⚙", color: "#38bdf8",
+      notes: "Append incrementing version tags (?v=1, ?v=2) to script tags and live URLs so aggressive mobile browser caches load fresh commits immediately.",
+      steps: [
+        { text: "Append ?v=N query parameters to local JS and manifest links", done: true },
+        { text: "Test instant cache invalidation after every GitHub commit", done: true }
+      ],
+      links: [{ label: "MDN HTTP Caching & Cache Busting", url: "https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching" }]
+    },
+    {
+      parentIdx: 2, title: "6. Tailwind CSS & Glassmorphism UI", tier: "Tier I • Foundation", icon: "✨", color: "#38bdf8",
+      notes: "Load Tailwind CSS via CDN and layer backdrop-blur translucent panels, glowing borders, and custom typography for a dark-mode RPG grimoire aesthetic.",
+      steps: [
+        { text: "Include Tailwind CSS CDN script in index.html head", done: true },
+        { text: "Style glass-panel cards, neon borders, and Cinzel/Inter fonts", done: true }
+      ],
+      links: [{ label: "Tailwind CSS Documentation", url: "https://tailwindcss.com/docs" }]
+    },
+    {
+      parentIdx: 2, title: "7. Offline LocalStorage Persistence", tier: "Tier I • Foundation", icon: "🧪", color: "#38bdf8",
+      notes: "Serialize user trees, node progress, and profile settings into browser localStorage so the app works instantaneously even without cell service.",
+      steps: [
+        { text: "Write JSON save/load wrappers around window.localStorage", done: true },
+        { text: "Verify zero data loss across page reloads", done: true }
+      ],
+      links: [{ label: "MDN Window.localStorage Guide", url: "https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage" }]
+    },
+    {
+      parentIdx: 0, title: "8. Skill Node & Tree Data Schema", tier: "Tier II • Practitioner", icon: "📖", color: "#f59e0b",
+      notes: "Design structured JSON objects for trees and nodes (id, title, status, tier, x, y, parentId, notes, steps, links, image) to power both rendering and sync.",
+      steps: [
+        { text: "Define locked, learning, and mastered status states", done: true },
+        { text: "Add parentId hierarchy links for branching skill dependencies", done: true }
+      ],
+      links: [{ label: "MDN Working with JSON Data", url: "https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Objects/JSON" }]
+    },
+    {
+      parentIdx: 7, title: "9. D&D Attribute & Leveling Math", tier: "Tier II • Practitioner", icon: "⚔", color: "#f59e0b",
+      notes: "Map each skill tree to core RPG attributes (STR, DEX, CON, INT, WIS, CHA) and calculate overall character level from mastered and active nodes.",
+      steps: [
+        { text: "Compute per-attribute mastery XP and character level", done: true },
+        { text: "Render live stat breakdowns on the Character Sheet", done: true }
+      ],
+      links: [{ label: "MDN JavaScript Array.reduce() Math", url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce" }]
+    },
+    {
+      parentIdx: 6, title: "10. Firebase Project & Firestore DB", tier: "Tier II • Practitioner", icon: "🔥", color: "#f59e0b",
+      notes: "Create a free Firebase project and enable Cloud Firestore so user constellations and public community blueprints sync across all devices.",
+      steps: [
+        { text: "Create Firebase web app and copy firebaseConfig keys", done: true },
+        { text: "Initialize Firestore collections for user saves and public trees", done: true }
+      ],
+      links: [{ label: "Firebase Console", url: "https://console.firebase.google.com" }]
+    },
+    {
+      parentIdx: 9, title: "11. Firebase Google Sign-In Auth", tier: "Tier II • Practitioner", icon: "🛡", color: "#f59e0b",
+      notes: "Wire Firebase Authentication with Google sign-in and guest mode fallback so progress ties securely to an account without blocking offline play.",
+      steps: [
+        { text: "Enable Google provider in Firebase Authentication", done: true },
+        { text: "Authorize your github.io domain in Firebase Auth settings", done: true }
+      ],
+      links: [{ label: "Firebase Web Authentication Docs", url: "https://firebase.google.com/docs/auth/web/start" }]
+    },
+    {
+      parentIdx: 10, title: "12. Real-Time Cloud Sync Engine", tier: "Tier II • Practitioner", icon: "⚡", color: "#f59e0b",
+      notes: "Merge local changes with Firestore cloud snapshots automatically whenever nodes are edited, dragged, or mastered.",
+      steps: [
+        { text: "Build unified saveUserData() syncing localStorage + Firestore", done: true },
+        { text: "Display live Cloud Synced status badge on main menu", done: true }
+      ],
+      links: [{ label: "Cloud Firestore Get Started Guide", url: "https://firebase.google.com/docs/firestore/quickstart" }]
+    },
+    {
+      parentIdx: 11, title: "13. The Server Realm Blueprint Hub", tier: "Tier II • Practitioner", icon: "🧭", color: "#f59e0b",
+      notes: "Build a shared discovery hub combining curated Concept Trees with user-published Community Cloud trees, category filters, and star likes.",
+      steps: [
+        { text: "Render Concept and Community trees with category filter tabs", done: true },
+        { text: "Enable one-tap publishing of personal trees to the Realm", done: true }
+      ],
+      links: [{ label: "Firestore Query & Filter Data Docs", url: "https://firebase.google.com/docs/firestore/query-data/queries" }]
+    },
+    {
+      parentIdx: 12, title: "14. Node Harvesting & Tree Cloning", tier: "Tier II • Practitioner", icon: "🌿", color: "#f59e0b",
+      notes: "Allow players to harvest individual skills onto an existing constellation or clone an entire blueprint tree with fresh unique IDs.",
+      steps: [
+        { text: "Implement single-node harvest into active constellation", done: true },
+        { text: "Implement full-tree deep clone preserving parent-child links", done: true }
+      ],
+      links: [{ label: "MDN structuredClone & Deep Copy", url: "https://developer.mozilla.org/en-US/docs/Web/API/structuredClone" }]
+    },
+    {
+      parentIdx: 4, title: "15. Non-Destructive Patch Architecture", tier: "Tier III • Specialist", icon: "⚒", color: "#22c55e",
+      notes: "Inject new features via isolated patch-*.js modules loaded after app.js so core files stay untouched and mobile edits remain small and safe.",
+      steps: [
+        { text: "Separate node attachments, rendering, admin, and UX into patch files", done: true },
+        { text: "Wrap every patch in an IIFE closure to prevent global collisions", done: true }
+      ],
+      links: [{ label: "MDN IIFE Module Pattern", url: "https://developer.mozilla.org/en-US/docs/Glossary/IIFE" }]
+    }
+  ];
+    window._app30Nodes.push(
+    {
+      parentIdx: 14, title: "16. Mobile 10px Touch Tap vs. Drag", tier: "Tier III • Specialist", icon: "🎯", color: "#22c55e",
+      notes: "Add a 10-pixel pointer movement deadzone on star nodes so tapping reliably opens the skill editor on touchscreens without misfiring as a drag.",
+      steps: [
+        { text: "Measure Math.hypot(dx, dy) before activating drag state", done: true },
+        { text: "Use setPointerCapture for smooth touch tracking", done: true }
+      ],
+      links: [{ label: "MDN Pointer Events API", url: "https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events" }]
+    },
+    {
+      parentIdx: 15, title: "17. Two-Finger Pinch-to-Zoom & Pan", tier: "Tier III • Specialist", icon: "🔍", color: "#22c55e",
+      notes: "Track multi-touch pointer pairs to calculate pinch distance ratios and single-finger background drag deltas for effortless canopy navigation.",
+      steps: [
+        { text: "Track active pointers in a Map for 1-finger pan and 2-finger pinch", done: true },
+        { text: "Add floating HUD zoom controls (+, -, and camera reset)", done: true }
+      ],
+      links: [{ label: "MDN Multi-Touch Interaction Guide", url: "https://developer.mozilla.org/en-US/docs/Web/API/Touch_events/Multi-touch_interaction" }]
+    },
+    {
+      parentIdx: 16, title: "18. Zoom-Aware Drag & Unlimited Sky", tier: "Tier III • Specialist", icon: "🌌", color: "#22c55e",
+      notes: "Divide pointer coordinates by current camera scale and pan offset, and expand drag bounds (-160% to +260%) so huge trees never hit an invisible wall.",
+      steps: [
+        { text: "Normalize screen coordinates by camera tx, ty, and scale", done: true },
+        { text: "Expand canvas boundaries for sprawling 30-150 node canopies", done: true }
+      ],
+      links: [{ label: "MDN Canvas Transformations", url: "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Transformations" }]
+    },
+    {
+      parentIdx: 5, title: "19. Lush World-Tree Canvas Engine", tier: "Tier III • Specialist", icon: "🌳", color: "#22c55e",
+      notes: "Render root buttresses, grained bark trunks, tapered forking limbs, glowing energy veins, and layered emerald foliage clouds on HTML5 Canvas.",
+      steps: [
+        { text: "Draw cubic Bezier limbs that taper from trunk to outer twigs", done: true },
+        { text: "Layer radial-gradient foliage clusters behind upper canopy nodes", done: true }
+      ],
+      links: [{ label: "MDN HTML5 Canvas Drawing Paths", url: "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes" }]
+    },
+    {
+      parentIdx: 18, title: "20. Organic Subtree Auto-Layout (🌿)", tier: "Tier III • Specialist", icon: "🌿", color: "#22c55e",
+      notes: "Compute recursive leaf widths for every branch subtree so sibling branches space out automatically into a balanced dome without overlapping.",
+      steps: [
+        { text: "Measure subtree leaf widths recursively from root limbs upward", done: true },
+        { text: "Bind one-tap auto-arrange button to canvas toolbar", done: true }
+      ],
+      links: [{ label: "Tree Layout Algorithms Overview", url: "https://en.wikipedia.org/wiki/Tree_drawing_algorithm" }]
+    },
+    {
+      parentIdx: 7, title: "21. Step Checklists & Reference Links", tier: "Tier III • Specialist", icon: "☑", color: "#22c55e",
+      notes: "Upgrade every skill node modal with interactive practice step checklists and clickable external video/article links.",
+      steps: [
+        { text: "Add dynamic step checklist add/toggle/delete UI in node modal", done: true },
+        { text: "Add clickable external resource links with live badges on nodes", done: true }
+      ],
+      links: [{ label: "MDN DOM Manipulation Guide", url: "https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Client-side_web_APIs/Manipulating_documents" }]
+    },
+    {
+      parentIdx: 20, title: "22. Client-Side Photo Compression", tier: "Tier III • Specialist", icon: "📷", color: "#22c55e",
+      notes: "Allow users to upload custom photos for any skill node and resize/compress them to 140x140 JPEG data URLs via offscreen Canvas so Firestore stays fast.",
+      steps: [
+        { text: "Center-crop uploaded photos to 140x140 square via offscreen Canvas", done: true },
+        { text: "Export compressed base64 JPEG inside node data object", done: true }
+      ],
+      links: [{ label: "MDN HTMLCanvasElement.toDataURL()", url: "https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toDataURL" }]
+    },
+    {
+      parentIdx: 14, title: "23. Capture-Phase Event Delegation", tier: "Tier IV • Grandmaster", icon: "⚡", color: "#a855f7",
+      notes: "Use document.addEventListener(..., true) in capture phase to intercept dynamically rendered filter pills and blueprint buttons with 100% reliability.",
+      steps: [
+        { text: "Highlight active Server Realm category tabs on tap", done: true },
+        { text: "Intercept blueprint inspect buttons to launch full canvas viewer", done: true }
+      ],
+      links: [{ label: "MDN Event Bubbling and Capture", url: "https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/Events#event_bubbling" }]
+    },
+    {
+      parentIdx: 18, title: "24. Interactive Concept Tree Viewer", tier: "Tier IV • Grandmaster", icon: "🌌", color: "#a855f7",
+      notes: "Replace plain text lists in The Server Realm with a full-screen, pinch-zoomable World-Tree canopy and slide-up skill inspection drawer.",
+      steps: [
+        { text: "Render concept trees with full World-Tree graphics and zoom/pan", done: true },
+        { text: "Display notes, checklist drills, YouTube links, and Harvest button", done: true }
+      ],
+      links: [{ label: "MDN CSS Flexbox Layout Guide", url: "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_flexible_box_layout" }]
+    },
+    {
+      parentIdx: 11, title: "25. Persistent Guild Username System", tier: "Tier IV • Grandmaster", icon: "👑", color: "#a855f7",
+      notes: "Let players set a custom Guild Username directly from the main menu badge and sync it across their profile, leaderboard, and published trees.",
+      steps: [
+        { text: "Make main menu username/level pill clickable to edit handle", done: true },
+        { text: "Persist custom handle in localStorage and Firestore profile", done: true }
+      ],
+      links: [{ label: "MDN Window.prompt() Reference", url: "https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt" }]
+    },
+    {
+      parentIdx: 12, title: "26. Architect Admin Console", tier: "Tier IV • Grandmaster", icon: "🛡", color: "#a855f7",
+      notes: "Build a hidden 5-tap secret trigger (plus owner email auto-unlock) revealing live star testing, community tree moderation, and admin tools.",
+      steps: [
+        { text: "Bind 5-tap unlock on main title and owner email check", done: true },
+        { text: "Add admin edit/delete controls for Community Cloud trees", done: true }
+      ],
+      links: [{ label: "Firebase Security Rules Guide", url: "https://firebase.google.com/docs/firestore/security/get-started" }]
+    },
+    {
+      parentIdx: 25, title: "27. JSON Export & Recovery Import", tier: "Tier IV • Grandmaster", icon: "📦", color: "#a855f7",
+      notes: "Add one-tap JSON snapshot download and file import in the Architect bar so entire progress saves can be backed up or restored anytime.",
+      steps: [
+        { text: "Generate downloadable timestamped .json save file via Blob", done: true },
+        { text: "Validate and restore uploaded .json save files cleanly", done: true }
+      ],
+      links: [{ label: "MDN Blob & FileReader APIs", url: "https://developer.mozilla.org/en-US/docs/Web/API/Blob" }]
+    },
+    {
+      parentIdx: 21, title: "28. Custom App Icon & Manifest Setup", tier: "Tier IV • Grandmaster", icon: "🎨", color: "#a855f7",
+      notes: "Upload a custom constellation screenshot to the repo root and link it inside manifest.json and index.html apple-touch-icon/favicon tags.",
+      steps: [
+        { text: "Upload PNG app icon to GitHub repository root", done: true },
+        { text: "Configure manifest.json icons array and cache-busted ?v=3 link", done: true }
+      ],
+      links: [{ label: "MDN Web App Manifest Reference", url: "https://developer.mozilla.org/en-US/docs/Web/Manifest" }]
+    },
+    {
+      parentIdx: 27, title: "29. Standalone PWA Display Mode", tier: "Tier IV • Grandmaster", icon: "📱", color: "#a855f7",
+      notes: "Set display: standalone, start_url, and scope in manifest.json so the web app launches full-screen without browser URL bars.",
+      steps: [
+        { text: "Set start_url and scope to /Skill-Tree/ in manifest.json", done: true },
+        { text: "Match background_color and theme_color to #020617", done: true }
+      ],
+      links: [{ label: "web.dev Progressive Web Apps Guide", url: "https://web.dev/explore/progressive-web-apps" }]
+    },
+    {
+      parentIdx: 28, title: "30. Android Home Screen Install", tier: "Tier IV • Grandmaster", icon: "🏆", color: "#a855f7",
+      notes: "Open the live GitHub Pages URL in Chrome on Android and tap Add to Home Screen > Install to launch your custom Skill Tree Grimoire as a native app.",
+      steps: [
+        { text: "Verify manifest passes Chrome installability check", done: true },
+        { text: "Install to Pixel home screen and launch full-screen grimoire", done: true }
+      ],
+      links: [{ label: "Live Skill Tree Grimoire App", url: "https://badpeachring.github.io/Skill-Tree/" }]
+    }
+  );
 
-        // --- BRANCH A: HOSTING, STYLING & STORAGE (Forking from Node 1 / index 1) ---
-        {
-          parentIdx: 1, title: "4. GitHub Pages Static Hosting", tier: "Tier I • Foundation", icon: "⚡", color: "#38bdf8",
-          notes: "Enable GitHub Pages on the main branch so every commit automatically deploys to a live HTTPS URL within ~60 seconds.",
-          steps: [
-            { text: "Enable Pages deployment from main branch in Repo Settings", done: true },
-            { text: "Verify live HTTPS URL loads cleanly on mobile Chrome", done: true }
-          ],
-          links: [{ label: "GitHub Pages Documentation", url: "https://pages.github.com" }]
-        },
-        {
-          parentIdx: 3, title: "5. Query-String Cache Busting (?v=N)", tier: "Tier I • Foundation", icon: "⚙", color: "#38bdf8",
-          notes: "Append incrementing version tags (?v=1, ?v=2) to script tags and live URLs so aggressive mobile browser caches load fresh commits immediately.",
-          steps: [
-            { text: "Append ?v=N query parameters to local JS and manifest links", done: true },
-            { text: "Test instant cache invalidation after every GitHub commit", done: true }
-          ],
-          links: [{ label: "MDN HTTP Caching & Cache Busting", url: "https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching" }]
-        },
-        {
-          parentIdx: 2, title: "6. Tailwind CSS & Glassmorphism UI", tier: "Tier I • Foundation", icon: "✨", color: "#38bdf8",
-          notes: "Load Tailwind CSS via CDN and layer backdrop-blur translucent panels, glowing borders, and custom typography for a dark-mode RPG grimoire aesthetic.",
-          steps: [
-            { text: "Include Tailwind CSS CDN script in index.html head", done: true },
-            { text: "Style glass-panel cards, neon borders, and Cinzel/Inter fonts", done: true }
-          ],
-          links: [{ label: "Tailwind CSS Documentation", url: "https://tailwindcss.com/docs" }]
-        },
-        {
-          parentIdx: 2, title: "7. Offline LocalStorage Persistence", tier: "Tier I • Foundation", icon: "🧪", color: "#38bdf8",
-          notes: "Serialize user trees, node progress, and profile settings into browser localStorage so the app works instantaneously even without cell service.",
-          steps: [
-            { text: "Write JSON save/load wrappers around window.localStorage", done: true },
-            { text: "Verify zero data loss across page reloads", done: true }
-          ],
-          links: [{ label: "MDN Window.localStorage Guide", url: "https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage" }]
-        },
+  function applyCleanTrees() {
+    if (typeof baseConceptTrees === "undefined" || !Array.isArray(baseConceptTrees)) return false;
 
-        // --- BRANCH B: CORE RPG ENGINE & FIREBASE CLOUD (Forking from Nodes 0, 3, 6) ---
-        {
-          parentIdx: 0, title: "8. Skill Node & Tree Data Schema", tier: "Tier II • Practitioner", icon: "📖", color: "#f59e0b",
-          notes: "Design structured JSON objects for trees and nodes (id, title, status, tier, x, y, parentId, notes, steps, links, image) to power both rendering and sync.",
-          steps: [
-            { text: "Define locked, learning, and mastered status states", done: true },
-            { text: "Add parentId hierarchy links for branching skill dependencies", done: true }
-          ],
-          links: [{ label: "MDN Working with JSON Data", url: "https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Objects/JSON" }]
-        },
-        {
-          parentIdx: 7, title: "9. D&D Attribute & Leveling Math", tier: "Tier II • Practitioner", icon: "⚔", color: "#f59e0b",
-          notes: "Map each skill tree to core RPG attributes (STR, DEX, CON, INT, WIS, CHA) and calculate overall character level from mastered and active nodes.",
-          steps: [
-            { text: "Compute per-attribute mastery XP and character level", done: true },
-            { text: "Render live stat breakdowns on the Character Sheet", done: true }
-          ],
-          links: [{ label: "MDN JavaScript Array.reduce() Math", url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce" }]
-        },
-        {
-          parentIdx: 6, title: "10. Firebase Project & Firestore DB", tier: "Tier II • Practitioner", icon: "🔥", color: "#f59e0b",
-          notes: "Create a free Firebase project and enable Cloud Firestore so user constellations and public community blueprints sync across all devices.",
-          steps: [
-            { text: "Create Firebase web app and copy firebaseConfig keys", done: true },
-            { text: "Initialize Firestore collections for user saves and public trees", done: true }
-          ],
-          links: [{ label: "Firebase Console", url: "https://console.firebase.google.com" }]
-        },
-        {
-          parentIdx: 9, title: "11. Firebase Google Sign-In Auth", tier: "Tier II • Practitioner", icon: "🛡", color: "#f59e0b",
-          notes: "Wire Firebase Authentication with Google sign-in and guest mode fallback so progress ties securely to an account without blocking offline play.",
-          steps: [
-            { text: "Enable Google provider in Firebase Authentication", done: true },
-            { text: "Authorize your github.io domain in Firebase Auth settings", done: true }
-          ],
-          links: [{ label: "Firebase Web Authentication Docs", url: "https://firebase.google.com/docs/auth/web/start" }]
-        },
-        {
-          parentIdx: 10, title: "12. Real-Time Cloud Sync Engine", tier: "Tier II • Practitioner", icon: "⚡", color: "#f59e0b",
-          notes: "Merge local changes with Firestore cloud snapshots automatically whenever nodes are edited, dragged, or mastered.",
-          steps: [
-            { text: "Build unified saveUserData() syncing localStorage + Firestore", done: true },
-            { text: "Display live Cloud Synced status badge on main menu", done: true }
-          ],
-          links: [{ label: "Cloud Firestore Get Started Guide", url: "https://firebase.google.com/docs/firestore/quickstart" }]
-        },
-        {
-          parentIdx: 11, title: "13. The Server Realm Blueprint Hub", tier: "Tier II • Practitioner", icon: "🧭", color: "#f59e0b",
-          notes: "Build a shared discovery hub combining curated Concept Trees with user-published Community Cloud trees, category filters, and star likes.",
-          steps: [
-            { text: "Render Concept and Community trees with category filter tabs", done: true },
-            { text: "Enable one-tap publishing of personal trees to the Realm", done: true }
-          ],
-          links: [{ label: "Firestore Query & Filter Data Docs", url: "https://firebase.google.com/docs/firestore/query-data/queries" }]
-        },
-        {
-          parentIdx: 12, title: "14. Node Harvesting & Tree Cloning", tier: "Tier II • Practitioner", icon: "🌿", color: "#f59e0b",
-          notes: "Allow players to harvest individual skills onto an existing constellation or clone an entire blueprint tree with fresh unique IDs.",
-          steps: [
-            { text: "Implement single-node harvest into active constellation", done: true },
-            { text: "Implement full-tree deep clone preserving parent-child links", done: true }
-          ],
-          links: [{ label: "MDN structuredClone & Deep Copy", url: "https://developer.mozilla.org/en-US/docs/Web/API/structuredClone" }]
-        },
+    for (let i = baseConceptTrees.length - 1; i >= 0; i--) {
+      const t = baseConceptTrees[i];
+      const hay = `${t.title || ""} ${t.tag || ""} ${(t.nodes || []).map(n => n.title).join(" ")}`.toLowerCase();
+      if (hay.includes("concrete") || hay.includes("coating") || hay.includes("contracting") || hay.includes("rubber") || t.tag === "Business") {
+        baseConceptTrees.splice(i, 1);
+      }
+    }
 
-        // --- BRANCH C: MODULAR PATCH ARCHITECTURE & TOUCH UX (Forking from Nodes 4, 5, 7) ---
-        {
-          parentIdx: 4, title: "15. Non-Destructive Patch Architecture", tier: "Tier III • Specialist", icon: "⚒", color: "#22c55e",
-          notes: "Inject new features via isolated patch-*.js modules loaded after app.js so core files stay untouched and mobile edits remain small and safe.",
-          steps: [
-            { text: "Separate node attachments, rendering, admin, and UX into patch files", done: true },
-            { text: "Wrap every patch in an IIFE closure to prevent global collisions", done: true }
-          ],
-          links: [{ label: "MDN IIFE Module Pattern", url: "https://developer.mozilla.org/en-US/docs/Glossary/IIFE" }]
-        },
-        {
-          parentIdx: 14, title: "16. Mobile 10px Touch Tap vs. Drag", tier: "Tier III • Specialist", icon: "🎯", color: "#22c55e",
-          notes: "Add a 10-pixel pointer movement deadzone on star nodes so tapping reliably opens the skill editor on touchscreens without misfiring as a drag.",
-          steps: [
-            { text: "Measure Math.hypot(dx, dy) before activating drag state", done: true },
-            { text: "Use setPointerCapture for smooth touch tracking", done: true }
-          ],
-          links: [{ label: "MDN Pointer Events API", url: "https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events" }]
-        },
-        {
-          parentIdx: 15, title: "17. Two-Finger Pinch-to-Zoom & Pan", tier: "Tier III • Specialist", icon: "🔍", color: "#22c55e",
-          notes: "Track multi-touch pointer pairs to calculate pinch distance ratios and single-finger background drag deltas for effortless canopy navigation.",
-          steps: [
-            { text: "Track active pointers in a Map for 1-finger pan and 2-finger pinch", done: true },
-            { text: "Add floating HUD zoom controls (+, -, and camera reset)", done: true }
-          ],
-          links: [{ label: "MDN Multi-Touch Interaction Guide", url: "https://developer.mozilla.org/en-US/docs/Web/API/Touch_events/Multi-touch_interaction" }]
-        },
-        {
-          parentIdx: 16, title: "18. Zoom-Aware Drag & Unlimited Sky", tier: "Tier III • Specialist", icon: "🌌", color: "#22c55e",
-          notes: "Divide pointer coordinates by current camera scale and pan offset, and expand drag bounds (-160% to +260%) so huge trees never hit an invisible wall.",
-          steps: [
-            { text: "Normalize screen coordinates by camera tx, ty, and scale", done: true },
-            { text: "Expand canvas boundaries for sprawling 30-150 node canopies", done: true }
-          ],
-          links: [{ label: "MDN Canvas Transformations", url: "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Transformations" }]
-        },
-        {
-          parentIdx: 5, title: "19. Lush World-Tree Canvas Engine", tier: "Tier III • Specialist", icon: "🌳", color: "#22c55e",
-          notes: "Render root buttresses, grained bark trunks, tapered forking limbs, glowing energy veins, and layered emerald foliage clouds on HTML5 Canvas.",
-          steps: [
-            { text: "Draw cubic Bezier limbs that taper from trunk to outer twigs", done: true },
-            { text: "Layer radial-gradient foliage clusters behind upper canopy nodes", done: true }
-          ],
-          links: [{ label: "MDN HTML5 Canvas Drawing Paths", url: "https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes" }]
-        },
-        {
-          parentIdx: 18, title: "20. Organic Subtree Auto-Layout (🌿)", tier: "Tier III • Specialist", icon: "🌿", color: "#22c55e",
-          notes: "Compute recursive leaf widths for every branch subtree so sibling branches space out automatically into a balanced dome without overlapping.",
-          steps: [
-            { text: "Measure subtree leaf widths recursively from root limbs upward", done: true },
-            { text: "Bind one-tap auto-arrange button to canvas toolbar", done: true }
-          ],
-          links: [{ label: "Tree Layout Algorithms Overview", url: "https://en.wikipedia.org/wiki/Tree_drawing_algorithm" }]
-        },
-        {
-          parentIdx: 7, title: "21. Step Checklists & Reference Links", tier: "Tier III • Specialist", icon: "☑", color: "#22c55e",
-          notes: "Upgrade every skill node modal with interactive practice step checklists and clickable external video/article links.",
-          steps: [
-            { text: "Add dynamic step checklist add/toggle/delete UI in node modal", done: true },
-            { text: "Add clickable external resource links with live badges on nodes", done: true }
-          ],
-          links: [{ label: "MDN DOM Manipulation Guide", url: "https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Client-side_web_APIs/Manipulating_documents" }]
-        },
-        {
-          parentIdx: 20, title: "22. Client-Side Photo Compression", tier: "Tier III • Specialist", icon: "📷", color: "#22c55e",
-          notes: "Allow users to upload custom photos for any skill node and resize/compress them to 140x140 JPEG data URLs via offscreen Canvas so Firestore stays fast.",
-          steps: [
-            { text: "Center-crop uploaded photos to 140x140 square via offscreen Canvas", done: true },
-            { text: "Export compressed base64 JPEG inside node data object", done: true }
-          ],
-          links: [{ label: "MDN HTMLCanvasElement.toDataURL()", url: "https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toDataURL" }]
-        },
+    const richTrees = [
+      {
+        id: "b_app30",
+        attr: "INT",
+        tag: "Concept",
+        title: "Mobile Web App & PWA Creation (30-Step Build)",
+        author: "sethmcnab13",
+        likes: 100,
+        nodes: window._app30Nodes
+      },
+      {
+        id: "b1", attr: "STR", tag: "Concept", title: "Calisthenics: Planche, Lever & Press", author: "Architect Blueprint", likes: 68,
+        nodes: [
+          { parentIdx: -1, title: "Scapular Protraction & Hollow Body", tier: "Tier I • Foundation", icon: "💪", color: "#38bdf8", notes: "Lock posterior pelvic tilt and push the floor away so shoulder blades spread apart with locked elbows.", steps: [{ text: "60s hollow body hold with lower back flat", done: false }, { text: "3x15 scapular push-ups with 2s pause", done: false }], links: [{ label: "YouTube: Hollow Body & Scapular Protraction", url: yt("calisthenics hollow body hold scapular protraction tutorial") }] },
+          { parentIdx: -1, title: "Chest-to-Wall Stacked Handstand", tier: "Tier I • Foundation", icon: "🧭", color: "#38bdf8", notes: "Walk up chest-to-wall until only toes touch. Push tall through shoulders and grip floor with fingertips to balance.", steps: [{ text: "60s chest-to-wall stacked line hold", done: false }], links: [{ label: "YouTube: Handstand Alignment & Finger Balance", url: yt("chest to wall handstand alignment finger balance tutorial") }] },
+          { parentIdx: -1, title: "Straight-Arm Scapular Pulls", tier: "Tier I • Foundation", icon: "⚡", color: "#38bdf8", notes: "Hang with completely straight elbows and depress shoulder blades down away from ears.", steps: [{ text: "3x12 dead-hang scapular depressions", done: false }], links: [{ label: "YouTube: Scapular Pulls & Straight-Arm Strength", url: yt("scapular pulls straight arm strength calisthenics tutorial") }] },
+          { parentIdx: 0, title: "Planche Lean & Wrist Conditioning", tier: "Tier II • Practitioner", icon: "🔥", color: "#f59e0b", notes: "Turn wrists out 30-45 degrees, protract shoulders hard, lock elbows straight, and lean shoulders past wrists.", steps: [{ text: "4x20s Planche Lean past wrists", done: false }], links: [{ label: "YouTube: Planche Lean Biomechanics", url: yt("planche lean form tutorial wrist conditioning calisthenics") }] },
+          { parentIdx: 3, title: "Tuck & Advanced Tuck Planche", tier: "Tier III • Specialist", icon: "⚡", color: "#22c55e", notes: "Lift knees to chest (Tuck), then push hips back so your back flattens parallel to the floor with locked elbows.", steps: [{ text: "12s Advanced Tuck Planche with flat back", done: false }], links: [{ label: "YouTube: Tuck to Advanced Tuck Planche", url: yt("tuck planche to advanced tuck planche progression tutorial") }] },
+          { parentIdx: 4, title: "Straddle & Full Planche", tier: "Tier IV • Grandmaster", icon: "👑", color: "#a855f7", notes: "Extend legs wide into Straddle first, then bring legs together slowly while leaning 2 inches further forward.", steps: [{ text: "5s Full Planche with locked knees", done: false }], links: [{ label: "YouTube: Full Planche Complete Guide", url: yt("full planche tutorial step by step progression calisthenics") }] },
+          { parentIdx: 1, title: "Seated Press to Handstand", tier: "Tier IV • Grandmaster", icon: "🏆", color: "#a855f7", notes: "Lean shoulders forward over hands while compressing thighs tightly to ribs, floating hips vertically over wrists.", steps: [{ text: "1 strict seated press to freestanding handstand", done: false }], links: [{ label: "YouTube: Seated Press to Handstand Drills", url: yt("seated press to handstand tutorial compression drills") }] },
+          { parentIdx: 2, title: "Front Lever & Strict Muscle-Up", tier: "Tier III • Specialist", icon: "★", color: "#22c55e", notes: "Depress scapulae hard and pull bar toward hips with straight arms for Front Lever.", steps: [{ text: "10s Full Front Lever horizontal hold", done: false }], links: [{ label: "YouTube: Front Lever & Muscle-Up Form", url: yt("front lever tutorial straight arm pull calisthenics") }] }
+        ]
+      },
+      {
+        id: "b3", attr: "WIS", tag: "Concept", title: "Culinary Arts: Smoke, Braise & Emulsion", author: "Architect Blueprint", likes: 56,
+        nodes: [
+          { parentIdx: -1, title: "Knife Geometry & Mise en Place", tier: "Tier I • Foundation", icon: "⚔", color: "#38bdf8", notes: "Grip the blade pinch-style ahead of the bolster and slice with a forward-downward push cut.", steps: [{ text: "Hone at 15-degree bevel & cut uniform mirepoix", done: false }], links: [{ label: "YouTube: Chef Pinch Grip & Claw Technique", url: yt("knife skills pinch grip claw technique chef tutorial") }] },
+          { parentIdx: -1, title: "Thermal Control & Maillard Sear", tier: "Tier I • Foundation", icon: "🔥", color: "#38bdf8", notes: "Pat proteins bone-dry, preheat heavy stainless or cast iron until oil shimmers, and wait for natural release.", steps: [{ text: "Sear protein with deep crust and zero gray band", done: false }], links: [{ label: "YouTube: Maillard Reaction & Pan Sauce Science", url: yt("maillard reaction searing pan sauce deglazing tutorial") }] },
+          { parentIdx: 0, title: "Stable Dairy-Free Emulsions", tier: "Tier II • Practitioner", icon: "🧪", color: "#f59e0b", notes: "Disperse fat droplets into water-phase acid using natural emulsifiers and steady shear.", steps: [{ text: "Emulsify oil slowly at constant shear rate", done: false }], links: [{ label: "YouTube: Science of Stable Emulsions", url: yt("how emulsions work mayo vinaigrette culinary science") }] },
+          { parentIdx: 1, title: "Low-and-Slow Collagen Rendering", tier: "Tier III • Specialist", icon: "⚒", color: "#22c55e", notes: "Hold 225-250°F smoker or covered braise until intramuscular collagen hydrolyzes into gelatin around 203°F.", steps: [{ text: "Wrap through stall & rest 1-2h before slicing", done: false }], links: [{ label: "YouTube: Brisket & Pork Butt Rendering Guide", url: yt("low and slow brisket collagen rendering stall wrap rest") }] },
+          { parentIdx: 3, title: "Equilibrium Curing & Cold Smoke", tier: "Tier IV • Grandmaster", icon: "👑", color: "#a855f7", notes: "Calculate exact 2.25% kosher salt + 1.0% sugar equilibrium cure by weight in vacuum bag.", steps: [{ text: "Form pellicle 12h & cold-smoke under 80°F", done: false }], links: [{ label: "YouTube: Equilibrium Cured Salmon & Cold Smoke", url: yt("equilibrium cure salmon gravlax cold smoke pellicle") }] }
+        ]
+      }
+    ];
 
-        // --- BRANCH D: POLISH, ADMIN & STANDALONE PWA (Forking from Nodes 12, 14, 19, 21) ---
-        {
-          parentIdx: 14, title: "23. Capture-Phase Event Delegation", tier: "Tier IV • Grandmaster", icon: "⚡", color: "#a855f7",
-          notes: "Use document.addEventListener(..., true) in capture phase to intercept dynamically rendered filter pills and blueprint buttons with 100% reliability.",
-          steps: [
-            { text: "Highlight active Server Realm category tabs on tap", done: true },
-            { text: "Intercept blueprint inspect buttons to launch full canvas viewer", done: true }
-          ],
-          links: [{ label: "MDN Event Bubbling and Capture", url: "https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/Events#event_bubbling" }]
-        },
-        {
-          parentIdx: 18, title: "24. Interactive Concept Tree Viewer", tier: "Tier IV • Grandmaster", icon: "🌌", color: "#a855f7",
-          notes: "Replace plain text lists in The Server Realm with a full-screen, pinch-zoomable World-Tree canopy and slide-up skill inspection drawer.",
-          steps: [
-            { text: "Render concept trees with full World-Tree graphics and zoom/pan", done: true },
-            { text: "Display notes, checklist drills, YouTube links, and Harvest button", done: true }
-          ],
-          links: [{ label: "MDN CSS Flexbox Layout Guide", url: "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_flexible_box_layout" }]
-        },
-        {
-          parentIdx: 11, title: "25. Persistent Guild Username System", tier: "Tier IV • Grandmaster", icon: "👑", color: "#a855f7",
-          notes: "Let players set a custom Guild Username directly from the main menu badge and sync it across their profile, leaderboard, and published trees.",
-          steps: [
-            { text: "Make main menu username/level pill clickable to edit handle", done: true },
-            { text: "Persist custom handle in localStorage and Firestore profile", done: true }
-          ],
-          links: [{ label: "MDN Window.prompt() Reference", url: "https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt" }]
-        },
-        {
-          parentIdx: 12, title: "26. Architect Admin Console", tier: "Tier IV • Grandmaster", icon: "🛡", color: "#a855f7",
-          notes: "Build a hidden 5-tap secret trigger (plus owner email auto-unlock) revealing live star testing, community tree moderation, and admin tools.",
-          steps: [
-            { text: "Bind 5-tap unlock on main title and owner email check", done: true },
-            { text: "Add admin edit/delete controls for Community Cloud trees", done: true }
-          ],
-          links: [{ label: "Firebase Security Rules Guide", url: "https://firebase.google.com/docs/firestore/security/get-started" }]
-        },
-        {
-          parentIdx: 25, title: "27. JSON Export & Recovery Import", tier: "Tier IV • Grandmaster", icon: "📦", color: "#a855f7",
-          notes: "Add one-tap JSON snapshot download and file import in the Architect bar so entire progress saves can be backed up or restored anytime.",
-          steps: [
-            { text: "Generate downloadable timestamped .json save file via Blob", done: true },
-            { text: "Validate and restore uploaded .json save files cleanly", done: true }
-          ],
-          links: [{ label: "MDN Blob & FileReader APIs", url: "https://developer.mozilla.org/en-US/docs/Web/API/Blob" }]
-        },
-        {
-          parentIdx: 21, title: "28. Custom App Icon & Manifest Setup", tier: "Tier IV • Grandmaster", icon: "🎨", color: "#a855f7",
-          notes: "Upload a custom constellation screenshot to the repo root and link it inside manifest.json and index.html apple-touch-icon/favicon tags.",
-          steps: [
-            { text: "Upload PNG app icon to GitHub repository root", done: true },
-            { text: "Configure manifest.json icons array and cache-busted ?v=3 link", done: true }
-          ],
-          links: [{ label: "MDN Web App Manifest Reference", url: "https://developer.mozilla.org/en-US/docs/Web/Manifest" }]
-        },
-        {
-          parentIdx: 27, title: "29. Standalone PWA Display Mode", tier: "Tier IV • Grandmaster", icon: "📱", color: "#a855f7",
-          notes: "Set display: standalone,
+    richTrees.forEach(up => {
+      const idx = baseConceptTrees.findIndex(x => x.id === up.id);
+      if (idx >= 0) baseConceptTrees[idx] = up;
+      else baseConceptTrees.unshift(up);
+    });
+
+    if (typeof publicTreesCache !== "undefined" && Array.isArray(publicTreesCache)) {
+      for (let i = publicTreesCache.length - 1; i >= 0; i--) {
+        const t = publicTreesCache[i];
+        const hay = `${t.title || ""} ${t.tag || ""}`.toLowerCase();
+        if (hay.includes("concrete") || hay.includes("coating") || hay.includes("contracting") || t.tag === "Business") {
+          publicTreesCache.splice(i, 1);
+        }
+      }
+      richTrees.forEach(up => {
+        const idx = publicTreesCache.findIndex(x => x.id === up.id);
+        if (idx >= 0) publicTreesCache[idx] = up;
+        else publicTreesCache.unshift(up);
+      });
+    }
+    if (typeof renderServerTrees === "function") renderServerTrees();
+    return true;
+  }
+
+  if (!applyCleanTrees()) {
+    const iv = setInterval(() => { if (applyCleanTrees()) clearInterval(iv); }, 150);
+  }
+})();

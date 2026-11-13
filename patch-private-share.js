@@ -25,8 +25,32 @@
     return [...str].map((ch, i) => String.fromCharCode(ch.charCodeAt(0) ^ pin.charCodeAt(i % pin.length))).join("");
   }
 
+  function getUserTreesList() {
+    if (typeof userData !== "undefined" && Array.isArray(userData?.trees) && userData.trees.length) {
+      return userData.trees;
+    }
+    try {
+      for (const k of Object.keys(localStorage)) {
+        const parsed = JSON.parse(localStorage.getItem(k) || "null");
+        if (Array.isArray(parsed?.trees) && parsed.trees.length) return parsed.trees;
+      }
+    } catch {}
+    return [];
+  }
+
   window.generatePrivateTreeShare = async function(treeObj, pin = "") {
-    const cleanNodes = (treeObj.nodes || []).map((n, i) => {
+   text-slate-950 rounded-lg font-black text-xs">🌳 Open Private Tree & Harvest Nodes</button>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+
+      document.getElementById("closePrivShareBtn").onclick = () => modal.classList.add("hidden");
+
+      const handleExport = async (mode) => {
+        const trees = getUserTreesList();
+        const sel = document.getElementById("privTreeSelect");
+        const chosen = trees.find(t => t.id === sel.value) || trees[0];
+        if (!chosen) return alert("Create or copy a tree in My Constellations first.");  const cleanNodes = (treeObj.nodes || []).map((n) => {
       const pIdx = typeof n.parentIdx === "number"
         ? n.parentIdx
         : (n.parentId ? (treeObj.nodes || []).findIndex(p => p.id === n.parentId) : -1);
@@ -86,24 +110,13 @@
           <div class="space-y-2 bg-slate-950/80 p-3 rounded-xl border border-slate-800">
             <div class="text-[11px] font-bold uppercase text-emerald-400">Open & Harvest Received Private Tree</div>
             <textarea id="privImportBox" rows="3" placeholder="Paste received STREE1:... code or private URL here..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 font-mono outline-none"></textarea>
-            <input id="privImportPin" type="text" maxlength="8" placeholder="PIN (only if sender locked it)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none">
-            <button id="launchPrivTreeBtn" type="button" class="w-full py-2.5 bg-emerald-500 text-slate-950 rounded-lg font-black text-xs">🌳 Open Private Tree & Harvest Nodes</button>
-          </div>
-        </div>`;
-      document.body.appendChild(modal);
-
-      document.getElementById("closePrivShareBtn").onclick = () => modal.classList.add("hidden");
-
-      const handleExport = async (mode) => {
-        const trees = (typeof userData !== "undefined" && userData?.trees) ? userData.trees : [];
-        const sel = document.getElementById("privTreeSelect");
-        const chosen = trees.find(t => t.id === sel.value) || trees[0];
-        if (!chosen) return alert("Create or copy a tree in My Constellations first.");
+                        <input id="privImportPin" type="text" maxlength="8" placeholder="PIN (only if sender locked it)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none">
+            <button id="launchPrivTreeBtn" type="button" class="w-full py-2.5 bg-emerald-500
         const pin = document.getElementById("privExportPin").value.trim();
         const { code, url } = await window.generatePrivateTreeShare(chosen, pin);
         const text = mode === "url" ? url : code;
         document.getElementById("privOutputBox").value = text;
-        await navigator.clipboard.writeText(text);
+        try { await navigator.clipboard.writeText(text); } catch {}
         alert(mode === "url" ? "Private direct link copied to clipboard!" : "Private Share Code copied to clipboard!");
       };
 
@@ -118,7 +131,7 @@
     }
 
     const sel = document.getElementById("privTreeSelect");
-    const trees = (typeof userData !== "undefined" && userData?.trees) ? userData.trees : [];
+    const trees = getUserTreesList();
     sel.innerHTML = trees.map(t => `<option value="${t.id}">${t.title} (${(t.nodes || []).length} nodes)</option>`).join("") || `<option value="">No trees yet</option>`;
     if (presetTree?.id) sel.value = presetTree.id;
     modal.classList.remove("hidden");
@@ -154,7 +167,6 @@
         nodes: hydratedNodes
       };
 
-      // Register in temporary memory ONLY (never saved to public Firestore)
       window._privateVaultTrees = window._privateVaultTrees || [];
       window._privateVaultTrees.unshift(privTreeObj);
       if (typeof baseConceptTrees !== "undefined") {
@@ -172,31 +184,37 @@
   }
 
   function injectPrivateVaultButton() {
-    const mainMenu = document.getElementById("viewMenu") || document.body;
-    const refBtn = document.getElementById("openAiBuilderBtn") || [...mainMenu.querySelectorAll("button")].find(b => /server realm|constellations/i.test(b.textContent || ""));
-    if (!refBtn || document.getElementById("openPrivVaultBtn")) return;
+    const menuList = document.querySelector("#viewMenu .max-w-md");
+    if (!menuList || document.getElementById("openPrivVaultBtn")) return;
 
     const btn = document.createElement("button");
     btn.id = "openPrivVaultBtn";
     btn.type = "button";
-    btn.className = "menu-btn w-full p-4 rounded-xl text-left flex items-center justify-between mb-3";
+    btn.className = "menu-btn w-full py-3 px-4 rounded-r-xl flex items-center justify-between";
     btn.innerHTML = `
-      <div>
-        <div class="text-xs font-black uppercase tracking-wider text-amber-400">Encrypted Peer Sharing</div>
-        <div class="text-base font-bold text-white skyrim-font">🔒 Private Tree Share & Harvest</div>
-        <div class="text-[11px] text-slate-400 mt-0.5">Share private workflows via PIN code or harvest nodes offline</div>
+      <div class="text-left">
+        <div class="text-[10px] font-black uppercase tracking-wider text-amber-400">Encrypted Peer Sharing</div>
+        <div class="text-sm font-bold text-white skyrim-font">🔒 PRIVATE TREE SHARE & HARVEST</div>
+        <div class="text-[11px] text-slate-400">Share private workflows via PIN code or harvest nodes offline</div>
       </div>
-      <span class="text-xl">🗝</span>`;
+      <span class="text-amber-400 text-base">🗝</span>`;
     btn.onclick = () => window.openPrivateShareModal();
-    refBtn.parentElement.insertBefore(btn, refBtn.nextSibling);
+    const afterAi = document.getElementById("bridgeAiBtn")?.nextSibling || menuList.firstChild;
+    menuList.insertBefore(btn, afterAi);
   }
 
-  // Auto-detect ?stree= private links on app load
   const urlParams = new URLSearchParams(location.search);
   if (urlParams.has("stree")) {
     setTimeout(() => openPrivateCodeInViewer(location.href), 600);
   }
 
-  injectPrivateVaultButton();
-  new MutationObserver(injectPrivateVaultButton).observe(document.body, { childList: true, subtree: true });
-})();
+  let scheduled = false;
+  const obs = new MutationObserver(() => {
+    if (!scheduled) {
+      scheduled = true;
+      setTimeout(() => { scheduled = false; injectPrivateVaultButton(); }, 150);
+    }
+  });
+  obs.observe(document.body, { childList: true, subtree: true });
+  setTimeout(injectPrivateVaultButton, 400);
+  

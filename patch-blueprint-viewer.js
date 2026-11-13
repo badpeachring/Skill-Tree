@@ -39,7 +39,7 @@
       <p id="bpNodeNotes" class="text-xs text-slate-300"></p><div id="bpNodeMeta" class="space-y-1 text-[11px]"></div>
     </div>`;
 
-  let activeBp = null, cam = { s: 1, x: 0, y: 0 }, ptrs = new Map(), pDist = 0, pScale = 1, panX = 0, panY = 0, origX = 0, origY = 0;
+    let activeBp = null, cam = { s: 1, x: 0, y: 0 }, ptrs = new Map(), pDist = 0, pScale = 1, panX = 0, panY = 0, origX = 0, origY = 0;
 
   function renderBp() {
     if (!activeBp) return;
@@ -48,16 +48,9 @@
     layer.style.transform = `translate(${cam.x}px, ${cam.y}px) scale(${cam.s})`;
     const ctx = c.getContext("2d"); ctx.clearRect(0, 0, c.width, c.height);
     ctx.save(); ctx.translate(cam.x, cam.y); ctx.scale(cam.s, cam.s);
-    const rx = c.width * 0.5, ry = c.height * 0.94, th = Math.min(c.height * 0.34, 110), cy = ry - th;
-    ctx.fillStyle = "#1e293b";
-    ctx.beginPath(); ctx.moveTo(rx - 40, c.height); ctx.quadraticCurveTo(rx, ry - 14, rx + 40, c.height); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(rx - 13, ry); ctx.quadraticCurveTo(rx - 5, ry - th * 0.5, rx, cy); ctx.quadraticCurveTo(rx + 5, ry - th * 0.5, rx + 13, ry); ctx.fill();
-    activeBp._layout.forEach(n => {
-      const nx = (n.x / 100) * c.width, ny = (n.y / 100) * c.height, p = n._p >= 0 ? activeBp._layout[n._p] : null;
-      const sx = p ? (p.x / 100) * c.width : rx, sy = p ? (p.y / 100) * c.height : cy + 6;
-      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.bezierCurveTo(sx, (sy + ny) * 0.55, (sx + nx) * 0.5, ny + 18, nx, ny);
-      ctx.lineWidth = p ? 3.5 : 6; ctx.strokeStyle = n.color || "#38bdf8"; ctx.globalAlpha = 0.7; ctx.stroke();
-    });
+    if (typeof window.renderWorldTreeCanvas === "function") {
+      window.renderWorldTreeCanvas(ctx, c.width, c.height, activeBp._layout, true);
+    }
     ctx.restore();
     layer.innerHTML = activeBp._layout.map((n, i) => `<button type="button" data-i="${i}" style="left:${n.x}%;top:${n.y}%" class="bp-star absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"><div style="background:#0f172a;border-color:${n.color || "#38bdf8"};box-shadow:0 0 14px ${n.color || "#38bdf8"}66" class="w-9 h-9 rounded-full border-2 flex items-center justify-center text-xs text-white font-bold">${n.icon || "✦"}</div><span class="text-[10px] font-bold text-slate-100 bg-slate-950/90 px-2 py-0.5 rounded border border-slate-800 mt-1 whitespace-nowrap">${n.title}</span></button>`).join("");
     layer.querySelectorAll(".bp-star").forEach(b => b.onclick = () => {
@@ -76,7 +69,13 @@
     const tiers = ["Tier I", "Tier II", "Tier III", "Tier IV"], bkts = [[], [], [], []];
     (t.nodes || []).forEach((n, i) => { const k = tiers.findIndex(v => (n.tier || "").includes(v)); bkts[k >= 0 ? k : Math.min(3, Math.floor(i / 2))].push({ ...n, _oi: i }); });
     const layout = [];
-    bkts.forEach((list, r) => list.forEach((n, c) => layout.push({ ...n, x: n.x || Math.round(((c + 1) / (list.length + 1)) * 78 + 11), y: n.y || Math.round(68 - r * 17 + (c % 2 === 0 ? -2 : 2)), _p: r === 0 ? -1 : Math.max(0, layout.length - list.length - 1) })));
+    bkts.forEach((list, r) => {
+      const spread = 66 + r * 18;
+      list.forEach((n, c) => {
+        const frac = (c + 1) / (list.length + 1) - 0.5, arch = Math.cos(frac * Math.PI) * 9;
+        layout.push({ ...n, x: n.x || Math.round(50 + frac * spread), y: n.y || Math.round(66 - r * 16 - arch), _p: r === 0 ? -1 : Math.max(0, layout.length - list.length - 1) });
+      });
+    });
     activeBp = { ...t, _layout: layout }; cam = { s: 1, x: 0, y: 0 };
     document.getElementById("inspTag").textContent = `${t.attr} • ${t.tag}`;
     document.getElementById("inspTitle").textContent = t.title;

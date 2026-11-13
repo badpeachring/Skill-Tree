@@ -39,18 +39,7 @@
   }
 
   window.generatePrivateTreeShare = async function(treeObj, pin = "") {
-   text-slate-950 rounded-lg font-black text-xs">🌳 Open Private Tree & Harvest Nodes</button>
-          </div>
-        </div>`;
-      document.body.appendChild(modal);
-
-      document.getElementById("closePrivShareBtn").onclick = () => modal.classList.add("hidden");
-
-      const handleExport = async (mode) => {
-        const trees = getUserTreesList();
-        const sel = document.getElementById("privTreeSelect");
-        const chosen = trees.find(t => t.id === sel.value) || trees[0];
-        if (!chosen) return alert("Create or copy a tree in My Constellations first.");  const cleanNodes = (treeObj.nodes || []).map((n) => {
+    const cleanNodes = (treeObj.nodes || []).map((n) => {
       const pIdx = typeof n.parentIdx === "number"
         ? n.parentIdx
         : (n.parentId ? (treeObj.nodes || []).findIndex(p => p.id === n.parentId) : -1);
@@ -95,7 +84,6 @@
             <h2 class="text-lg font-black text-amber-400 skyrim-font">🔒 Private Tree Vault & Share</h2>
             <button id="closePrivShareBtn" type="button" class="text-slate-400 text-base px-2">✕</button>
           </div>
-
           <div class="space-y-2 bg-slate-950/80 p-3 rounded-xl border border-slate-800">
             <div class="text-[11px] font-bold uppercase text-amber-300">Export Any Constellation Privately</div>
             <select id="privTreeSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white"></select>
@@ -106,12 +94,22 @@
             </div>
             <textarea id="privOutputBox" rows="2" readonly placeholder="Generated private share code appears here..." class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-[10px] text-slate-400 font-mono"></textarea>
           </div>
-
           <div class="space-y-2 bg-slate-950/80 p-3 rounded-xl border border-slate-800">
             <div class="text-[11px] font-bold uppercase text-emerald-400">Open & Harvest Received Private Tree</div>
             <textarea id="privImportBox" rows="3" placeholder="Paste received STREE1:... code or private URL here..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 font-mono outline-none"></textarea>
-                        <input id="privImportPin" type="text" maxlength="8" placeholder="PIN (only if sender locked it)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none">
-            <button id="launchPrivTreeBtn" type="button" class="w-full py-2.5 bg-emerald-500
+            <input id="privImportPin" type="text" maxlength="8" placeholder="PIN (only if sender locked it)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none">
+            <button id="launchPrivTreeBtn" type="button" class="w-full py-2.5 bg-emerald-500 text-slate-950 rounded-lg font-black text-xs">🌳 Open Private Tree & Harvest Nodes</button>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+
+      document.getElementById("closePrivShareBtn").onclick = () => modal.classList.add("hidden");
+
+      const handleExport = async (mode) => {
+        const trees = getUserTreesList();
+        const sel = document.getElementById("privTreeSelect");
+        const chosen = trees.find(t => t.id === sel.value) || trees[0];
+        if (!chosen) return alert("Create or copy a tree in My Constellations first.");
         const pin = document.getElementById("privExportPin").value.trim();
         const { code, url } = await window.generatePrivateTreeShare(chosen, pin);
         const text = mode === "url" ? url : code;
@@ -122,11 +120,8 @@
 
       document.getElementById("copyPrivCodeBtn").onclick = () => handleExport("code");
       document.getElementById("copyPrivLinkBtn").onclick = () => handleExport("url");
-
       document.getElementById("launchPrivTreeBtn").onclick = () => {
-        const raw = document.getElementById("privImportBox").value.trim();
-        const pin = document.getElementById("privImportPin").value.trim();
-        openPrivateCodeInViewer(raw, pin);
+        openPrivateCodeInViewer(document.getElementById("privImportBox").value.trim(), document.getElementById("privImportPin").value.trim());
       };
     }
 
@@ -145,9 +140,7 @@
         codeStr = decodeURIComponent(u.searchParams.get("stree") || "");
       }
       const envelope = decodePayload(codeStr);
-      if (envelope.locked && !pin) {
-        pin = prompt("This private skill tree is PIN-locked. Enter the PIN:") || "";
-      }
+      if (envelope.locked && !pin) pin = prompt("This private skill tree is PIN-locked. Enter the PIN:") || "";
       const parsed = JSON.parse(xorMask(envelope.data, pin));
       if (!Array.isArray(parsed.nodes)) throw new Error("Invalid PIN or corrupted share code.");
 
@@ -159,25 +152,17 @@
       }));
 
       const privTreeObj = {
-        id: tempId,
-        attr: parsed.attr || "DEX",
-        tag: "Private Share",
-        title: parsed.title || "Private Workflow",
-        author: parsed.author || "Private Share",
-        nodes: hydratedNodes
+        id: tempId, attr: parsed.attr || "DEX", tag: "Private Share",
+        title: parsed.title || "Private Workflow", author: parsed.author || "Private Share", nodes: hydratedNodes
       };
 
       window._privateVaultTrees = window._privateVaultTrees || [];
       window._privateVaultTrees.unshift(privTreeObj);
-      if (typeof baseConceptTrees !== "undefined") {
-        baseConceptTrees.unshift({ ...privTreeObj, _privateHiddenFromRealm: true });
-      }
+      if (typeof baseConceptTrees !== "undefined") baseConceptTrees.unshift({ ...privTreeObj, _privateHiddenFromRealm: true });
 
       const modal = document.getElementById("privateShareModal");
       if (modal) modal.classList.add("hidden");
-      if (typeof window.openVisualBlueprint === "function") {
-        window.openVisualBlueprint(tempId);
-      }
+      if (typeof window.openVisualBlueprint === "function") window.openVisualBlueprint(tempId);
     } catch (err) {
       alert("Unable to open private tree: " + err.message);
     }
@@ -191,30 +176,19 @@
     btn.id = "openPrivVaultBtn";
     btn.type = "button";
     btn.className = "menu-btn w-full py-3 px-4 rounded-r-xl flex items-center justify-between";
-    btn.innerHTML = `
-      <div class="text-left">
-        <div class="text-[10px] font-black uppercase tracking-wider text-amber-400">Encrypted Peer Sharing</div>
-        <div class="text-sm font-bold text-white skyrim-font">🔒 PRIVATE TREE SHARE & HARVEST</div>
-        <div class="text-[11px] text-slate-400">Share private workflows via PIN code or harvest nodes offline</div>
-      </div>
-      <span class="text-amber-400 text-base">🗝</span>`;
+    btn.innerHTML = `<div class="text-left"><div class="text-[10px] font-black uppercase tracking-wider text-amber-400">Encrypted Peer Sharing</div><div class="text-sm font-bold text-white skyrim-font">🔒 PRIVATE TREE SHARE & HARVEST</div><div class="text-[11px] text-slate-400">Share private workflows via PIN code or harvest nodes offline</div></div><span class="text-amber-400 text-base">🗝</span>`;
     btn.onclick = () => window.openPrivateShareModal();
     const afterAi = document.getElementById("bridgeAiBtn")?.nextSibling || menuList.firstChild;
     menuList.insertBefore(btn, afterAi);
   }
 
   const urlParams = new URLSearchParams(location.search);
-  if (urlParams.has("stree")) {
-    setTimeout(() => openPrivateCodeInViewer(location.href), 600);
-  }
+  if (urlParams.has("stree")) setTimeout(() => openPrivateCodeInViewer(location.href), 600);
 
   let scheduled = false;
   const obs = new MutationObserver(() => {
-    if (!scheduled) {
-      scheduled = true;
-      setTimeout(() => { scheduled = false; injectPrivateVaultButton(); }, 150);
-    }
+    if (!scheduled) { scheduled = true; setTimeout(() => { scheduled = false; injectPrivateVaultButton(); }, 150); }
   });
   obs.observe(document.body, { childList: true, subtree: true });
   setTimeout(injectPrivateVaultButton, 400);
-  
+})();

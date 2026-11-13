@@ -1,0 +1,240 @@
+(function installAnatomicalStretchingTree() {
+  const yt = (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+
+  // Generates a crisp anatomical posture & target-muscle SVG illustration for every stretch node
+  function stretchSvg(pose, title, muscles) {
+    const poses = {
+      breath: `<circle cx="160" cy="36" r="11" fill="#38bdf8"/><line x1="160" y1="47" x2="160" y2="95" stroke="#94a3b8" stroke-width="5"/><ellipse cx="160" cy="70" rx="18" ry="13" fill="rgba(16,185,129,0.35)" stroke="#10b981" stroke-width="2"/><line x1="160" y1="95" x2="132" y2="128" stroke="#94a3b8" stroke-width="4"/><line x1="160" y1="95" x2="188" y2="128" stroke="#94a3b8" stroke-width="4"/>`,
+      neck: `<circle cx="174" cy="38" r="11" fill="#38bdf8"/><path d="M160,55 Q164,46 171,44" stroke="#10b981" stroke-width="6" fill="none"/><line x1="160" y1="53" x2="160" y2="112" stroke="#94a3b8" stroke-width="5"/><line x1="138" y1="62" x2="182" y2="62" stroke="#94a3b8" stroke-width="4"/><circle cx="155" cy="52" r="9" fill="rgba(16,185,129,0.4)"/>`,
+      shoulder: `<circle cx="135" cy="48" r="10" fill="#38bdf8"/><line x1="135" y1="58" x2="175" y2="95" stroke="#94a3b8" stroke-width="5"/><line x1="142" y1="64" x2="195" y2="42" stroke="#10b981" stroke-width="5"/><circle cx="152" cy="62" r="12" fill="rgba(16,185,129,0.38)"/><line x1="175" y1="95" x2="145" y2="126" stroke="#94a3b8" stroke-width="4"/>`,
+      wrist: `<line x1="115" y1="45" x2="155" y2="96" stroke="#94a3b8" stroke-width="5"/><line x1="155" y1="96" x2="192" y2="96" stroke="#10b981" stroke-width="5"/><circle cx="155" cy="96" r="12" fill="rgba(16,185,129,0.42)" stroke="#10b981" stroke-width="2"/><line x1="95" y1="102" x2="225" y2="102" stroke="#334155" stroke-width="2"/>`,
+      spine: `<circle cx="110" cy="78" r="10" fill="#38bdf8"/><path d="M118,84 Q160,42 204,88" stroke="#10b981" stroke-width="6" fill="none"/><path d="M135,66 Q160,48 185,66" stroke="rgba(16,185,129,0.45)" stroke-width="14" fill="none"/><line x1="204" y1="88" x2="215" y2="124" stroke="#94a3b8" stroke-width="4"/>`,
+      hip: `<circle cx="152" cy="34" r="10" fill="#38bdf8"/><line x1="152" y1="44" x2="152" y2="86" stroke="#94a3b8" stroke-width="5"/><line x1="152" y1="86" x2="198" y2="86" stroke="#10b981" stroke-width="5"/><line x1="198" y1="86" x2="198" y2="124" stroke="#94a3b8" stroke-width="4"/><line x1="152" y1="86" x2="108" y2="118" stroke="#10b981" stroke-width="5"/><circle cx="152" cy="86" r="13" fill="rgba(16,185,129,0.38)"/>`,
+      split: `<circle cx="160" cy="52" r="10" fill="#38bdf8"/><line x1="160" y1="62" x2="160" y2="104" stroke="#94a3b8" stroke-width="5"/><line x1="160" y1="104" x2="88" y2="114" stroke="#10b981" stroke-width="5"/><line x1="160" y1="104" x2="232" y2="114" stroke="#10b981" stroke-width="5"/><circle cx="160" cy="104" r="13" fill="rgba(16,185,129,0.4)"/>`,
+      leg: `<circle cx="148" cy="48" r="10" fill="#38bdf8"/><path d="M148,58 Q168,78 156,96" stroke="#94a3b8" stroke-width="5" fill="none"/><line x1="156" y1="96" x2="216" y2="112" stroke="#10b981" stroke-width="5"/><line x1="156" y1="96" x2="146" y2="126" stroke="#94a3b8" stroke-width="4"/><rect x="172" y="96" width="34" height="10" rx="5" fill="rgba(16,185,129,0.42)"/>`
+    };
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 150"><defs><radialGradient id="bg" cx="50%" cy="45%" r="65%"><stop offset="0%" stop-color="#0f292e"/><stop offset="100%" stop-color="#020617"/></radialGradient></defs><rect width="320" height="150" fill="url(#bg)"/><g stroke="rgba(56,189,248,0.08)" stroke-width="1"><line x1="0" y1="30" x2="320" y2="30"/><line x1="0" y1="75" x2="320" y2="75"/><line x1="0" y1="120" x2="320" y2="120"/><line x1="80" y1="0" x2="80" y2="150"/><line x1="160" y1="0" x2="160" y2="150"/><line x1="240" y1="0" x2="240" y2="150"/></g>${poses[pose] || poses.spine}<text x="12" y="18" fill="#38bdf8" font-family="sans-serif" font-size="10" font-weight="bold">${title.slice(0, 38)}</text><text x="12" y="140" fill="#34d399" font-family="sans-serif" font-size="9">TARGET: ${muscles}</text></svg>`;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  }
+
+  window._stretch60Nodes = [
+    // === TRUNK BASE: TIER I BEGINNER FOUNDATIONS (Nodes 1-4 / indices 0-3) ===
+    {
+      parentIdx: -1, title: "1. 360° Diaphragmatic Rib Breath", tier: "Tier I • Foundation", icon: "🌬", color: "#38bdf8",
+      image: stretchSvg("breath", "360° Diaphragmatic Breath", "Diaphragm, Intercostals, Pelvic Floor"),
+      notes: "Down-regulates sympathetic guard tension so muscles allow deeper range. Lie supine with knees bent; inhale 4s expanding lower ribs laterally into your hands, pause 2s, and exhale 6s allowing ribs to knit down.",
+      steps: [{ text: "Complete 10 slow 4-2-6 nasal breaths before stretching", done: false }, { text: "Keep upper traps & jaw completely relaxed on every inhale", done: false }],
+      links: [{ label: "Video: 360° Diaphragmatic Breathing Mechanics", url: yt("360 diaphragmatic breathing rib cage expansion mobility tutorial") }]
+    },
+    {
+      parentIdx: -1, title: "2. Segmental Cat-Cow Spinal Wave", tier: "Tier I • Foundation", icon: "🐍", color: "#38bdf8",
+      image: stretchSvg("spine", "Segmental Cat-Cow", "Erector Spinae, Multifidus, Rectus Abdominis"),
+      notes: "Lubricates all 24 spinal discs via synovial fluid pumping. On hands and knees, tuck tailbone first and peel flexion up one vertebra at a time until chin tucks, then reverse from pelvis to crown.",
+      steps: [{ text: "Perform 8 ultra-slow segmental waves (5 seconds per direction)", done: false }, { text: "Isolate lumbar, thoracic, and cervical movement independently", done: false }],
+      links: [{ label: "Video: Segmental Cat-Cow (FRC Spine CARs)", url: yt("segmental cat cow spinal articulation frc tutorial") }]
+    },
+    {
+      parentIdx: -1, title: "3. Full-Body Joint CARs Warm-Up", tier: "Tier I • Foundation", icon: "🧭", color: "#38bdf8",
+      image: stretchSvg("shoulder", "Joint CARs", "Deep Joint Capsules & Rotator Cuff"),
+      notes: "Controlled Articular Rotations take every joint capsule through its outer pain-free circle under light tension to signal nervous system safety before static holds.",
+      steps: [{ text: "3 slow circles each direction for neck, shoulders, hips & ankles", done: false }, { text: "Radiate 20% core tension so adjacent joints stay frozen", done: false }],
+      links: [{ label: "Video: Daily Morning Joint CARs Routine", url: yt("full body joint cars morning mobility routine tutorial") }]
+    },
+    {
+      parentIdx: -1, title: "4. Child's Pose w/ Lateral Lat Reach", tier: "Tier I • Foundation", icon: "🌿", color: "#38bdf8",
+      image: stretchSvg("spine", "Child's Pose Lateral Reach", "Latissimus Dorsi, Teres Major, Quadratus Lumborum"),
+      notes: "Sit hips back onto heels, walk hands forward, then walk both hands 45° to the right while anchoring the left sit-bone down. Breathe into the stretched left ribcage.",
+      steps: [{ text: "Hold 45s center, 45s left reach, 45s right reach", done: false }, { text: "Press palms gently into floor to decompress lats", done: false }],
+      links: [{ label: "Video: Child's Pose Side Lat Stretch Form", url: yt("childs pose lateral lat reach stretch tutorial") }]
+    },
+
+    // === BRANCH 1: NECK & CERVICAL SPINE (Nodes 5-12 / indices 4-11) ===
+    {
+      parentIdx: 2, title: "5. Suboccipital Chin Tuck Glide", tier: "Tier I • Foundation", icon: "🎯", color: "#38bdf8",
+      image: stretchSvg("neck", "Suboccipital Chin Tuck", "Suboccipitals, Rectus Capitis, Upper Cervical"),
+      notes: "Reverses forward-head posture and relieves base-of-skull tension. Glide your head straight backward like making a double chin without tilting nose up or down.",
+      steps: [{ text: "10 controlled 3-second horizontal retractions", done: false }, { text: "Feel gentle lengthening at the very base of the skull", done: false }],
+      links: [{ label: "Video: Suboccipital Chin Tuck Release", url: yt("suboccipital chin tuck stretch forward head posture tutorial") }]
+    },
+    {
+      parentIdx: 4, title: "6. Upper Trapezius Lateral Tilt", tier: "Tier I • Foundation", icon: "🌿", color: "#38bdf8",
+      image: stretchSvg("neck", "Upper Trap Lateral Tilt", "Upper Trapezius, Scalenes"),
+      notes: "Sit tall, anchor right hand under your chair seat to depress the shoulder, and gently tilt left ear toward left shoulder without rotating your nose.",
+      steps: [{ text: "Hold 40s per side with depressed anchor shoulder", done: false }, { text: "Use fingertips only for feather-light overpressure", done: false }],
+      links: [{ label: "Video: Upper Trapezius Stretch Proper Form", url: yt("upper trapezius neck stretch physical therapy tutorial") }]
+    },
+    {
+      parentIdx: 5, title: "7. Levator Scapulae Armpit Look", tier: "Tier II • Practitioner", icon: "🔥", color: "#f59e0b",
+      image: stretchSvg("neck", "Levator Scapulae Stretch", "Levator Scapulae, Upper Cervical Facets"),
+      notes: "Targets the stubborn muscle connecting your upper shoulder blade to your neck. Reach right hand behind back, rotate nose 45° left, and nod chin toward left collarbone.",
+      steps: [{ text: "Hold 45s per side with slow diaphragmatic exhales", done: false }, { text: "Perform 5s gentle isometric press into hand before deepening", done: false }],
+      links: [{ label: "Video: Levator Scapulae Stretch Tutorial", url: yt("levator scapulae stretch physical therapy tutorial") }]
+    },
+    {
+      parentIdx: 6, title: "8. Sternocleidomastoid (SCM) Lift", tier: "Tier II • Practitioner", icon: "⚡", color: "#f59e0b",
+      image: stretchSvg("neck", "SCM Anterior Neck Stretch", "Sternocleidomastoid, Anterior Scalenes, Platysma"),
+      notes: "Pinch both hands flat over your right collarbone to anchor fascia down, tilt left ear back toward left shoulder, and rotate chin gently up toward the ceiling.",
+      steps: [{ text: "Hold 35s per side while pinning clavicular fascia", done: false }, { text: "Keep teeth lightly together to stretch anterior throat fascia", done: false }],
+      links: [{ label: "Video: Sternocleidomastoid (SCM) Stretch", url: yt("sternocleidomastoid scm stretch tutorial") }]
+    },
+    {
+      parentIdx: 7, title: "9. Deep Neck Flexor Isometric Lift", tier: "Tier III • Specialist", icon: "🛡", color: "#22c55e",
+      image: stretchSvg("neck", "Deep Neck Flexor Hold", "Longus Colli, Longus Capitis"),
+      notes: "Builds end-range cervical stability. Lie flat on back, perform a micro chin-tuck, and hover the back of your head 1 millimeter off the floor without lifting with your SCM.",
+      steps: [{ text: "3 sets of 15s micro-hover holds with clean chin tuck", done: false }, { text: "Stop immediately if superficial front neck muscles bulge", done: false }],
+      links: [{ label: "Video: Deep Neck Flexor Activation Tutorial", url: yt("deep neck flexor activation exercise tutorial") }]
+    },
+    {
+      parentIdx: 8, title: "10. Cervical PAILs/RAILs End-Range", tier: "Tier III • Specialist", icon: "⚔", color: "#22c55e",
+      image: stretchSvg("neck", "Cervical PAILs/RAILs", "Cervical Rotators & Deep Facet Capsules"),
+      notes: "Rotate head to end-range right, place right hand on cheek, press cheek into hand at 30% effort for 8s (PAILs), then actively pull head further right off your hand for 8s (RAILs).",
+      steps: [{ text: "2 rounds of 8s PAILs + 8s active RAILs per rotation side", done: false }, { text: "Keep shoulders squared straight ahead throughout", done: false }],
+      links: [{ label: "Video: Neck PAILs and RAILs Mobility Drill", url: yt("neck pails and rails cervical rotation tutorial") }]
+    },
+    {
+      parentIdx: 9, title: "11. Loaded Cervical Extension Hold", tier: "Tier IV • Grandmaster", icon: "👑", color: "#a855f7",
+      image: stretchSvg("neck", "Loaded Neck Extension", "Splenius Capitis, Semispinalis, Upper Erectors"),
+      notes: "Only after mastering deep neck flexors: lie prone on a bench with head off edge and control slow flexion-to-extension reps using light manual resistance or a 2.5 lb plate.",
+      steps: [{ text: "2x12 ultra-controlled slow tempo reps (3s eccentric)", done: false }, { text: "Maintain neutral chin alignment at top of extension", done: false }],
+      links: [{ label: "Video: Safe Neck Strengthening & Mobility", url: yt("neck extension strengthening safe form tutorial") }]
+    },
+    {
+      parentIdx: 10, title: "12. Wrestler's Tripod Neck Bridge Prep", tier: "Tier IV • Grandmaster", icon: "🏆", color: "#a855f7",
+      image: stretchSvg("neck", "Tripod Bridge Prep", "Full Cervical & Upper Thoracic Chain"),
+      notes: "Use hands on floor to offload 70% of bodyweight while rolling gently from forehead toward crown on a padded mat to condition full-arc cervical resilience.",
+      steps: [{ text: "3x15s hand-assisted tripod rolls with strict control", done: false }, { text: "Never drop hands until neck and traps support load effortlessly", done: false }],
+      links: [{ label: "Video: Beginner Safe Neck Bridge Progression", url: yt("safe neck bridge progression wrestling mobility") }]
+    },
+
+    // === BRANCH 2: SHOULDERS, CHEST & THORACIC SPINE (Nodes 13-22 / indices 12-21) ===
+    {
+      parentIdx: 3, title: "13. Doorway Pec Major & Minor Opener", tier: "Tier I • Foundation", icon: "🚪", color: "#38bdf8",
+      image: stretchSvg("shoulder", "Doorway Pec Stretch", "Pectoralis Major, Pectoralis Minor, Anterior Deltoid"),
+      notes: "Place forearm on doorframe at 90° (sternal pecs) and 135° (pec minor). Step forward with ribs tucked down so your lower back doesn't arch to fake shoulder extension.",
+      steps: [{ text: "Hold 40s at 90° elbow height & 40s at 135° high-V per side", done: false }, { text: "Keep ribcage stacked directly over pelvis", done: false }],
+      links: [{ label: "Video: Doorway Pec Minor & Major Stretch", url: yt("doorway pec minor stretch proper form physical therapy") }]
+    },
+    {
+      parentIdx: 12, title: "14. Thoracic Thread-the-Needle", tier: "Tier I • Foundation", icon: "🧵", color: "#38bdf8",
+      image: stretchSvg("spine", "Thread the Needle", "Thoracic Rotators, Rhomboids, Posterior Deltoid"),
+      notes: "From all fours, slide right arm underneath left armpit until right shoulder and temple rest on floor, then press left palm into floor to rotate upper ribs toward ceiling.",
+      steps: [{ text: "Hold 45s per side taking 5 deep breaths into upper back", done: false }, { text: "Keep hips centered over knees without shifting laterally", done: false }],
+      links: [{ label: "Video: Thread the Needle Thoracic Rotation", url: yt("thread the needle thoracic mobility stretch tutorial") }]
+    },
+    {
+      parentIdx: 13, title: "15. Scapular Wall Slides w/ Lift-Off", tier: "Tier II • Practitioner", icon: "⚡", color: "#f59e0b",
+      image: stretchSvg("shoulder", "Scapular Wall Slides", "Lower Trapezius, Serratus Anterior, Thoracic Extensors"),
+      notes: "Stand with heels, glutes, upper back, and wrists pressed flat against wall. Slide arms overhead into a Y while keeping low back flat, then hover wrists 1 inch off wall.",
+      steps: [{ text: "2 sets of 10 slow wall slides + 3s active wrist lift-off at top", done: false }, { text: "Do not let lower ribs flare away from wall", done: false }],
+      links: [{ label: "Video: Scapular Wall Slides & Serratus Lift-Off", url: yt("scapular wall slides with lift off posture tutorial") }]
+    },
+    {
+      parentIdx: 14, title: "16. Puppy Pose (Anahatasana) Melt", tier: "Tier II • Practitioner", icon: "🔥", color: "#f59e0b",
+      image: stretchSvg("spine", "Puppy Pose Opener", "Thoracic Spine, Latissimus Dorsi, Teres Major"),
+      notes: "Keep hips stacked vertically over knees, walk hands straight forward, and melt sternum toward floor while externally rotating armpits inward.",
+      steps: [{ text: "Hold 60s focusing on thoracic extension, not lumbar sag", done: false }, { text: "Engage light pelvic tuck to isolate upper-back opening", done: false }],
+      links: [{ label: "Video: Puppy Pose Thoracic & Lat Mobility", url: yt("puppy pose anahatasana thoracic mobility tutorial") }]
+    },
+    {
+      parentIdx: 15, title: "17. Side-Lying Sleeper Internal Rotation", tier: "Tier II • Practitioner", icon: "🎯", color: "#f59e0b",
+      image: stretchSvg("shoulder", "Sleeper Shoulder Stretch", "Infraspinatus, Teres Minor, Posterior Capsule"),
+      notes: "Lie on your side with bottom shoulder stacked under you, elbow bent 90°. Gently press bottom wrist toward the floor until you feel a clean stretch in the back of the shoulder.",
+      steps: [{ text: "Hold 45s per side with zero pinching in front of shoulder", done: false }, { text: "Perform 6s gentle isometric push-up against top hand", done: false }],
+      links: [{ label: "Video: Safe Sleeper Stretch Internal Rotation", url: yt("sleeper stretch shoulder internal rotation physical therapy") }]
+    },
+    {
+      parentIdx: 16, title: "18. Butcher's Block Lat & Tricep Stretch", tier: "Tier III • Specialist", icon: "⚒", color: "#22c55e",
+      image: stretchSvg("shoulder", "Butcher's Block Stretch", "Latissimus Dorsi, Triceps Long Head, Thoracic Spine"),
+      notes: "Kneel in front of a bench/couch, place elbows on edge holding a PVC pipe or towel behind head, and sink chest downward while keeping ribs tucked.",
+      steps: [{ text: "Hold 60s with 3 rounds of 6s elbow press into bench", done: false }, { text: "Narrow hand grip on stick to bias triceps long head", done: false }],
+      links: [{ label: "Video: Butcher's Block Overhead Mobility Drill", url: yt("butchers block lat stretch overhead mobility tutorial") }]
+    },
+    {
+      parentIdx: 17, title: "19. PVC / Band Shoulder Dislocates", tier: "Tier III • Specialist", icon: "🌀", color: "#22c55e",
+      image: stretchSvg("shoulder", "Shoulder Dislocates", "Pectorals, Biceps Tendon, Full Glenohumeral Arc"),
+      notes: "Hold a wide overhand grip on a dowel or band, lock elbows completely straight, shrug shoulders slightly at the top, and pass the bar smoothly behind your back to glutes.",
+      steps: [{ text: "2 sets of 10 slow full-arc passes with locked elbows", done: false }, { text: "Gradually narrow grip by 1 inch every few weeks", done: false }],
+      links: [{ label: "Video: Shoulder Dislocates Proper Scapular Form", url: yt("shoulder dislocates mobility exercise proper form") }]
+    },
+    {
+      parentIdx: 18, title: "20. Passive & Active German Hang", tier: "Tier III • Specialist", icon: "🦇", color: "#22c55e",
+      image: stretchSvg("shoulder", "German Hang", "Anterior Deltoid, Biceps Brachii, Pectoralis Minor"),
+      notes: "From rings or low bar with feet lightly touching floor for control, rotate hips backward under bar until arms extend behind you in deep shoulder extension.",
+      steps: [{ text: "3x25s foot-assisted German Hang with straight elbows", done: false }, { text: "Depress shoulders away from ears at bottom position", done: false }],
+      links: [{ label: "Video: German Hang & Skin the Cat Progression", url: yt("german hang skin the cat shoulder mobility tutorial") }]
+    },
+    {
+      parentIdx: 19, title: "21. Elevated Bridge Thoracic Push-Up", tier: "Tier IV • Grandmaster", icon: "🔥", color: "#a855f7",
+      image: stretchSvg("spine", "Elevated Bridge Push-Up", "Full Anterior Chain, Thoracic Spine, Shoulder Flexion"),
+      notes: "Place hands on floor and feet elevated on a bench/couch so hips sit higher than shoulders—this shifts the backbend out of your low back directly into stiff thoracic vertebrae.",
+      steps: [{ text: "3x20s elevated bridge holds pushing chest over wrists", done: false }, { text: "Focus on straightening elbows and pushing armpits open", done: false }],
+      links: [{ label: "Video: Feet-Elevated Bridge Thoracic Mobility", url: yt("elevated bridge thoracic mobility shoulder flexibility") }]
+    },
+    {
+      parentIdx: 20, titl
+    {
+      parentIdx: 20, title: "22. Full Wheel (Urdhva Dhanurasana)", tier: "Tier IV • Grandmaster", icon: "👑", color: "#a855f7",
+      image: stretchSvg("spine", "Full Wheel Bridge", "Entire Anterior Fascial Line, Spine & Shoulders"),
+      notes: "Press evenly through hands and heels, squeeze glutes to protect lumbar facets, and drive chest forward until arms stack vertically over wrists.",
+      steps: [{ text: "Hold 30s with stacked vertical wrists and open chest", done: false }, { text: "Lower chin to chest first for a controlled vertebra-by-vertebra exit", done: false }],
+      links: [{ label: "Video: Full Wheel Pose Alignment & Chest Opening", url: yt("full wheel pose urdhva dhanurasana alignment tutorial") }]
+    },
+
+    // === BRANCH 3: WRISTS, FOREARMS & ELBOWS (Nodes 23-30 / indices 22-29) ===
+    {
+      parentIdx: 2, title: "23. Quadruped Wrist Rocks (Fingers Forward)", tier: "Tier I • Foundation", icon: "🖐", color: "#38bdf8",
+      image: stretchSvg("wrist", "Quadruped Wrist Rocks", "Flexor Carpi Radialis, Flexor Digitorum, Wrist Capsule"),
+      notes: "On hands and knees with fingers spread wide and index fingers pointing straight ahead, lean shoulders smoothly past wrists while gripping floor with fingertips.",
+      steps: [{ text: "15 slow forward rocks pausing 3s at comfortable end-range", done: false }, { text: "Keep elbows locked straight and palms flat on floor", done: false }],
+      links: [{ label: "Video: Wrist Mobility Routine for Floor & Handstands", url: yt("wrist mobility routine quadruped wrist rocks tutorial") }]
+    },
+    {
+      parentIdx: 22, title: "24. Reverse Palm-Up Extensor Stretch", tier: "Tier I • Foundation", icon: "🌿", color: "#38bdf8",
+      image: stretchSvg("wrist", "Reverse Wrist Extensor", "Extensor Digitorum, Extensor Carpi Radialis"),
+      notes: "Place backs of hands gently on floor with fingers pointing toward your knees, elbows straight, and lean hips slightly backward to release tight forearm extensors.",
+      steps: [{ text: "Hold 35s with gentle bodyweight load (never force)", done: false }, { text: "Make slow fists while backs of hands rest on mat", done: false }],
+      links: [{ label: "Video: Forearm Extensor & Reverse Wrist Stretch", url: yt("reverse wrist stretch forearm extensors physical therapy") }]
+    },
+    {
+      parentIdx: 23, title: "25. Supinated Fingers-Back Forearm Stretch", tier: "Tier II • Practitioner", icon: "⚡", color: "#f59e0b",
+      image: stretchSvg("wrist", "Fingers-Back Forearm Stretch", "Pronator Teres, Biceps Aponeurosis, Deep Flexors"),
+      notes: "Turn palms down with fingers pointing straight back toward your knees, lock elbows, and sit hips slowly toward heels until deep forearm flexors lengthen.",
+      steps: [{ text: "Hold 45s peeling palms slowly off floor at the end", done: false }, { text: "Perform 5s fingertip press into mat before leaning back", done: false }],
+      links: [{ label: "Video: Fingers-Facing-Knees Forearm Flexor Stretch", url: yt("fingers facing knees forearm wrist stretch tutorial") }]
+    },
+    {
+      parentIdx: 24, title: "26. First-Knuckle Wrist Push-Ups", tier: "Tier II • Practitioner", icon: "🔥", color: "#f59e0b",
+      image: stretchSvg("wrist", "First-Knuckle Push-Ups", "Wrist Flexor Tendons & Metacarpal Stabilizers"),
+      notes: "From knees, press through your fingers and index-knuckle line to lift the heels of both palms simultaneously off the floor, then lower with a 3-second negative.",
+      steps: [{ text: "3 sets of 10 controlled palm lifts with straight elbows", done: false }, { text: "Keep index and middle knuckles grounded at top", done: false }],
+      links: [{ label: "Video: First Knuckle Wrist Push-Ups Tutorial", url: yt("first knuckle wrist push ups calisthenics tutorial") }]
+    },
+    {
+      parentIdx: 25, title: "27. Medial/Lateral Wrist & Elbow Nerve Glide", tier: "Tier III • Specialist", icon: "🧬", color: "#22c55e",
+      image: stretchSvg("wrist", "Median & Ulnar Nerve Glide", "Median Nerve, Ulnar Nerve, Brachial Plexus"),
+      notes: "Flosses neural tension through the shoulder, elbow, and carpal tunnel. Extend arm out to side with palm up, extend wrist down while tilting head away, then reverse smoothly.",
+      steps: [{ text: "10 gentle rhythmic glides per arm (tension should stay 3/10)", done: false }, { text: "Never hold neural glides statically—keep motion fluid", done: false }],
+      links: [{ label: "Video: Median & Ulnar Nerve Flossing Tutorial", url: yt("median and ulnar nerve glides flossing tutorial") }]
+    },
+    {
+      parentIdx: 26, title: "28. Dorsal Wrist Push-Up Conditioning", tier: "Tier III • Specialist", icon: "🛡", color: "#22c55e",
+      image: stretchSvg("wrist", "Dorsal Wrist Conditioning", "Posterior Wrist Capsule & Extensor Tendons"),
+      notes: "Place backs of hands on floor with fingers pointing inward toward each other; bend elbows slightly and press back up to straight arms to build bulletproof dorsal wrist strength.",
+      steps: [{ text: "3 sets of 8 slow reps on knees with light torso angle", done: false }, { text: "Keep wrists stacked directly under shoulders", done: false }],
+      links: [{ label: "Video: Dorsal Wrist Push-Ups GMB Progression", url: yt("dorsal wrist push ups gmb fitness tutorial") }]
+    },
+    {
+      parentIdx: 27, title: "29. False-Grip Deep Wrist Flexion Hold", tier: "Tier IV • Grandmaster", icon: "⚒", color: "#a855f7",
+      image: stretchSvg("wrist", "False Grip Wrist Flexion", "Flexor Carpi Ulnaris & Deep Forearm Flexors"),
+      notes: "Seat the heel of your palm deep over a bar or gymnastics rings with wrist flexed 90° and hang with feet on floor to condition extreme wrist flexion.",
+      steps: [{ text: "3x20s foot-assisted false grip hangs", done: false }, { text: "Keep thumb wrapped over fingers for clean wrist angle", done: false }],
+      links: [{ label: "Video: False Grip Wrist Mobility & Conditioning", url: yt("false grip wrist mobility conditioning tutorial") }]
+    },
+    {
+      parentIdx: 28, title: "30. Planche-Angle 45° Wrist Lean Hold", tier: "Tier IV • Grandmaster", icon: "🏆", color: "#a855f7",
+      image: stretchSvg("wrist", "Planche-Angle Wrist Lean", "Anterior Wrist Capsule & Forearm Flexors"),
+      notes: "Turn hands out 45°, protract scapulae, lock elbows, and lean shoulders 3–5 inches past wrists to build end-range hyperextension strength.",
+      steps: [{ text: "3x20s end-range wrist lean holds with active finger clawing", done: false }, { text: "Always warm up with quadruped wrist rocks first", done: false }],
+      links: [{ label: "Video: Planche Wrist Preparation & Strengthening", url: yt("planche wrist preparation strengthening tutorial") }]
+    }
+  ];

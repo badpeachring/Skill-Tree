@@ -161,4 +161,32 @@
   });
   obs.observe(document.body, { childList: true, subtree: true });
   setTimeout(() => { renderRealmSearchBar(); applyRealmFilter(); }, 350);
+    // Prevent infinite heart-click spam & persist user likes locally
+  const LIKED_KEY = "skilltree_liked_ids_v1";
+  const getLiked = () => { try { return new Set(JSON.parse(localStorage.getItem(LIKED_KEY) || "[]")); } catch { return new Set(); } };
+  const saveLiked = (s) => localStorage.setItem(LIKED_KEY, JSON.stringify([...s]));
+
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn || !(btn.textContent || "").includes("♥")) return;
+    const card = btn.closest(".glass-panel");
+    const title = card?.querySelector("h2, h3, h4, .skyrim-font")?.textContent?.trim();
+    if (!title) return;
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    const liked = getLiked();
+    const numEl = [...btn.querySelectorAll("*")].find(el => /^\d+$/.test(el.textContent.trim())) || btn;
+    const cur = parseInt((numEl.textContent || "0").replace(/\D/g, ""), 10) || 0;
+    if (liked.has(title)) {
+      liked.delete(title);
+      numEl.innerHTML = numEl === btn ? `♥ ${Math.max(0, cur - 1)}` : String(Math.max(0, cur - 1));
+      btn.classList.remove("border-rose-500");
+    } else {
+      liked.add(title);
+      numEl.innerHTML = numEl === btn ? `♥ ${cur + 1}` : String(cur + 1);
+      btn.classList.add("border-rose-500");
+    }
+    saveLiked(liked);
+  }, true);
+  
 })();

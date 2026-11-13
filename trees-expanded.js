@@ -1,67 +1,255 @@
-(function installDeepConceptTrees() {
+(function installDeepActionableConceptTrees() {
   if (typeof baseConceptTrees === "undefined") return;
 
-  const deepTrees = [
+  const yt = (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+
+  const richTrees = [
     {
-      id: "b1", attr: "STR", tag: "Concept", title: "Calisthenics & Bodyweight Mastery", author: "Architect Blueprint", likes: 48,
+      id: "b1", attr: "STR", tag: "Concept", title: "Calisthenics: Planche, Lever & Press", author: "Architect Blueprint", likes: 64,
       nodes: [
-        { title: "Scapular Control & Hollow Body", tier: "Tier I • Foundation", icon: "💪", color: "#38bdf8", notes: "Lock posterior pelvic tilt and scapular depression before loading leverage.", steps: [{ text: "60s hollow body hold (lower back glued to floor)", done: false }, { text: "3x12 scapular pull-ups with 2s pause", done: false }], links: [{ label: "Hollow Body Mechanics", url: "https://www.youtube.com/results?search_query=hollow+body+hold+calisthenics+form" }] },
-        { title: "Strict Pull-Up & Dip Base", tier: "Tier I • Foundation", icon: "⚔", color: "#38bdf8", notes: "Full dead-hang to chest-to-bar pull-ups and 90-degree parallel bar dips.", steps: [{ text: "12 strict dead-hang pull-ups", done: false }, { text: "15 full-ROM parallel bar dips", done: false }], links: [] },
-        { title: "L-Sit & Compression Strength", tier: "Tier II • Practitioner", icon: "⚡", color: "#f59e0b", notes: "Active hip-flexor compression and straight-arm scapular depression.", steps: [{ text: "20s floor L-sit with pointed toes", done: false }, { text: "3x10 seated pike leg lifts", done: false }], links: [] },
-        { title: "Handstand Wall Alignment", tier: "Tier II • Practitioner", icon: "🧭", color: "#f59e0b", notes: "Chest-to-wall stacked line: wrists, shoulders, hips, and ankles aligned.", steps: [{ text: "45s chest-to-wall handstand hold", done: false }, { text: "Finger-tip heel-pull balance drills", done: false }], links: [] },
-        { title: "Freestanding Handstand (30s)", tier: "Tier III • Specialist", icon: "★", color: "#22c55e", notes: "Consistent kick-up and micro-adjustments through the palms.", steps: [{ text: "3x30s freestanding handstand", done: false }], links: [] },
-        { title: "Strict Muscle-Up Transition", tier: "Tier III • Specialist", icon: "🔥", color: "#22c55e", notes: "False-grip pull to sternum and fast forward chest turnover.", steps: [{ text: "5 strict bar or ring muscle-ups", done: false }], links: [] },
-        { title: "Seated Press to Handstand", tier: "Tier IV • Grandmaster", icon: "👑", color: "#a855f7", notes: "Straddle or cross-legged compression lift into full vertical lockout without momentum.", steps: [{ text: "3 controlled straddle press reps", done: false }, { text: "1 seated press to freestanding hold", done: false }], links: [] },
-        { title: "Front Lever & Planche Hold", tier: "Tier IV • Grandmaster", icon: "🏆", color: "#a855f7", notes: "Full horizontal straight-arm static mastery.", steps: [{ text: "10s full front lever", done: false }, { text: "8s straddle or full planche", done: false }], links: [] }
+        {
+          title: "Scapular Protraction & Hollow Body", tier: "Tier I • Foundation", icon: "💪", color: "#38bdf8",
+          notes: "Lock posterior pelvic tilt (ribs pulled down, glutes squeezed) and push the floor away so shoulder blades spread apart (protraction) with locked elbows.",
+          steps: [
+            { text: "60s hollow body hold with lower back pressed flat into floor", done: false },
+            { text: "3x15 scapular push-ups holding 2s peak protraction at top", done: false },
+            { text: "3x12 dead-hang scapular pulls without bending elbows", done: false }
+          ],
+          links: [
+            { label: "YouTube: Hollow Body & Scapular Protraction Form", url: yt("calisthenics hollow body hold scapular protraction tutorial") }
+          ]
+        },
+        {
+          title: "Planche Lean & Wrist Conditioning", tier: "Tier II • Practitioner", icon: "⚡", color: "#f59e0b",
+          notes: "Turn wrists out 30-45 degrees to protect tendons. Protract shoulders hard, lock elbows completely straight, and lean shoulders forward past wrists until feet feel light. Hold hips at shoulder height—never let lower back sag.",
+          steps: [
+            { text: "4x20s Planche Lean with shoulders 4+ inches past wrists", done: false },
+            { text: "3x10 pseudo-planche push-ups (hands by waist)", done: false }
+          ],
+          links: [
+            { label: "YouTube: Planche Lean Biomechanics & Wrist Prep", url: yt("planche lean form tutorial wrist conditioning calisthenics") }
+          ]
+        },
+        {
+          title: "Tuck & Advanced Tuck Planche", tier: "Tier III • Specialist", icon: "🔥", color: "#22c55e",
+          notes: "From a deep planche lean, lift knees tight to chest (Tuck), then push hips back so your back flattens parallel to the floor (Adv. Tuck). Keep elbows 100% locked—any bend shifts load from front delts to biceps.",
+          steps: [
+            { text: "20s clean Tuck Planche with rounded upper back", done: false },
+            { text: "12s Advanced Tuck Planche with flat horizontal back", done: false }
+          ],
+          links: [
+            { label: "YouTube: Tuck to Advanced Tuck Planche Progression", url: yt("tuck planche to advanced tuck planche progression tutorial") }
+          ]
+        },
+        {
+          title: "Straddle & Full Planche", tier: "Tier IV • Grandmaster", icon: "👑", color: "#a855f7",
+          notes: "Extend legs wide into Straddle first to shorten the lever arm, squeezing glutes and pointing toes. To transition to Full Planche, bring legs together slowly while leaning an extra 2 inches forward to keep center of mass over hands.",
+          steps: [
+            { text: "8s Straddle Planche with hips level with shoulders", done: false },
+            { text: "5s Full Planche with locked knees and pointed toes", done: false }
+          ],
+          links: [
+            { label: "YouTube: Full Planche Complete Step-by-Step Guide", url: yt("full planche tutorial step by step progression calisthenics") }
+          ]
+        },
+        {
+          title: "Chest-to-Wall Stacked Handstand", tier: "Tier II • Practitioner", icon: "🧭", color: "#f59e0b",
+          notes: "Walk up chest-to-wall until only toes touch. Push tall through shoulders (elevation), tuck ribs, and grip floor with fingertips to pull heels 1 inch off the wall.",
+          steps: [
+            { text: "60s chest-to-wall stacked line hold", done: false },
+            { text: "10 controlled finger-press heel pulls off wall", done: false }
+          ],
+          links: [
+            { label: "YouTube: Perfect Handstand Line & Finger Balance", url: yt("chest to wall handstand alignment finger balance tutorial") }
+          ]
+        },
+        {
+          title: "Seated Press to Handstand", tier: "Tier IV • Grandmaster", icon: "🏆", color: "#a855f7",
+          notes: "Start seated cross-legged or in pancake straddle. Lean shoulders forward over hands as you compress thighs tightly to ribs, floating hips vertically over wrists before unfolding legs upward without jumping.",
+          steps: [
+            { text: "5x8s seated pike/straddle compression lifts (hands by knees)", done: false },
+            { text: "3 slow eccentrics from handstand down to seated hover", done: false },
+            { text: "1 strict seated press to freestanding handstand", done: false }
+          ],
+          links: [
+            { label: "YouTube: Seated Press to Handstand Drills", url: yt("seated press to handstand tutorial compression drills") }
+          ]
+        },
+        {
+          title: "Front Lever & Strict Muscle-Up", tier: "Tier III • Specialist", icon: "★", color: "#22c55e",
+          notes: "Depress scapulae hard and pull bar toward hips with straight arms for Front Lever. For Muscle-Up, use false grip, pull explosively to lower sternum, and drive chest fast over the bar.",
+          steps: [
+            { text: "10s Full Front Lever with horizontal body line", done: false },
+            { text: "5 strict no-kip bar or ring muscle-ups", done: false }
+          ],
+          links: [
+            { label: "YouTube: Front Lever & Strict Muscle-Up Form", url: yt("front lever tutorial straight arm pull calisthenics") }
+          ]
+        }
       ]
     },
     {
-      id: "b2", attr: "INT", tag: "Concept", title: "Industrial Concrete & Coating Systems", author: "Architect Blueprint", likes: 39,
+      id: "b2", attr: "INT", tag: "Concept", title: "Industrial Concrete & Coating Systems", author: "Architect Blueprint", likes: 49,
       nodes: [
-        { title: "Moisture Vapor & Substrate Testing", tier: "Tier I • Foundation", icon: "🧭", color: "#38bdf8", notes: "Verify slab RH and surface profile before any primer touches concrete.", steps: [{ text: "Run non-destructive impedance & ASTM F2170 RH check", done: false }, { text: "Confirm ICRI CSP 2-3 mechanical profile", done: false }], links: [] },
-        { title: "Diamond Grinding & HEPA Dust Control", tier: "Tier I • Foundation", icon: "⚙", color: "#38bdf8", notes: "Remove laitance, sealers, and high spots with matched diamond bond hardness.", steps: [{ text: "Match soft/hard metal bond to slab Mohs hardness", done: false }, { text: "Edge-grind perimeter with diamond cup wheel & shroud", done: false }], links: [] },
-        { title: "Moisture-Mitigating Epoxy Primer", tier: "Tier II • Practitioner", icon: "🧪", color: "#f59e0b", notes: "Apply 100%-solids vapor barrier primer within recoat window.", steps: [{ text: "Mix A/B components at exact ratio & induction time", done: false }, { text: "Back-roll for uniform mil thickness without pinholes", done: false }], links: [] },
-        { title: "Resilient Rubber & Seam Grouting", tier: "Tier III • Specialist", icon: "⚒", color: "#22c55e", notes: "Bond resilient matting and pack seams with granule-thickened polyurethane.", steps: [{ text: "Solvent-wipe contact surfaces & verify wet transfer", done: false }, { text: "Trowel-flush seams for seamless monolithic finish", done: false }], links: [] },
-        { title: "Aliphatic Topcoat & Rebound QA", tier: "Tier IV • Grandmaster", icon: "🏆", color: "#a855f7", notes: "Spray UV-stable aliphatic wear coat and log impact rebound metrics.", steps: [{ text: "Apply uniform airless spray coats at target WFT", done: false }, { text: "Verify cure hardness and impact rebound consistency", done: false }], links: [] }
-      ]
-    }
-  ];
-    const moreTrees = [
-    {
-      id: "b3", attr: "WIS", tag: "Concept", title: "Culinary Arts: Smoke, Braise & Emulsion", author: "Architect Blueprint", likes: 44,
-      nodes: [
-        { title: "Knife Geometry & Mise en Place", tier: "Tier I • Foundation", icon: "⚔", color: "#38bdf8", notes: "Pinch grip, claw guide, uniform dice for even thermal transfer.", steps: [{ text: "15-degree honing & whetstone maintenance", done: false }, { text: "Consistent brunoise & mirepoix prep", done: false }], links: [] },
-        { title: "Thermal Control & Maillard Sear", tier: "Tier I • Foundation", icon: "🔥", color: "#38bdf8", notes: "Dry surface proteins, high-smoke-point fat, fond development.", steps: [{ text: "Build pan sauce by deglazing fond", done: false }], links: [] },
-        { title: "Stable Cold & Warm Emulsions", tier: "Tier II • Practitioner", icon: "🧪", color: "#f59e0b", notes: "Control shear rate and fat-to-liquid ratio for velvety dressings and sauces.", steps: [{ text: "Dial viscosity without breaking emulsion", done: false }], links: [] },
-        { title: "Low-and-Slow Collagen Rendering", tier: "Tier III • Specialist", icon: "⚒", color: "#22c55e", notes: "Hold 225-250 F smoker/braise window until tough connective tissue converts to gelatin.", steps: [{ text: "Navigate the evaporative stall cleanly", done: false }, { text: "Rest in insulated cambro to redistribute juices", done: false }], links: [] },
-        { title: "Curing, Brining & Fermentation", tier: "Tier IV • Grandmaster", icon: "👑", color: "#a855f7", notes: "Equilibrium salt percentages (2.25%-2.5%) for safe, repeatable charcuterie and cured fish.", steps: [{ text: "Calculate equilibrium cure by gram weight", done: false }], links: [] }
+        {
+          title: "Substrate Moisture & CSP Testing", tier: "Tier I • Foundation", icon: "🧭", color: "#38bdf8",
+          notes: "Map slab moisture impedance and verify concrete hardness (Mohs scratch kit) so you select the right diamond matrix and moisture vapor barrier.",
+          steps: [
+            { text: "Log grid readings with non-destructive impedance meter", done: false },
+            { text: "Verify ICRI CSP 2-3 profile before primer application", done: false }
+          ],
+          links: [
+            { label: "YouTube: Concrete Moisture Testing & CSP Profile Guide", url: yt("concrete moisture testing ASTM F2170 CSP profile") }
+          ]
+        },
+        {
+          title: "Diamond Grinding & HEPA Extraction", tier: "Tier II • Practitioner", icon: "⚙", color: "#f59e0b",
+          notes: "Hard concrete requires soft-bond diamonds so fresh diamonds expose continuously; soft concrete requires hard-bond segments. Overlap passes 50% in a north-south/east-west crosshatch.",
+          steps: [
+            { text: "Match diamond bond hardness to slab Mohs test", done: false },
+            { text: "Detail all edges & drains with cup wheel + HEPA shroud", done: false }
+          ],
+          links: [
+            { label: "YouTube: Planetary Concrete Grinder Bond Selection", url: yt("concrete diamond grinding bond selection hard soft concrete") }
+          ]
+        },
+        {
+          title: "100%-Solids Vapor Barrier Epoxy", tier: "Tier III • Specialist", icon: "🧪", color: "#22c55e",
+          notes: "Mix Part A and Part B mechanically for 3 full minutes, scrape bucket walls, ribbon-pour immediately (never leave mixed epoxy sitting in the bucket to exotherm), and back-roll uniformly.",
+          steps: [
+            { text: "Check dew point & slab temp (must be 5°F above dew point)", done: false },
+            { text: "Apply uniform 12-16 mil coat within pot-life window", done: false }
+          ],
+          links: [
+            { label: "YouTube: Mixing & Back-Rolling 100% Solids Epoxy", url: yt("how to apply 100 solids moisture barrier epoxy primer") }
+          ]
+        },
+        {
+          title: "Seamless Rubber & Aliphatic Topcoat", tier: "Tier IV • Grandmaster", icon: "🏆", color: "#a855f7",
+          notes: "Solvent-wipe contact surfaces, trowel-pack seams flush with rubber-thickened polyurethane, and spray UV-stable aliphatic topcoat at consistent wet film thickness.",
+          steps: [
+            { text: "Verify full wet adhesive transfer on mat edges", done: false },
+            { text: "Spray uniform cross-coat aliphatic finish & log rebound QA", done: false }
+          ],
+          links: [
+            { label: "YouTube: Airless Sprayer Tip Selection & Mil Control", url: yt("airless paint sprayer tip size wet film thickness guide") }
+          ]
+        }
       ]
     },
     {
-      id: "b4", attr: "CHA", tag: "Business", title: "Commercial Contracting & Proposal Mastery", author: "Architect Blueprint", likes: 51,
+      id: "b3", attr: "WIS", tag: "Concept", title: "Culinary Arts: Smoke, Braise & Emulsion", author: "Architect Blueprint", likes: 54,
       nodes: [
-        { title: "Site Walk & Scope Discovery", tier: "Tier I • Foundation", icon: "🧭", color: "#38bdf8", notes: "Measure exact square footage, access constraints, moisture, and client downtime windows.", steps: [{ text: "Document site photos, dimensions & substrate notes", done: false }], links: [] },
-        { title: "True Cost & Margin Modeling", tier: "Tier II • Practitioner", icon: "🧠", color: "#f59e0b", notes: "Account for materials, freight, mobilization, crew hours, contingency, and target net margin.", steps: [{ text: "Verify material price lock window (30-60 days)", done: false }], links: [] },
-        { title: "Turnkey Executive Proposal Writing", tier: "Tier III • Specialist", icon: "📖", color: "#22c55e", notes: "Present clear scope phases, warranty terms, and single turnkey investment figure.", steps: [{ text: "Eliminate ambiguity on prep responsibilities", done: false }], links: [] },
-        { title: "Multi-Site Logistics & Client Retention", tier: "Tier IV • Grandmaster", icon: "🏆", color: "#a855f7", notes: "Sequence regional route jobs and convert one-off repairs into multi-year facility contracts.", steps: [{ text: "Deliver post-install QA report & maintenance schedule", done: false }], links: [] }
+        {
+          title: "Knife Geometry & Mise en Place", tier: "Tier I • Foundation", icon: "⚔", color: "#38bdf8",
+          notes: "Grip the blade pinch-style ahead of the bolster with thumb and index finger, curl guide-hand knuckles forward, and slice with a forward-downward push cut rather than crushing.",
+          steps: [
+            { text: "Hone at 15-degree bevel & maintain on 1000/6000 whetstone", done: false },
+            { text: "Cut uniform 1/4-inch mirepoix for even thermal transfer", done: false }
+          ],
+          links: [
+            { label: "YouTube: Chef Pinch Grip & Rolling Slice Technique", url: yt("knife skills pinch grip claw technique chef tutorial") }
+          ]
+        },
+        {
+          title: "Maillard Sear & Pan Fond Deglazing", tier: "Tier II • Practitioner", icon: "🔥", color: "#f59e0b",
+          notes: "Pat proteins bone-dry with paper towels, preheat heavy stainless or cast iron until oil shimmers, lay food away from you, and do not flip until the crust naturally releases.",
+          steps: [
+            { text: "Sear protein without steaming or gray banding", done: false },
+            { text: "Deglaze browned fond with stock/acid & mount with cold fat", done: false }
+          ],
+          links: [
+            { label: "YouTube: Maillard Reaction & Pan Sauce Science", url: yt("maillard reaction searing pan sauce deglazing tutorial") }
+          ]
+        },
+        {
+          title: "Stable Emulsions & Dairy-Free Creaminess", tier: "Tier II • Practitioner", icon: "🧪", color: "#f59e0b",
+          notes: "Disperse fat droplets into water-phase acid using lecithin (egg yolk/mustard) and gradual shear so dressings stay velvety and never split.",
+          steps: [
+            { text: "Emulsify oil slowly at constant shear rate", done: false },
+            { text: "Balance acid, salt, aromatics & viscosity", done: false }
+          ],
+          links: [
+            { label: "YouTube: Science of Stable Kitchen Emulsions", url: yt("how emulsions work mayo vinaigrette culinary science") }
+          ]
+        },
+        {
+          title: "Low-and-Slow Collagen Rendering", tier: "Tier III • Specialist", icon: "⚒", color: "#22c55e",
+          notes: "Hold 225-250°F smoker or covered braise until intramuscular collagen hydrolyzes into rich gelatin around 200-205°F internal probe-tender feel.",
+          steps: [
+            { text: "Wrap in butcher paper once bark sets through the stall", done: false },
+            { text: "Rest 1-2 hours in insulated cambro down to 145°F before slicing", done: false }
+          ],
+          links: [
+            { label: "YouTube: Brisket & Pork Butt Collagen Rendering Guide", url: yt("low and slow brisket collagen rendering stall wrap rest") }
+          ]
+        },
+        {
+          title: "Equilibrium Curing & Cold Smoke", tier: "Tier IV • Grandmaster", icon: "👑", color: "#a855f7",
+          notes: "Weigh protein in grams and calculate exact 2.25% kosher salt + 1.0% sugar equilibrium cure sealed in vacuum bag so over-salting is mathematically impossible.",
+          steps: [
+            { text: "Calculate equilibrium cure weights to the tenth of a gram", done: false },
+            { text: "Form pellicle in fridge 12h before cold-smoking under 80°F", done: false }
+          ],
+          links: [
+            { label: "YouTube: Equilibrium Cured Salmon (Gravlax) & Cold Smoke", url: yt("equilibrium cure salmon gravlax cold smoke pellicle") }
+          ]
+        }
+      ]
+    },
+    {
+      id: "b4", attr: "CHA", tag: "Business", title: "Commercial Contracting & Proposal Mastery", author: "Architect Blueprint", likes: 58,
+      nodes: [
+        {
+          title: "Site Walk & Risk Discovery", tier: "Tier I • Foundation", icon: "🧭", color: "#38bdf8",
+          notes: "Measure exact square footage, doorways, slope/drains, moisture levels, and facility animal/staff containment schedules before quoting a single dollar.",
+          steps: [
+            { text: "Capture photos, room dimensions, access & power specs", done: false },
+            { text: "Identify hidden prep exclusions (demolition, subfloor repairs)", done: false }
+          ],
+          links: [
+            { label: "YouTube: Commercial Construction Site Walk Checklist", url: yt("commercial construction site walk estimating checklist") }
+          ]
+        },
+        {
+          title: "True Cost, Freight & Margin Modeling", tier: "Tier II • Practitioner", icon: "🧠", color: "#f59e0b",
+          notes: "Build bottom-up pricing: raw materials + freight/pallet fees + consumables + mobilization mileage/hotel + crew labor hours + contingency buffer + target net profit.",
+          steps: [
+            { text: "Lock supplier material quotes & enforce 30-60 day expiration", done: false },
+            { text: "Stress-test gross margin against 15% labor overrun", done: false }
+          ],
+          links: [
+            { label: "YouTube: Construction Job Costing & Markup vs Margin", url: yt("construction estimating markup vs margin job costing") }
+          ]
+        },
+        {
+          title: "Turnkey Executive Proposal Writing", tier: "Tier III • Specialist", icon: "📖", color: "#22c55e",
+          notes: "Present a clean, phased scope of work, clear client preparation duties, payment milestones, and a single turnkey investment figure that eliminates procurement friction.",
+          steps: [
+            { text: "Separate base scope from optional add-alternates", done: false },
+            { text: "Include clear validity window & deposit terms", done: false }
+          ],
+          links: [
+            { label: "YouTube: How to Write Winning Commercial Proposals", url: yt("how to write a commercial construction proposal that wins") }
+          ]
+        },
+        {
+          title: "Multi-Site Route Logistics & Retention", tier: "Tier IV • Grandmaster", icon: "🏆", color: "#a855f7",
+          notes: "Sequence regional installations along single road-trip corridors to slash deadhead fuel/hotel overhead, and deliver post-install QA reports that convert into recurring annual maintenance.",
+          steps: [
+            { text: "Batch regional client site visits on single mobilization", done: false },
+            { text: "Deliver post-install QA & maintenance guide within 48h", done: false }
+          ],
+          links: [
+            { label: "YouTube: Scaling Specialty Contracting & Repeat Clients", url: yt("scaling specialty trade contracting business repeat clients") }
+          ]
+        }
       ]
     }
   ];
 
-  [...deepTrees, ...moreTrees].forEach(up => {
+  richTrees.forEach(up => {
     const idx = baseConceptTrees.findIndex(x => x.id === up.id);
     if (idx >= 0) baseConceptTrees[idx] = up; else baseConceptTrees.unshift(up);
   });
-
-  window.harvestSingleNode = async function(tid, idx) {
-    const src = publicTreesCache.find(x => x.id === tid); if (!src) return;
-    const sn = src.nodes[idx], keys = Object.keys(userTrees);
-    let target = !keys.length ? await createNewTree(src.title, src.attr, []) : prompt(`Target tree (${keys.join(", ")}):`, keys[0]);
-    if (!target) return;
-    if (!userTrees[target]) await createNewTree(target, src.attr, []);
-    const tn = userTrees[target].nodes, sx = [50, 26, 74, 34, 66, 18, 82, 42, 58];
-    tn.push({ id: "h_" + Date.now(), title: sn.title, status: "locked", tier: sn.tier || "Tier I • Foundation", icon: sn.icon || "✦", color: sn.color || "#38bdf8", x: sx[tn.length % sx.length], y: Math.max(14, 62 - Math.floor(tn.length / 3) * 14), notes: sn.notes || "", steps: Array.isArray(sn.steps) ? JSON.parse(JSON.stringify(sn.steps)) : [], links: Array.isArray(sn.links) ? JSON.parse(JSON.stringify(sn.links)) : [], parentId: tn.length ? tn[tn.length - 1].id : null });
-    await saveUserData();
-    alert(`Harvested "${sn.title}" (with steps & links) onto "${target}"!`);
-  };
 })();

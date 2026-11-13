@@ -204,7 +204,7 @@
     </div>
   </div>
 
-  <div id="detailModal" class="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-4">
+    <div id="detailModal" class="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-4">
     <div class="w-full max-w-md glass-panel rounded-2xl p-5 shadow-2xl max-h-[88vh] overflow-y-auto space-y-3">
       <div class="flex justify-between items-center"><h2 id="modalTitle" class="text-lg font-bold text-sky-400 skyrim-font">Skill Details</h2><button id="closeModalBtn" class="text-slate-400 text-base px-2">✕</button></div>
       <div class="grid grid-cols-3 gap-2"><button data-status="locked" class="status-toggle py-1.5 text-xs rounded border border-slate-800 bg-slate-950 text-slate-400">Locked</button><button data-status="learning" class="status-toggle py-1.5 text-xs rounded border border-slate-800 bg-slate-950 text-slate-400">Learning</button><button data-status="mastered" class="status-toggle py-1.5 text-xs rounded border border-slate-800 bg-slate-950 text-slate-400">Mastered</button></div>
@@ -220,7 +220,8 @@
       <div id="inspNodesList" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
     </div>
   </div>
-    <div id="tutorialModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-5">
+
+  <div id="tutorialModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-5">
     <div class="w-full max-w-md glass-panel rounded-2xl p-6 shadow-2xl space-y-4">
       <div class="flex justify-between items-center"><span id="tutStepBadge" class="text-[10px] font-bold uppercase tracking-widest text-sky-400">Step 1 of 4</span><button onclick="closeTutorial()" class="text-xs text-slate-400 underline">Skip</button></div>
       <h2 id="tutTitle" class="text-xl font-black skyrim-font text-white">Welcome to Your Grimoire</h2>
@@ -229,14 +230,15 @@
     </div>
   </div>
 
-  <script src="trees.js?v=27"></script>
-  <script src="app.js?v=27"></script>
-  <script src="trees-expanded.js?v=1"></script>
-  <script src="patch-nodes.js?v=1"></script>
-  <script src="patch-tree-render.js?v=1"></script>
-  <script src="patch-admin.js?v=1"></script>
-  <script src="patch-ux.js?v=1"></script>
-  <script src="patch-zoom.js?v=1"></script>
-  <script src="patch-blueprint-viewer.js?v=2"></script>
+  <script src="trees.js?v=60"></script>
+  <script src="app.js?v=60"></script>
+  <script src="trees-expanded.js?v=60"></script>
+  <script src="tree-stretching.js?v=60"></script>
+  <script src="patch-nodes.js?v=60"></script>
+  <script src="patch-tree-render.js?v=60"></script>
+  <script src="patch-admin.js?v=60"></script>
+  <script src="patch-ux.js?v=60"></script>
+  <script src="patch-zoom.js?v=60"></script>
+  <script src="patch-blueprint-viewer.js?v=60"></script>
 </body>
 </html>

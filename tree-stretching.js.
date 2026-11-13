@@ -58,7 +58,7 @@
     N(19, "21. Elevated Bridge Thoracic Push-Up", T4, "🔥", "spine", "Full Anterior Chain, Thoracic Spine, Shoulder Flexion", "Place hands on floor and feet elevated on a bench so hips sit higher than shoulders—shifts the backbend directly into stiff thoracic vertebrae.", ["3x20s elevated bridge holds pushing chest over wrists", "Straighten elbows and push armpits open"], "elevated bridge thoracic mobility shoulder flexibility"),
     N(20, "22. Full Wheel (Urdhva Dhanurasana)", T4, "👑", "spine", "Entire Anterior Fascial Line, Spine & Shoulders", "Press evenly through hands and heels, squeeze glutes to protect lumbar facets, and drive chest forward until arms stack vertically over wrists.", ["Hold 30s with stacked vertical wrists and open chest", "Tuck chin to chest first for vertebra-by-vertebra exit"], "full wheel pose urdhva dhanurasana alignment tutorial"),
 
-    // BRANCH 3: WRISTS, FOREARMS & ELBOWS (22-29)
+        // BRANCH 3: WRISTS, FOREARMS & ELBOWS (22-29)
     N(2, "23. Quadruped Wrist Rocks (Fingers Forward)", T1, "🖐", "wrist", "Flexor Carpi Radialis, Flexor Digitorum, Capsule", "On hands and knees with fingers spread wide and index fingers pointing ahead, lean shoulders smoothly past wrists while gripping floor with fingertips.", ["15 slow forward rocks pausing 3s at end-range", "Keep elbows locked straight and palms flat"], "wrist mobility routine quadruped wrist rocks tutorial"),
     N(22, "24. Reverse Palm-Up Extensor Stretch", T1, "🌿", "wrist", "Extensor Digitorum, Extensor Carpi Radialis", "Place backs of hands gently on floor with fingers pointing toward knees, elbows straight, and lean hips slightly back to release forearm extensors.", ["Hold 35s with gentle bodyweight load (never force)", "Make slow fists while backs of hands rest on mat"], "reverse wrist stretch forearm extensors physical therapy"),
     N(23, "25. Supinated Fingers-Back Forearm Stretch", T2, "⚡", "wrist", "Pronator Teres, Biceps Aponeurosis, Deep Flexors", "Turn palms down with fingers pointing straight back toward knees, lock elbows, and sit hips slowly toward heels until deep forearm flexors lengthen.", ["Hold 45s peeling palms slowly off floor at end", "5s fingertip press into mat before leaning back"], "fingers facing knees forearm wrist stretch tutorial"),
@@ -67,6 +67,7 @@
     N(26, "28. Dorsal Wrist Push-Up Conditioning", T3, "🛡", "wrist", "Posterior Wrist Capsule & Extensor Tendons", "Place backs of hands on floor with fingers pointing inward; bend elbows slightly and press back up to straight arms for bulletproof dorsal wrists.", ["3x8 slow reps on knees with light torso angle", "Keep wrists stacked directly under shoulders"], "dorsal wrist push ups gmb fitness tutorial"),
     N(27, "29. False-Grip Deep Wrist Flexion Hold", T4, "⚒", "wrist", "Flexor Carpi Ulnaris & Deep Forearm Flexors", "Seat heel of palm deep over a bar or gymnastics rings with wrist flexed 90° and hang with feet on floor to condition extreme wrist flexion.", ["3x20s foot-assisted false grip hangs", "Keep thumb wrapped over fingers for clean angle"], "false grip wrist mobility conditioning tutorial"),
     N(28, "30. Planche-Angle 45° Wrist Lean Hold", T4, "🏆", "wrist", "Anterior Wrist Capsule & Forearm Flexors", "Turn hands out 45°, protract scapulae, lock elbows, and lean shoulders 3–5 inches past wrists to build end-range hyperextension strength.", ["3x20s end-range wrist lean holds with finger clawing", "Warm up with quadruped wrist rocks first"], "planche wrist preparation strengthening tutorial"),
+
     // BRANCH 4: LOWER BACK, CORE & OBLIQUES (30-39)
     N(1, "31. Supine Knee-to-Chest Lumbar Relief", T1, "🛌", "spine", "Lumbar Erectors, Multifidus, Posterior Disc Space", "Lie flat on back and hug both knees gently toward ribs while keeping tailbone heavy on floor—unloads posterior lumbar facet compression.", ["Hold 60s breathing deeply into lower back", "Rock gently side-to-side 10 times"], "supine knee to chest stretch lower back decompression"),
     N(30, "32. Supine Open-Book Spinal Twist", T1, "📖", "spine", "Internal/External Obliques, QL, Glute Medius", "Lie on back, bring right knee across body to left floor while anchoring right shoulder blade down. Exhale deeply to unwind lumbar-thoracic junction.", ["Hold 50s per side with opposite shoulder anchored", "Guide rotation with breath rather than forcing"], "supine spinal twist lower back oblique stretch"),
@@ -104,29 +105,34 @@
     N(58, "60. Front-Foot Elevated Oversplit Mastery", T4, "🏆", "split", "End-Range Hamstrings, Hip Flexors & Pelvic Control", "Once flat front splits are comfortable: elevate front heel 4–6 inches on a yoga block, square hips, and sink pelvis cleanly into end-range oversplit.", ["3x30s controlled oversplit holds per side with blocks", "Exit slowly by pressing through hands and front heel"], "oversplit training progression safe flexibility")
   ];
 
+  window.STRETCH_60_TREE = {
+    id: "b_stretch60",
+    attr: "DEX",
+    tag: "Concept",
+    title: "Full-Body Mobility & End-Range Mastery (60-Node Atlas)",
+    author: "sethmcnab13",
+    likes: 120,
+    nodes: NODES
+  };
+
   function registerStretchingTree() {
-    const treeObj = {
-      id: "b_stretch60",
-      attr: "DEX",
-      tag: "Concept",
-      title: "Full-Body Mobility & End-Range Mastery (60-Node Atlas)",
-      author: "sethmcnab13",
-      likes: 120,
-      nodes: NODES
-    };
+    let changed = false;
     if (typeof baseConceptTrees !== "undefined" && Array.isArray(baseConceptTrees)) {
-      const idx = baseConceptTrees.findIndex(x => x.id === treeObj.id);
-      if (idx >= 0) baseConceptTrees[idx] = treeObj; else baseConceptTrees.unshift(treeObj);
+      const idx = baseConceptTrees.findIndex(x => x.id === "b_stretch60");
+      if (idx >= 0) baseConceptTrees[idx] = window.STRETCH_60_TREE;
+      else { baseConceptTrees.unshift(window.STRETCH_60_TREE); changed = true; }
     }
     if (typeof publicTreesCache !== "undefined" && Array.isArray(publicTreesCache)) {
-      const idx = publicTreesCache.findIndex(x => x.id === treeObj.id);
-      if (idx >= 0) publicTreesCache[idx] = treeObj; else publicTreesCache.unshift(treeObj);
+      const idx = publicTreesCache.findIndex(x => x.id === "b_stretch60");
+      if (idx >= 0) publicTreesCache[idx] = window.STRETCH_60_TREE;
+      else { publicTreesCache.unshift(window.STRETCH_60_TREE); changed = true; }
     }
-    if (typeof renderServerTrees === "function") renderServerTrees();
-    return typeof baseConceptTrees !== "undefined";
+    if (changed && typeof renderServerTrees === "function") {
+      renderServerTrees();
+    }
   }
 
-  if (!registerStretchingTree()) {
-    const iv = setInterval(() => { if (registerStretchingTree()) clearInterval(iv); }, 150);
-  }
+  registerStretchingTree();
+  const realmObs = new MutationObserver(() => registerStretchingTree());
+  realmObs.observe(document.body, { childList: true, subtree: true });
 })();

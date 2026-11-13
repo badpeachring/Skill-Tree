@@ -12,7 +12,6 @@
   };
   const isNsfwAllowed = () => Boolean(document.getElementById("nsfwToggle")?.checked);
 
-  // Zero out hardcoded fake likes on Base Concept trees once
   function zeroBaseConceptLikes() {
     if (typeof baseConceptTrees !== "undefined" && Array.isArray(baseConceptTrees)) {
       baseConceptTrees.forEach(t => { if (t && !t._likesZeroed) { t.likes = 0; t._likesZeroed = true; } });
@@ -31,7 +30,6 @@
     menuList.insertBefore(btn, menuList.firstChild);
   }
 
-  // Add Delete Tree button in My Constellations workspace
   function injectDeleteTreeButton() {
     const addBtn = document.getElementById("addNodeBtn");
     if (!addBtn || document.getElementById("bridgeDeleteTreeBtn")) return;
@@ -43,13 +41,17 @@
     del.className = "px-2 py-1 bg-rose-950/80 border border-rose-700/60 text-rose-300 rounded text-xs font-bold";
     del.onclick = async () => {
       if (typeof userData === "undefined" || !Array.isArray(userData?.trees) || !userData.trees.length) return;
-      const curIdx = userData.trees.findIndex(t => t.id === activeTreeId);
-      const target = userData.trees[curIdx >= 0 ? curIdx : 0];
+      const sel = document.getElementById("treeSelect");
+      const curId = sel ? sel.value : "";
+      let curIdx = userData.trees.findIndex(t => t.id === curId);
+      if (curIdx < 0 && sel && sel.selectedIndex >= 0) curIdx = sel.selectedIndex;
+      if (curIdx < 0) curIdx = 0;
+      const target = userData.trees[curIdx];
       if (!target || !confirm(`Delete "${target.title}" permanently?`)) return;
-      userData.trees.splice(curIdx >= 0 ? curIdx : 0, 1);
+      userData.trees.splice(curIdx, 1);
       if (typeof saveUserData === "function") await saveUserData();
-      if (typeof renderTreeSelector === "function") renderTreeSelector();
-      if (typeof renderActiveTree === "function") renderActiveTree();
+      if (typeof renderTrees === "function") renderTrees();
+      else if (typeof navigate === "function") navigate("viewTrees", "My Constellations");
     };
     addBtn.parentElement.appendChild(del);
   }
@@ -133,7 +135,6 @@
       }
       card.style.display = matched ? "" : "none";
 
-      // 0-Based Real Hearts (1 toggle per user)
       const heartBtn = [...card.querySelectorAll("button")].find(b => (b.textContent || "").includes("♥"));
       if (heartBtn) {
         const realBase = (tree.id && tree.id.startsWith("b_") && !tree._realLikes) ? 0 : (Number(tree.likes) || 0);
@@ -155,7 +156,6 @@
         }
       }
 
-      // Two-Way Admin Controls (Edit Preset / Toggle 21+ NSFW ON-OFF / Hide-Unhide)
       let adminRow = card.querySelector(".bridge-admin-bar");
       if (admin) {
         if (!adminRow) {

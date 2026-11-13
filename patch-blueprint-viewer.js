@@ -1,11 +1,46 @@
-(function installVisualBlueprintAndCopyEngine() {
+(function installVisualBlueprintAndAdminPresetEngine() {
   let activeBp = null, cam = { s: 1, x: 0, y: 0 }, ptrs = new Map(), pDist = 0, pScale = 1, panX = 0, panY = 0, origX = 0, origY = 0;
+  const OVERRIDE_KEY = "skilltree_preset_overrides_v1";
+  const HIDDEN_KEY = "skilltree_hidden_presets_v1";
+
+  function getOverrides() {
+    try { return JSON.parse(localStorage.getItem(OVERRIDE_KEY) || "{}"); } catch { return {}; }
+  }
+  function saveOverrides(map) { localStorage.setItem(OVERRIDE_KEY, JSON.stringify(map)); }
+  function getHiddenIds() {
+    try { return new Set(JSON.parse(localStorage.getItem(HIDDEN_KEY) || "[]")); } catch { return new Set(); }
+  }
+  function saveHiddenIds(set) { localStorage.setItem(HIDDEN_KEY, JSON.stringify([...set])); }
+
+  function isAdminActive() {
+    if (typeof isAdminMode !== "undefined" && isAdminMode) return true;
+    const badge = [...document.querySelectorAll("*")].find(el => el.children.length === 0 && (el.textContent || "").trim() === "ARCHITECT");
+    return Boolean(badge && badge.offsetParent !== null);
+  }
+
+  function applyPresetOverrides() {
+    const ov = getOverrides();
+    const applyTo = (arr) => {
+      if (!Array.isArray(arr)) return;
+      Object.values(ov).forEach(tree => {
+        const idx = arr.findIndex(x => x.id === tree.id);
+        if (idx >= 0) arr[idx] = tree;
+        else if (!tree._privateHiddenFromRealm) arr.unshift(tree);
+      });
+    };
+    if (typeof baseConceptTrees !== "undefined") applyTo(baseConceptTrees);
+    if (typeof publicTreesCache !== "undefined") applyTo(publicTreesCache);
+  }
 
   function getAllTrees() {
-    return [
+    applyPresetOverrides();
+    const map = new Map();
+    [
+      ...(window._privateVaultTrees || []),
       ...(typeof publicTreesCache !== "undefined" ? publicTreesCache : []),
       ...(typeof baseConceptTrees !== "undefined" ? baseConceptTrees : [])
-    ];
+    ].forEach(t => { if (t && t.id && !map.has(t.id)) map.set(t.id, t); });
+    return [...map.values()];
   }
 
   window.copyPresetTreeToUser = async function(id) {
@@ -31,6 +66,45 @@
     const modal = document.getElementById("serverInspectModal");
     if (modal) modal.classList.add("hidden");
     navigate("viewTrees", "My Constellations");
+  };
+
+  // Admin: Promote any User Tree in My Constellations to overwrite a Base Concept Preset
+  window.adminPublishTreeAsPreset = async function(targetPresetId, sourceUserTree, extraTags = []) {
+    const cleanNodes = (sourceUserTree.nodes || []).map((n) => {
+      const pIdx = n.parentId ? (sourceUserTree.nodes || []).findIndex(p => p.id === n.parentId) : -1;
+      return {
+        parentIdx: pIdx,
+        title: n.title,
+        tier: n.tier || "Tier I • Foundation",
+        icon: n.icon || "✦",
+        color: n.color || "#38bdf8",
+        notes: n.notes || "",
+        image: n.image || "",
+        steps: n.steps || [],
+        links: n.links || []
+      };
+    });
+    const mergedTags = [...new Set([...(sourceUserTree.tags || []), ...extraTags])];
+    const updated = {
+      id: targetPresetId,
+      attr: sourceUserTree.attr || "DEX",
+      tag: "Concept",
+      nsfw: mergedTags.includes("nsfw"),
+      tags: mergedTags,
+      title: sourceUserTree.title,
+      author: "sethmcnab13",
+      likes: 100,
+      nodes: cleanNodes
+    };
+    const ov = getOverrides();
+    ov[targetPresetId] = updated;
+    saveOverrides(ov);
+    applyPresetOverrides();
+    if (typeof db !== "undefined" && db) {
+      try { await db.collection("publicTrees").doc(targetPresetId).set(updated, { merge: true }); } catch (e) {}
+    }
+    if (typeof renderServerTrees === "function") renderServerTrees();
+    alert(`Preset "${updated.title}" updated across The Server Realm!`);
   };
 
   function ensureModal() {
@@ -62,7 +136,10 @@
       <div id="bpNodeDrawer" class="hidden border-t border-sky-500/30 bg-slate-900 p-4 space-y-2.5 max-h-[48vh] overflow-y-auto shrink-0">
         <div class="flex justify-between items-start gap-2">
           <div><span id="bpNodeTier" class="text-[10px] font-black uppercase text-amber-300"></span><h3 id="bpNodeTitle" class="text-sm font-bold text-white skyrim-font"></h3></div>
-          <button id="bpHarvestBtn" type="button" class="px-3 py-1.5 bg-sky-500 text-slate-950 rounded-lg text-xs font-bold shrink-0">+ Harvest Skill</button>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button id="bpExpandAiBtn" type="button" class="px-2.5 py-1.5 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded-lg text-[11px] font-bold">✨ Expand</button>
+            <button id="bpHarvestBtn" type="button" class="px-3 py-1.5 bg-sky-500 text-slate-950 rounded-lg text-xs font-bold">+ Harvest</button>
+          </div>
         </div>
         <div id="bpNodeImgWrap" class="hidden rounded-xl overflow-hidden border border-slate-700 bg-slate-950"></div>
         <p id="bpNodeNotes" class="text-xs text-slate-200 leading-relaxed whitespace-pre-line"></p>
@@ -121,6 +198,11 @@
       document.getElementById("bpNodeNotes").textContent = n.notes || "";
       document.getElementById("bpNodeMeta").innerHTML = (n.steps || []).map(s => `<div class="text-emerald-300">☑ ${s.text}</div>`).join("") + (n.links || []).map(l => `<a href="${l.url}" target="_blank" class="block text-sky-400 font-bold underline">▶ ${l.label}</a>`).join("");
       document.getElementById("bpHarvestBtn").onclick = () => harvestSingleNode(activeBp.id, n._oi);
+      document.getElementById("bpExpandAiBtn").onclick = () => {
+        if (typeof window.openAiBuilderModal === "function") {
+          window.openAiBuilderModal({ topic: `${activeBp.title} — Deep Dive: ${n.title}` });
+        }
+      };
     });
   }
 
@@ -143,6 +225,9 @@
 
   function upgradeServerCards() {
     const pool = getAllTrees();
+    const hidden = getHiddenIds();
+    const admin = isAdminActive();
+
     document.querySelectorAll("button").forEach(btn => {
       if (!(btn.textContent || "").includes("Inspect Skills")) return;
       const card = btn.closest(".glass-panel") || btn.parentElement;
@@ -151,17 +236,80 @@
       const match = pool.find(x => x.title === title);
       if (!match) return;
 
+      if (match._privateHiddenFromRealm || (!admin && hidden.has(match.id))) {
+        card.style.display = "none";
+        return;
+      }
+
       const row = document.createElement("div");
-      row.className = "flex items-center gap-2 mt-2";
+      row.className = "space-y-1.5 mt-2";
       row.innerHTML = `
-        <button type="button" class="flex-1 py-2 bg-sky-500/20 border border-sky-500/40 text-sky-300 rounded-lg text-xs font-bold">🌳 View Tree</button>
-        <button type="button" class="px-3 py-2 bg-emerald-500 text-slate-950 rounded-lg text-xs font-bold">+ Copy Tree</button>`;
-      row.children[0].onclick = (e) => { e.stopPropagation(); window.openVisualBlueprint(match.id); };
-      row.children[1].onclick = (e) => { e.stopPropagation(); window.copyPresetTreeToUser(match.id); };
+        <div class="flex items-center gap-2">
+          <button type="button" class="flex-1 py-2 bg-sky-500/20 border border-sky-500/40 text-sky-300 rounded-lg text-xs font-bold">🌳 View Tree</button>
+          <button type="button" class="px-3 py-2 bg-emerald-500 text-slate-950 rounded-lg text-xs font-bold">+ Copy Tree</button>
+        </div>
+        ${admin ? `
+        <div class="flex items-center gap-1.5 pt-1 border-t border-slate-800">
+          <button type="button" data-act="edit" class="flex-1 py-1 bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded text-[10px] font-bold">✏️ Edit Preset</button>
+          <button type="button" data-act="nsfw" class="px-2 py-1 bg-rose-500/20 border border-rose-500/40 text-rose-300 rounded text-[10px] font-bold">🔞 Tag NSFW</button>
+          <button type="button" data-act="hide" class="px-2 py-1 bg-slate-800 text-slate-300 rounded text-[10px] font-bold">${hidden.has(match.id) ? "👁 Unhide" : "🗑 Hide"}</button>
+        </div>` : ""}`;
+
+      const topBtns = row.children[0].querySelectorAll("button");
+      topBtns[0].onclick = (e) => { e.stopPropagation(); window.openVisualBlueprint(match.id); };
+      topBtns[1].onclick = (e) => { e.stopPropagation(); window.copyPresetTreeToUser(match.id); };
+
+      if (admin && row.children[1]) {
+        row.children[1].querySelector('[data-act="edit"]').onclick = async (e) => {
+          e.stopPropagation();
+          await window.copyPresetTreeToUser(match.id);
+          window._pendingPresetOverwriteId = match.id;
+          alert(`Cloned "${match.title}" into My Constellations! Edit or expand nodes there, then tap "💾 Save Over Preset" in the top bar.`);
+        };
+        row.children[1].querySelector('[data-act="nsfw"]').onclick = async (e) => {
+          e.stopPropagation();
+          const ov = getOverrides();
+          const next = { ...match, nsfw: !match.nsfw, tags: match.nsfw ? (match.tags || []).filter(t => t !== "nsfw") : [...new Set([...(match.tags || []), "nsfw"])] };
+          ov[match.id] = next;
+          saveOverrides(ov);
+          applyPresetOverrides();
+          if (typeof db !== "undefined" && db) { try { await db.collection("publicTrees").doc(match.id).set(next, { merge: true }); } catch (err) {} }
+          if (typeof renderServerTrees === "function") renderServerTrees();
+        };
+        row.children[1].querySelector('[data-act="hide"]').onclick = (e) => {
+          e.stopPropagation();
+          const h = getHiddenIds();
+          if (h.has(match.id)) h.delete(match.id); else h.add(match.id);
+          saveHiddenIds(h);
+          if (typeof renderServerTrees === "function") renderServerTrees();
+        };
+      }
       btn.replaceWith(row);
     });
+
+    // Show "💾 Save Over Preset" button when Admin is editing a cloned Base Concept tree
+    if (admin && window._pendingPresetOverwriteId && typeof activeTreeId !== "undefined" && activeTreeId) {
+      const header = document.getElementById("activeTreeTitle")?.parentElement;
+      if (header && !document.getElementById("adminSavePresetBtn")) {
+        const sb = document.createElement("button");
+        sb.id = "adminSavePresetBtn";
+        sb.type = "button";
+        sb.textContent = "💾 Save Over Preset";
+        sb.className = "mt-1 px-2.5 py-1 bg-amber-500 text-slate-950 rounded text-[11px] font-black";
+        sb.onclick = async () => {
+          const cur = (userData?.trees || []).find(x => x.id === activeTreeId);
+          if (cur) {
+            await window.adminPublishTreeAsPreset(window._pendingPresetOverwriteId, cur);
+            window._pendingPresetOverwriteId = null;
+            sb.remove();
+          }
+        };
+        header.appendChild(sb);
+      }
+    }
   }
 
+  applyPresetOverrides();
   window.inspectServerTree = window.openVisualBlueprint;
   const obs = new MutationObserver(() => {
     window.inspectServerTree = window.openVisualBlueprint;

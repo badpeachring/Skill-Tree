@@ -3,6 +3,7 @@
   const OVERRIDE_KEY = "skilltree_preset_overrides_v1";
   const HIDDEN_KEY = "skilltree_hidden_presets_v1";
   let realmQuery = "";
+  let scheduled = false;
 
   const isArchitectOn = () => {
     const bar = document.getElementById("adminBar");
@@ -12,10 +13,9 @@
 
   const isNsfwAllowed = () => Boolean(document.getElementById("nsfwToggle")?.checked);
 
-  // 1. Inject AI Builder button right above Private Share in #viewMenu
   function injectMainMenuAiButton() {
     const menuList = document.querySelector("#viewMenu .max-w-md");
-    if (!menuList || document.getElementById("bridgeAiBtn")) return;
+    if (!menuList || document.getElementById("bridgeAiBtn") || document.getElementById("openAiBuilderBtn")) return;
 
     const btn = document.createElement("button");
     btn.id = "bridgeAiBtn";
@@ -28,15 +28,13 @@
         <div class="text-[11px] text-slate-400">Copy AI prompt → Paste JSON → Instant branching World-Tree</div>
       </div>
       <span class="text-emerald-400 text-base">🧠</span>`;
-    btn.onclick = () => typeof window.openAiBuilderModal === "function" ? window.openAiBuilderModal() : alert("AI Builder loading...");
-    menuList.insertBefore(btn, menuList.children[1] || menuList.firstChild);
+    btn.onclick = () => typeof window.openAiBuilderModal === "function" && window.openAiBuilderModal();
+    menuList.insertBefore(btn, menuList.firstChild);
   }
 
-  // 2. Fix .srv-filter active blue highlight + inject Deep Search & 21+/NSFW sync in #viewServer
   function enhanceServerRealm() {
     const serverView = document.getElementById("viewServer");
-    const serverList = document.getElementById("serverList");
-    if (!serverView || !serverList) return;
+    if (!serverView || serverView.classList.contains("hidden")) return;
 
     const filterBtns = [...serverView.querySelectorAll(".srv-filter")];
     filterBtns.forEach(btn => {
@@ -92,7 +90,6 @@
     filterAndEnhanceCards();
   }
 
-  // 3. Apply Search, 21+/NSFW Gate, Heart Lock, and Admin Preset Editing on #serverList cards
   function filterAndEnhanceCards() {
     const serverList = document.getElementById("serverList");
     if (!serverList) return;
@@ -109,13 +106,16 @@
     const tagBar = document.getElementById("bridgeQuickTags");
     if (tagBar) {
       const tags = [...new Set(pool.flatMap(t => t.tags || []))].filter(tg => allowNsfw || tg !== "nsfw").slice(0, 8);
-      tagBar.innerHTML = tags.map(tg => `<button type="button" data-t="#${tg}" class="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-[10px] text-sky-300">#${tg}</button>`).join("");
-      tagBar.querySelectorAll("button").forEach(b => b.onclick = () => {
-        const inp = document.getElementById("bridgeSearchInput");
-        inp.value = inp.value === b.dataset.t ? "" : b.dataset.t;
-        realmQuery = inp.value;
-        filterAndEnhanceCards();
-      });
+      const nextTagsHtml = tags.map(tg => `<button type="button" data-t="#${tg}" class="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-[10px] text-sky-300">#${tg}</button>`).join("");
+      if (tagBar.innerHTML !== nextTagsHtml) {
+        tagBar.innerHTML = nextTagsHtml;
+        tagBar.querySelectorAll("button").forEach(b => b.onclick = () => {
+          const inp = document.getElementById("bridgeSearchInput");
+          inp.value = inp.value === b.dataset.t ? "" : b.dataset.t;
+          realmQuery = inp.value;
+          filterAndEnhanceCards();
+        });
+      }
     }
 
     [...serverList.children].forEach(card => {
@@ -155,9 +155,9 @@
       }
       const tagsHtml = (tree.tags || []).map(tg => `<span class="inline-block text-[10px] px-1.5 py-0.5 mr-1 rounded ${tg === "nsfw" ? "bg-rose-500/20 text-rose-300" : "bg-slate-800 text-sky-300"}">#${tg}</span>`).join("");
       const hitsHtml = (q && nodeHits.length) ? `<div class="text-[11px] text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 rounded px-2 py-1">🎯 ${nodeHits.length} matching node(s): <b>${nodeHits.slice(0, 3).map(n => n.title).join(", ")}</b></div>` : "";
-      badgeBox.innerHTML = `${tagsHtml}${hitsHtml}`;
+      const nextMeta = `${tagsHtml}${hitsHtml}`;
+      if (badgeBox.innerHTML !== nextMeta) badgeBox.innerHTML = nextMeta;
 
-      // Fix Heart Counter (1 toggle per user, saved in localStorage)
       const heartBtn = [...card.querySelectorAll("button")].find(b => (b.textContent || "").includes("♥"));
       if (heartBtn && !heartBtn.dataset.heartFixed) {
         heartBtn.dataset.heartFixed = "1";
@@ -177,7 +177,6 @@
         }, true);
       }
 
-      // Admin Edit / Tag NSFW / Hide Controls
       let adminRow = card.querySelector(".bridge-admin-bar");
       if (admin && !adminRow) {
         adminRow = document.createElement("div");
@@ -218,7 +217,6 @@
       }
     });
 
-    // Show "💾 Save Over Preset" button next to Publish in #activeTreeWorkspace when editing a preset
     const pubBtn = document.querySelector('#activeTreeWorkspace button[onclick*="publishCurrentTree"]');
     if (admin && window._pendingPresetOverwriteId && pubBtn && !document.getElementById("bridgeSavePresetBtn")) {
       const sb = document.createElement("button");
@@ -238,11 +236,23 @@
     }
   }
 
-  new MutationObserver(() => {
-    injectMainMenuAiButton();
-    enhanceServerRealm();
-  }).observe(document.body, { childList: true, subtree: true });
+  function runBridge() {
+    scheduled = false;
+    obs.disconnect();
+    try {
+      injectMainMenuAiButton();
+      enhanceServerRealm();
+    } finally {
+      obs.observe(document.body, { childList: true, subtree: true });
+    }
+  }
 
-  setTimeout(() => { injectMainMenuAiButton(); enhanceServerRealm(); }, 350);
+  const obs = new MutationObserver(() => {
+    if (!scheduled) {
+      scheduled = true;
+      setTimeout(runBridge, 120);
+    }
+  });
+  obs.observe(document.body, { childList: true, subtree: true });
+  setTimeout(runBridge, 350);
 })();
-                                        

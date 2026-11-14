@@ -4,22 +4,24 @@
   const PRIMARY_ADMIN_EMAIL = "sethmcnab13@gmail.com";
   let activeChannelId = "general";
 
-  // 1. Per-Gmail Account Isolation & Strict Admin Lock
+  const DEFAULT_QUOTES = [
+    { text: "A disciplined mind focuses on what lies within its own control, finding unshakable strength regardless of external chaos.", author: "Stoic Principle" },
+    { text: "We suffer more often in imagination than in reality.", author: "Seneca" },
+    { text: "You have power over your mind — not outside events. Realize this, and you will find strength.", author: "Marcus Aurelius" },
+    { text: "Small, daily improvements over time lead to stunning results.", author: "Mastery Axiom" }
+  ];
+
   function enforceAccountIsolation() {
     if (typeof firebase === "undefined" || !firebase.auth) return;
     let lastUid = localStorage.getItem("skilltree_last_uid") || "";
     firebase.auth().onAuthStateChanged(user => {
       const uid = user ? user.uid : "guest";
       if (lastUid && lastUid !== uid) {
-        // Clear cross-account localStorage bleed so separate Gmail logins stay independent
         Object.keys(localStorage).forEach(k => {
           if (k.startsWith("skilltree_") && !k.includes(uid) && !k.includes("quotes") && !k.includes("theme") && !k.includes("channels")) {
             localStorage.removeItem(k);
           }
         });
-        if (typeof userData !== "undefined") {
-          userData = { trees: [], profile: { name: user?.displayName || "", contact: "" } };
-        }
       }
       localStorage.setItem("skilltree_last_uid", uid);
 
@@ -34,18 +36,24 @@
     });
   }
 
-  // 2. Custom Quotes System (Live editable from Architect Hub)
-  function getCustomQuotes() {
-    try { return JSON.parse(localStorage.getItem(QUOTES_KEY) || "[]"); } catch { return []; }
+  function getQuotesList() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(QUOTES_KEY) || "null");
+      if (Array.isArray(saved) && saved.length) return saved;
+    } catch {}
+    return [...DEFAULT_QUOTES];
   }
-  function saveCustomQuotes(list) {
+
+  function saveQuotesList(list) {
     localStorage.setItem(QUOTES_KEY, JSON.stringify(list));
     if (typeof db !== "undefined" && db) {
       try { db.collection("appConfig").doc("quotes").set({ list }); } catch {}
     }
+    applyLatestQuote();
   }
+
   function applyLatestQuote() {
-    const list = getCustomQuotes();
+    const list = getQuotesList();
     if (!list.length) return;
     const qEl = document.getElementById("quoteText");
     const aEl = document.getElementById("quoteAuthor");
@@ -54,16 +62,15 @@
     if (aEl && pick.author) aEl.textContent = `— ${pick.author}`;
   }
 
-  // 3. Town Square Multi-Channel & Admin Moderation Engine
   function getChannels() {
     try {
       const saved = JSON.parse(localStorage.getItem(CHANNELS_KEY) || "null");
       if (Array.isArray(saved) && saved.length) return saved;
     } catch {}
     return [
-      { id: "general", name: "#general", topic: "Main Town Square hall & community chat", locked: false, pinned: "" },
-      { id: "tree-requests", name: "#tree-requests", topic: "Request new base concept skill trees", locked: false, pinned: "" },
-      { id: "announcements", name: "#announcements", topic: "Official Architect updates & roadmap", locked: true, pinned: "Welcome to Skill Tree! Build constellations, harvest nodes, and ascend." }
+      { id: "general", name: "#general", locked: false, pinned: "" },
+      { id: "tree-requests", name: "#tree-requests", locked: false, pinned: "" },
+      { id: "announcements", name: "#announcements", locked: true, pinned: "Welcome to Skill Tree! Build constellations, harvest nodes, and ascend." }
     ];
   }
   function saveChannels(list) {
@@ -115,20 +122,12 @@
           const isOwner = !document.getElementById("adminBar")?.classList.contains("hidden") || !document.getElementById("adminToggleBtn")?.classList.contains("hidden");
           if (ch.locked && !isOwner) return alert("Only the Architect Admin can post in this channel.");
 
-          const msg = {
-            id: `m_${Date.now()}`,
-            channelId: ch.id,
-            author: (typeof userData !== "undefined" && userData?.profile?.name) || "Adventurer",
-            text,
-            ts: Date.now()
-          };
+          const msg = { id: `m_${Date.now()}`, channelId: ch.id, author: "Architect", text, ts: Date.now() };
           const localKey = `skilltree_msgs_${ch.id}`;
           const arr = JSON.parse(localStorage.getItem(localKey) || "[]");
           arr.push(msg);
           localStorage.setItem(localKey, JSON.stringify(arr));
-          if (typeof db !== "undefined" && db) {
-            try { await db.collection("townSquareMessages").doc(msg.id).set(msg); } catch {}
-          }
+          if (typeof db !== "undefined" && db) { try { await db.collection("townSquareMessages").doc(msg.id).set(msg); } catch {} }
           input.value = "";
           loadChannelMessages();
         }, true);
@@ -154,7 +153,7 @@
     const isOwner = !document.getElementById("adminBar")?.classList.contains("hidden") || !document.getElementById("adminToggleBtn")?.classList.contains("hidden");
     listEl.innerHTML = msgs.length
       ? msgs.map(m => `<div class="glass-panel rounded-lg p-2.5 flex justify-between items-start gap-2"><div><div class="text-[10px] font-bold text-sky-400">${m.author}</div><div class="text-xs text-slate-200 mt-0.5">${m.text}</div></div>${isOwner ? `<button type="button" data-del="${m.id}" class="text-[10px] text-rose-400 px-1.5 py-0.5 bg-rose-950/60 rounded">🗑</button>` : ""}</div>`).join("")
-      : `<div class="text-center text-xs text-slate-500 py-6">No messages in this channel yet. Start the conversation!</div>`;
+      : `<div class="text-center text-xs text-slate-500 py-6">No messages in this channel yet.</div>`;
 
     listEl.querySelectorAll("button[data-del]").forEach(b => b.onclick = async () => {
       const next = msgs.filter(x => x.id !== b.dataset.del);
@@ -164,7 +163,6 @@
     });
   }
 
-  // 4. Clean Architect Pill + Full-Screen Architect Command Center
   function upgradeAdminBar() {
     const bar = document.getElementById("adminBar");
     if (!bar || bar.dataset.hubUpgraded) return;
@@ -183,10 +181,17 @@
       modal.className = "fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex flex-col p-4 overflow-y-auto";
       document.body.appendChild(modal);
     }
-    const theme = typeof window.getCosmosTheme === "function" ? window.getCosmosTheme() : { nebulaAlpha: 0.28, sapSpeed: 1.0 };
-    const quotes = getCustomQuotes();
+    const theme = typeof window.getCosmosTheme === "function" ? window.getCosmosTheme() : { nebulaAlpha: 0.32, glowColor: "#38bdf8", glowStrength: 18 };
+    const quotes = getQuotesList();
     const channels = getChannels();
     let hiddenIds = []; try { hiddenIds = JSON.parse(localStorage.getItem("skilltree_hidden_presets_v1") || "[]"); } catch {}
+    const glowSwatches = [
+      { name: "Frost Cyan", hex: "#38bdf8" },
+      { name: "Emerald", hex: "#10b981" },
+      { name: "Solar Gold", hex: "#f59e0b" },
+      { name: "Arcane Violet", hex: "#a855f7" },
+      { name: "Rose Plasma", hex: "#f43f5e" }
+    ];
 
     modal.innerHTML = `
       <div class="max-w-md mx-auto w-full space-y-4 pb-8">
@@ -196,33 +201,46 @@
         </div>
 
         <div class="glass-panel rounded-xl p-3.5 space-y-2">
-          <div class="text-xs font-black text-sky-400 uppercase">1. Main Menu Quotes & Wisdom Editor</div>
+          <div class="text-xs font-black text-purple-400 uppercase">1. Branch Glow Color & Space Intensity</div>
+          <div class="flex flex-wrap gap-1.5">
+            ${glowSwatches.map(sw => `<button type="button" data-glow="${sw.hex}" style="border-color:${sw.hex}" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-900 text-white border-2">${sw.name}</button>`).join("")}
+          </div>
+          <label class="flex justify-between text-xs text-slate-300 pt-1"><span>Branch Glow Intensity</span><input id="hubGlowStrength" type="range" min="4" max="32" step="2" value="${theme.glowStrength || 18}"></label>
+          <label class="flex justify-between text-xs text-slate-300"><span>Nebula & Galaxy Brightness</span><input id="hubNebulaRange" type="range" min="0.05" max="0.65" step="0.05" value="${theme.nebulaAlpha}"></label>
+        </div>
+
+        <div class="glass-panel rounded-xl p-3.5 space-y-2">
+          <div class="text-xs font-black text-sky-400 uppercase">2. All Main Menu Quotes (View, Edit & Delete)</div>
           <div class="flex gap-1.5">
-            <input id="hubQuoteText" type="text" placeholder="Enter new quote..." class="flex-1 bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
+            <input id="hubQuoteText" type="text" placeholder="Add new quote..." class="flex-1 bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
             <input id="hubQuoteAuthor" type="text" placeholder="Author" class="w-24 bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white">
             <button id="hubAddQuoteBtn" type="button" class="px-3 py-1.5 bg-sky-500 text-slate-950 font-bold rounded text-xs">+ Add</button>
           </div>
-          <div class="max-h-32 overflow-y-auto space-y-1">
-            ${quotes.map((q, i) => `<div class="flex justify-between items-center bg-slate-900/90 px-2.5 py-1.5 rounded text-[11px]"><span class="truncate pr-2">"${q.text}" — <b>${q.author}</b></span><button type="button" data-delq="${i}" class="text-rose-400 font-bold">✕</button></div>`).join("") || `<div class="text-[11px] text-slate-500">Using default quotes. Add custom ones above!</div>`}
+          <div class="max-h-48 overflow-y-auto space-y-1.5">
+            ${quotes.map((q, i) => `
+              <div class="bg-slate-900/90 p-2 rounded border border-slate-800 space-y-1">
+                <div class="text-[11px] text-slate-200">"${q.text}"</div>
+                <div class="flex justify-between items-center">
+                  <span class="text-[10px] font-bold text-sky-400">— ${q.author}</span>
+                  <div class="flex gap-1.5">
+                    <button type="button" data-editq="${i}" class="text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded font-bold">✏️ Edit</button>
+                    <button type="button" data-delq="${i}" class="text-[10px] px-2 py-0.5 bg-rose-950 text-rose-300 rounded font-bold">🗑</button>
+                  </div>
+                </div>
+              </div>`).join("")}
           </div>
         </div>
 
         <div class="glass-panel rounded-xl p-3.5 space-y-2">
-          <div class="text-xs font-black text-emerald-400 uppercase">2. Town Square Channels & Moderation</div>
+          <div class="text-xs font-black text-emerald-400 uppercase">3. Town Square Channels & Moderation</div>
           <div class="flex gap-1.5">
             <input id="hubNewChName" type="text" placeholder="#new-channel" class="flex-1 bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
             <label class="flex items-center gap-1 text-[11px] text-slate-300"><input id="hubNewChLock" type="checkbox"> 🔒 Lock</label>
             <button id="hubAddChBtn" type="button" class="px-3 py-1.5 bg-emerald-500 text-slate-950 font-bold rounded text-xs">+ Room</button>
           </div>
           <div class="space-y-1.5">
-            ${channels.map((ch, i) => `<div class="bg-slate-900/90 p-2 rounded space-y-1"><div class="flex justify-between items-center text-xs font-bold text-white"><span>${ch.locked ? "🔒 " : ""}${ch.name}</span><div class="flex gap-1.5"><button type="button" data-pinch="${i}" class="text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded">📌 Pin</button>${i > 0 ? `<button type="button" data-delch="${i}" class="text-[10px] px-2 py-0.5 bg-rose-950 text-rose-300 rounded">Delete</button>` : ""}</div></div></div>`).join("")}
+            ${channels.map((ch, i) => `<div class="bg-slate-900/90 p-2 rounded flex justify-between items-center text-xs font-bold text-white"><span>${ch.locked ? "🔒 " : ""}${ch.name}</span><div class="flex gap-1.5"><button type="button" data-pinch="${i}" class="text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded">📌 Pin</button>${i > 0 ? `<button type="button" data-delch="${i}" class="text-[10px] px-2 py-0.5 bg-rose-950 text-rose-300 rounded">Delete</button>` : ""}</div></div>`).join("")}
           </div>
-        </div>
-
-        <div class="glass-panel rounded-xl p-3.5 space-y-2">
-          <div class="text-xs font-black text-purple-400 uppercase">3. Cosmos & Space-Tree Visuals</div>
-          <label class="flex justify-between text-xs text-slate-300"><span>Nebula & Galaxy Brightness</span><input id="hubNebulaRange" type="range" min="0.05" max="0.65" step="0.05" value="${theme.nebulaAlpha}"></label>
-          <label class="flex justify-between text-xs text-slate-300"><span>Bioluminescent Sap-Flicker Speed</span><input id="hubSapRange" type="range" min="0.2" max="2.5" step="0.1" value="${theme.sapSpeed}"></label>
         </div>
 
         <div class="glass-panel rounded-xl p-3.5 space-y-2">
@@ -238,18 +256,35 @@
     modal.classList.remove("hidden");
     document.getElementById("closeArchHubBtn").onclick = () => modal.classList.add("hidden");
 
+    modal.querySelectorAll("button[data-glow]").forEach(b => b.onclick = () => {
+      window.saveCosmosTheme?.({ glowColor: b.dataset.glow, activeGlow: b.dataset.glow });
+      if (typeof renderActiveTree === "function") renderActiveTree();
+    });
+    document.getElementById("hubGlowStrength").oninput = (e) => {
+      window.saveCosmosTheme?.({ glowStrength: Number(e.target.value) });
+      if (typeof renderActiveTree === "function") renderActiveTree();
+    };
+    document.getElementById("hubNebulaRange").oninput = (e) => window.saveCosmosTheme?.({ nebulaAlpha: Number(e.target.value) });
+
     document.getElementById("hubAddQuoteBtn").onclick = () => {
       const text = document.getElementById("hubQuoteText").value.trim();
       const author = document.getElementById("hubQuoteAuthor").value.trim() || "Architect";
       if (!text) return;
-      const next = [...quotes, { text, author }];
-      saveCustomQuotes(next);
-      applyLatestQuote();
+      saveQuotesList([...quotes, { text, author }]);
       openArchitectHubModal();
     };
+    modal.querySelectorAll("button[data-editq]").forEach(b => b.onclick = () => {
+      const idx = Number(b.dataset.editq);
+      const nextText = prompt("Edit quote text:", quotes[idx].text);
+      if (nextText === null) return;
+      const nextAuthor = prompt("Edit author:", quotes[idx].author);
+      if (nextAuthor === null) return;
+      quotes[idx] = { text: nextText.trim() || quotes[idx].text, author: nextAuthor.trim() || quotes[idx].author };
+      saveQuotesList(quotes);
+      openArchitectHubModal();
+    });
     modal.querySelectorAll("button[data-delq]").forEach(b => b.onclick = () => {
-      const next = quotes.filter((_, i) => i !== Number(b.dataset.delq));
-      saveCustomQuotes(next);
+      saveQuotesList(quotes.filter((_, i) => i !== Number(b.dataset.delq)));
       openArchitectHubModal();
     });
 
@@ -258,33 +293,24 @@
       if (!name) return;
       if (!name.startsWith("#")) name = "#" + name;
       const locked = document.getElementById("hubNewChLock").checked;
-      saveChannels([...channels, { id: name.slice(1) + "_" + Date.now(), name, topic: "", locked, pinned: "" }]);
+      saveChannels([...channels, { id: name.slice(1) + "_" + Date.now(), name, locked, pinned: "" }]);
       openArchitectHubModal();
     };
     modal.querySelectorAll("button[data-pinch]").forEach(b => b.onclick = () => {
       const idx = Number(b.dataset.pinch);
-      const msg = prompt("Enter pinned announcement banner (leave blank to clear):", channels[idx].pinned || "");
-      if (msg !== null) {
-        channels[idx].pinned = msg.trim();
-        saveChannels(channels);
-        openArchitectHubModal();
-      }
+      const msg = prompt("Pinned announcement banner:", channels[idx].pinned || "");
+      if (msg !== null) { channels[idx].pinned = msg.trim(); saveChannels(channels); openArchitectHubModal(); }
     });
     modal.querySelectorAll("button[data-delch]").forEach(b => b.onclick = () => {
       saveChannels(channels.filter((_, i) => i !== Number(b.dataset.delch)));
       openArchitectHubModal();
     });
 
-    document.getElementById("hubNebulaRange").oninput = (e) => window.saveCosmosTheme?.({ nebulaAlpha: Number(e.target.value) });
-    document.getElementById("hubSapRange").oninput = (e) => window.saveCosmosTheme?.({ sapSpeed: Number(e.target.value) });
     const restBtn = document.getElementById("hubRestoreHiddenBtn");
     if (restBtn) restBtn.onclick = () => { localStorage.removeItem("skilltree_hidden_presets_v1"); openArchitectHubModal(); };
   }
 
   enforceAccountIsolation();
-  setInterval(() => {
-    upgradeAdminBar();
-    enhanceTownSquare();
-  }, 500);
+  setInterval(() => { upgradeAdminBar(); enhanceTownSquare(); }, 500);
   setTimeout(applyLatestQuote, 800);
 })();

@@ -1,4 +1,4 @@
-(function installAiTreeBuilder() {
+(function installAiTreeBuilderAndBranchExpander() {
   window.buildNodeSvgDiagram = function(pose, title, subtitle) {
     const poses = {
       breath: `<circle cx="160" cy="36" r="11" fill="#38bdf8"/><line x1="160" y1="47" x2="160" y2="95" stroke="#94a3b8" stroke-width="5"/><ellipse cx="160" cy="70" rx="18" ry="13" fill="rgba(16,185,129,0.35)" stroke="#10b981" stroke-width="2"/><line x1="160" y1="95" x2="132" y2="128" stroke="#94a3b8" stroke-width="4"/><line x1="160" y1="95" x2="188" y2="128" stroke="#94a3b8" stroke-width="4"/>`,
@@ -15,9 +15,9 @@
 
   window.buildAiArchitectPrompt = function({ topic, count, attr, tags, nsfw }) {
     const toneLine = nsfw
-      ? `This tree is explicitly tagged 21+ NSFW. Be maximally direct, candid, anatomical, and explicit—no euphemisms.`
-      : `Be maximally specific, technical, and actionable with exact measurements, angles, ratios, or anatomical cues.`;
-    return `Create a deeply detailed, bottom-up skill tree for "${topic}" with ${count} progressive nodes.
+      ? `This tree is tagged 21+ NSFW. Be maximally direct, candid, anatomical, and explicit—no euphemisms.`
+      : `Be maximally specific, technical, and actionable with exact specs, angles, ratios, or anatomical cues.`;
+    return `Build a foundational bottom-up skill tree for "${topic}" with ${count} progressive nodes.
 ${toneLine}
 Return ONLY raw valid JSON matching this schema:
 {
@@ -35,13 +35,13 @@ Return ONLY raw valid JSON matching this schema:
       "color": "#38bdf8",
       "pose": "blueprint",
       "muscles": "Target specs or tools",
-      "notes": "MECHANICS: Exact step-by-step execution.\\nPRO CUES: Key tactile/visual feedback.\\nCOMMON MISTAKES: What to avoid.",
+      "notes": "MECHANICS: Exact step-by-step execution.\\nPRO CUES: Key feedback.\\nMISTAKES: What to avoid.",
       "steps": ["Verification drill 1", "Verification drill 2"],
       "yt": "youtube tutorial search query"
     }
   ]
 }
-Rules: Nodes 0-3 have "parentIdx": -1; every other node's "parentIdx" is < its own index. Set "pose" to one of: "breath","shoulder","spine","hip","blueprint","tool","circuit".`;
+Rules: Nodes 0-2 have "parentIdx": -1; every other node's "parentIdx" is < its own index. Keep notes concise (2-3 sentences per node) so the JSON never truncates.`;
   };
 
   window.openAiBuilderModal = function(prefill = {}) {
@@ -56,18 +56,14 @@ Rules: Nodes 0-3 have "parentIdx": -1; every other node's "parentIdx" is < its o
             <h2 class="text-lg font-black text-emerald-400 skyrim-font">✨ AI Skill Tree Generator</h2>
             <button id="closeAiBuilderBtn" type="button" class="text-slate-400 text-base px-2">✕</button>
           </div>
-
           <div class="space-y-2 bg-slate-950/80 p-3 rounded-xl border border-slate-800">
-            <div class="text-[11px] font-bold uppercase text-sky-400">Step 1: Enter Topic & Generate Prompt</div>
-            <p class="text-[11px] text-slate-400">Type any skill or workflow below. We will build a custom AI instruction prompt you can paste into Gemini or ChatGPT.</p>
+            <div class="text-[11px] font-bold uppercase text-sky-400">Step 1: Start with 10–15 Core Nodes (Expand Anytime Inside Tree!)</div>
             <input id="aiTopicInput" type="text" placeholder="e.g., Drywall Level 5 Finishing, or Full-Body Splits" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none">
-            <input id="aiTagsInput" type="text" placeholder="Search tags: drywall, trade, mobility" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none">
+            <input id="aiTagsInput" type="text" placeholder="Tags: drywall, trade, mobility" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none">
             <div class="grid grid-cols-2 gap-2">
               <select id="aiCountSelect" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-xs text-white">
-                <option value="15">15 Nodes (Focused)</option>
-                <option value="30" selected>30 Nodes (Full Tree)</option>
-                <option value="45">45 Nodes (Mastery)</option>
-                <option value="60">60 Nodes (Atlas)</option>
+                <option value="10">10 Nodes (Fast & Clean)</option>
+                <option value="15" selected>15 Nodes (Recommended)</option>
               </select>
               <select id="aiAttrSelect" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-xs text-white">
                 <option value="DEX">DEX (Skill / Craft)</option>
@@ -83,13 +79,12 @@ Rules: Nodes 0-3 have "parentIdx": -1; every other node's "parentIdx" is < its o
               <span>🔞 Tag as 21+ / NSFW (explicit direct prompt mode)</span>
             </label>
             <button id="genAiPromptBtn" type="button" class="w-full py-2 bg-sky-500 text-slate-950 rounded-lg font-bold text-xs">1. Generate & Copy Prompt</button>
-            <textarea id="aiPromptPreview" rows="3" readonly placeholder="Your generated AI prompt will appear right here so you can inspect or copy it..." class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-[10px] text-slate-300 font-mono"></textarea>
+            <textarea id="aiPromptPreview" rows="3" readonly placeholder="Generated AI prompt appears here..." class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-[10px] text-slate-300 font-mono"></textarea>
             <a href="https://gemini.google.com/app" target="_blank" class="block text-center py-1.5 bg-slate-800 border border-sky-500/30 rounded-lg text-[11px] font-bold text-sky-300">↗ Open Gemini in New Tab to Paste Prompt</a>
           </div>
-
           <div class="space-y-2 bg-slate-950/80 p-3 rounded-xl border border-slate-800">
-            <div class="text-[11px] font-bold uppercase text-emerald-400">Step 2: Paste the AI's Reply Here</div>
-            <textarea id="aiJsonPaste" rows="4" placeholder="Paste the JSON code the AI gave you here..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 font-mono outline-none"></textarea>
+            <div class="text-[11px] font-bold uppercase text-emerald-400">Step 2: Paste AI JSON Reply</div>
+            <textarea id="aiJsonPaste" rows="4" placeholder="Paste the JSON reply from your AI here..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 font-mono outline-none"></textarea>
             <label class="flex items-center space-x-2 text-[11px] text-slate-300">
               <input id="aiPublishRealmChk" type="checkbox" checked class="accent-emerald-500">
               <span>Share to public Server Realm (uncheck to keep private)</span>
@@ -110,7 +105,7 @@ Rules: Nodes 0-3 have "parentIdx": -1; every other node's "parentIdx" is < its o
         });
         document.getElementById("aiPromptPreview").value = prompt;
         try { await navigator.clipboard.writeText(prompt); } catch {}
-        document.getElementById("genAiPromptBtn").textContent = "✅ Prompt Generated & Copied to Clipboard!";
+        document.getElementById("genAiPromptBtn").textContent = "✅ Prompt Copied!";
       };
 
       document.getElementById("buildTreeFromJsonBtn").onclick = async () => {
@@ -146,8 +141,7 @@ Rules: Nodes 0-3 have "parentIdx": -1; every other node's "parentIdx" is < its o
             const pubObj = {
               id: `b_ai_${stamp}`, attr: data.attr || "DEX", tag: "Concept",
               nsfw, tags: mergedTags, title: data.title || "AI Skill Tree",
-              author: (typeof userData !== "undefined" && userData?.profile?.name) || "Architect",
-              likes: 0, nodes: layout
+              author: "Architect", likes: 0, nodes: layout
             };
             if (typeof baseConceptTrees !== "undefined") baseConceptTrees.unshift(pubObj);
             if (typeof publicTreesCache !== "undefined") publicTreesCache.unshift(pubObj);
@@ -159,11 +153,100 @@ Rules: Nodes 0-3 have "parentIdx": -1; every other node's "parentIdx" is < its o
           document.getElementById("aiJsonPaste").value = "";
           navigate("viewTrees", "My Constellations");
         } catch (err) {
-          alert("JSON Error: " + err.message);
+          alert("JSON Error (try generating 10-15 nodes so it doesn't cut off): " + err.message);
         }
       };
     }
     if (prefill.topic) document.getElementById("aiTopicInput").value = prefill.topic;
+    modal.classList.remove("hidden");
+  };
+
+  // Iterative Branch Expander inside My Constellations (grows 10 new nodes onto an existing tree without truncation)
+  window.openBranchExpanderModal = async function() {
+    const sel = document.getElementById("treeSelect");
+    const curTitle = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text.trim() : "My Skill Tree";
+    let existingNodes = [];
+    if (typeof userData !== "undefined" && Array.isArray(userData?.trees)) {
+      const t = userData.trees.find(x => x.id === sel?.value || x.title === curTitle) || userData.trees[0];
+      if (t) existingNodes = t.nodes || [];
+    }
+
+    let modal = document.getElementById("branchGrowerModal");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "branchGrowerModal";
+      modal.className = "fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4";
+      modal.innerHTML = `
+        <div class="w-full max-w-md glass-panel rounded-2xl p-5 shadow-2xl max-h-[90vh] overflow-y-auto space-y-3">
+          <div class="flex justify-between items-center">
+            <h2 class="text-base font-black text-emerald-400 skyrim-font">🌿 AI Branch Grower (+10 Nodes)</h2>
+            <button id="closeBranchGrowBtn" type="button" class="text-slate-400 text-base px-2">✕</button>
+          </div>
+          <p class="text-[11px] text-slate-300">Safely grow 10 deeper progression nodes attached directly to your existing branches without truncating.</p>
+          <input id="growFocusInput" type="text" placeholder="Optional focus (e.g., Advanced Variations, Troubleshooting)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none">
+          <button id="genGrowPromptBtn" type="button" class="w-full py-2 bg-sky-500 text-slate-950 rounded-lg font-bold text-xs">1. Generate & Copy Expansion Prompt</button>
+          <textarea id="growPromptBox" rows="3" readonly class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-[10px] text-slate-300 font-mono"></textarea>
+          <textarea id="growJsonPaste" rows="4" placeholder="Paste the AI's JSON expansion reply here..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 font-mono outline-none"></textarea>
+          <button id="mergeBranchBtn" type="button" class="w-full py-2.5 bg-emerald-500 text-slate-950 rounded-lg font-black text-xs">✨ Merge New Branches Into Tree</button>
+        </div>`;
+      document.body.appendChild(modal);
+      document.getElementById("closeBranchGrowBtn").onclick = () => modal.classList.add("hidden");
+    }
+
+    document.getElementById("genGrowPromptBtn").onclick = async () => {
+      const focus = document.getElementById("growFocusInput").value.trim() || "Next-tier advanced progressions";
+      const summary = existingNodes.map((n, i) => `${i}: ${n.title}`).join("\n");
+      const prompt = `Here is my existing skill tree "${curTitle}" (0-based node indices):\n${summary || "0: Core Foundation"}\n\nGenerate 10 NEW advanced child nodes focusing on: "${focus}".\nReturn ONLY raw JSON:\n{"newNodes":[{"attachToExistingIdx":0,"title":"Next Skill","tier":"Tier III • Specialist","icon":"✦","color":"#38bdf8","pose":"blueprint","notes":"MECHANICS: ...\\nPRO CUES: ...","steps":["Step 1"],"yt":"tutorial search"}]}\nRule: "attachToExistingIdx" must be one of the existing node indices listed above so the new branches flow naturally from the existing tree.`;
+      document.getElementById("growPromptBox").value = prompt;
+      try { await navigator.clipboard.writeText(prompt); } catch {}
+      document.getElementById("genGrowPromptBtn").textContent = "✅ Expansion Prompt Copied!";
+    };
+
+    document.getElementById("mergeBranchBtn").onclick = async () => {
+      const raw = document.getElementById("growJsonPaste").value.trim();
+      if (!raw) return alert("Paste the AI JSON first.");
+      try {
+        const data = JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1));
+        const additions = data.newNodes || data.nodes || [];
+        const stamp = Date.now();
+        const yt = (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+
+        let targetTree = null;
+        if (typeof userData !== "undefined" && Array.isArray(userData?.trees)) {
+          targetTree = userData.trees.find(x => x.id === sel?.value || x.title === curTitle) || userData.trees[0];
+        }
+        if (!targetTree) throw new Error("Open a tree in My Constellations first.");
+
+        additions.forEach((n, i) => {
+          const pIdx = typeof n.attachToExistingIdx === "number" && targetTree.nodes[n.attachToExistingIdx] ? n.attachToExistingIdx : Math.max(0, targetTree.nodes.length - 1);
+          const parentNode = targetTree.nodes[pIdx];
+          targetTree.nodes.push({
+            id: `grow_${stamp}_${i}`,
+            parentIdx: pIdx,
+            parentId: parentNode ? parentNode.id : null,
+            title: n.title || `Expanded Skill ${i + 1}`,
+            status: "locked",
+            tier: n.tier || "Tier III • Specialist",
+            icon: n.icon || "✦",
+            color: n.color || "#38bdf8",
+            x: 50, y: 50,
+            notes: n.notes || "",
+            image: window.buildNodeSvgDiagram(n.pose || "blueprint", n.title, n.tier),
+            steps: (n.steps || []).map(s => typeof s === "string" ? { text: s, done: false } : s),
+            links: n.yt ? [{ label: `Video: ${n.title}`, url: yt(n.yt) }] : []
+          });
+        });
+
+        if (typeof window.computeOrganicTreePositions === "function") window.computeOrganicTreePositions(targetTree.nodes, stamp);
+        if (typeof saveUserData === "function") await saveUserData();
+        if (typeof renderActiveTree === "function") renderActiveTree();
+        modal.classList.add("hidden");
+        document.getElementById("growJsonPaste").value = "";
+      } catch (err) {
+        alert("Merge Error: " + err.message);
+      }
+    };
+
     modal.classList.remove("hidden");
   };
 })();

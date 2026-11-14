@@ -1,4 +1,4 @@
-(function installPrivateShareAndHarvest() {
+ (function installPrivateShareAndHarvest() {
   const PREFIX = "STREE1:";
 
   function encodePayload(obj) {
@@ -25,16 +25,23 @@
     return [...str].map((ch, i) => String.fromCharCode(ch.charCodeAt(0) ^ pin.charCodeAt(i % pin.length))).join("");
   }
 
-  function getUserTreesList() {
+  async function resolveUserTrees() {
     if (typeof userData !== "undefined" && Array.isArray(userData?.trees) && userData.trees.length) {
       return userData.trees;
     }
     try {
       for (const k of Object.keys(localStorage)) {
-        const parsed = JSON.parse(localStorage.getItem(k) || "null");
-        if (Array.isArray(parsed?.trees) && parsed.trees.length) return parsed.trees;
+        const val = JSON.parse(localStorage.getItem(k) || "null");
+        if (Array.isArray(val?.trees) && val.trees.length) return val.trees;
+        if (Array.isArray(val) && val[0]?.nodes) return val;
       }
     } catch {}
+    if (typeof firebase !== "undefined" && firebase.auth?.().currentUser && typeof db !== "undefined" && db) {
+      try {
+        const doc = await db.collection("users").doc(firebase.auth().currentUser.uid).get();
+        if (doc.exists && Array.isArray(doc.data()?.trees)) return doc.data().trees;
+      } catch {}
+    }
     return [];
   }
 
@@ -72,7 +79,7 @@
     return { code, url };
   };
 
-  window.openPrivateShareModal = function(presetTree = null) {
+  window.openPrivateShareModal = async function(presetTree = null) {
     let modal = document.getElementById("privateShareModal");
     if (!modal) {
       modal = document.createElement("div");
@@ -106,9 +113,9 @@
       document.getElementById("closePrivShareBtn").onclick = () => modal.classList.add("hidden");
 
       const handleExport = async (mode) => {
-        const trees = getUserTreesList();
+        const trees = await resolveUserTrees();
         const sel = document.getElementById("privTreeSelect");
-        const chosen = trees.find(t => t.id === sel.value) || trees[0];
+        const chosen = trees.find(t => t.id === sel.value) || trees[sel.selectedIndex] || trees[0];
         if (!chosen) return alert("Create or copy a tree in My Constellations first.");
         const pin = document.getElementById("privExportPin").value.trim();
         const { code, url } = await window.generatePrivateTreeShare(chosen, pin);
@@ -126,8 +133,10 @@
     }
 
     const sel = document.getElementById("privTreeSelect");
-    const trees = getUserTreesList();
-    sel.innerHTML = trees.map(t => `<option value="${t.id}">${t.title} (${(t.nodes || []).length} nodes)</option>`).join("") || `<option value="">No trees yet</option>`;
+    const trees = await resolveUserTrees();
+    sel.innerHTML = trees.length
+      ? trees.map((t, i) => `<option value="${t.id || i}">${t.title} (${(t.nodes || []).length} nodes)</option>`).join("")
+      : `<option value="">No trees yet</option>`;
     if (presetTree?.id) sel.value = presetTree.id;
     modal.classList.remove("hidden");
   };

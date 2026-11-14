@@ -1,15 +1,15 @@
 (function installCosmosAndGlowingTree() {
-  const THEME_KEY = "skilltree_cosmos_theme_v2";
+  const THEME_KEY = "skilltree_cosmos_theme_v3";
   window.getCosmosTheme = function() {
     try {
       return Object.assign({
-        nebulaAlpha: 0.32,
+        nebulaAlpha: 0.30,
         glowColor: "#38bdf8",
         activeGlow: "#34d399",
-        glowStrength: 18
+        glowStrength: 16
       }, JSON.parse(localStorage.getItem(THEME_KEY) || "{}"));
     } catch {
-      return { nebulaAlpha: 0.32, glowColor: "#38bdf8", activeGlow: "#34d399", glowStrength: 18 };
+      return { nebulaAlpha: 0.30, glowColor: "#38bdf8", activeGlow: "#34d399", glowStrength: 16 };
     }
   };
   window.saveCosmosTheme = function(cfg) {
@@ -37,14 +37,14 @@
 
     function drawCosmos(now) {
       const t = now * 0.001;
-      const na = Number(window.getCosmosTheme().nebulaAlpha) || 0.32;
+      const na = Number(window.getCosmosTheme().nebulaAlpha) || 0.30;
       ctx.fillStyle = "#020617";
       ctx.fillRect(0, 0, w, h);
 
       [
-        { x: w * 0.22, y: h * 0.24, r: Math.max(w, h) * 0.45, c1: `rgba(56,189,248,${na * 0.6})` },
-        { x: w * 0.80, y: h * 0.68, r: Math.max(w, h) * 0.50, c1: `rgba(139,92,246,${na * 0.55})` },
-        { x: w * 0.50, y: h * 0.50, r: Math.max(w, h) * 0.38, c1: `rgba(16,185,129,${na * 0.38})` }
+        { x: w * 0.22, y: h * 0.24, r: Math.max(w, h) * 0.45, c1: `rgba(56,189,248,${na * 0.55})` },
+        { x: w * 0.80, y: h * 0.68, r: Math.max(w, h) * 0.50, c1: `rgba(139,92,246,${na * 0.50})` },
+        { x: w * 0.50, y: h * 0.50, r: Math.max(w, h) * 0.38, c1: `rgba(16,185,129,${na * 0.35})` }
       ].forEach(n => {
         const g = ctx.createRadialGradient(n.x, n.y, 4, n.x, n.y, n.r);
         g.addColorStop(0, n.c1);
@@ -53,30 +53,28 @@
         ctx.fillRect(0, 0, w, h);
       });
 
-      // Spiral Galaxy
       ctx.save();
       ctx.translate(w * 0.82, h * 0.18);
       ctx.rotate(-0.45);
       ctx.scale(1, 0.42);
       const gal = ctx.createRadialGradient(0, 0, 1, 0, 0, 48);
-      gal.addColorStop(0, `rgba(224,242,254,${na * 1.15})`);
-      gal.addColorStop(0.45, `rgba(129,140,248,${na * 0.6})`);
+      gal.addColorStop(0, `rgba(224,242,254,${na * 1.1})`);
+      gal.addColorStop(0.45, `rgba(129,140,248,${na * 0.55})`);
       gal.addColorStop(1, "rgba(2,6,23,0)");
       ctx.fillStyle = gal;
       ctx.beginPath(); ctx.arc(0, 0, 48, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
 
-      // Ringed Gas Giant
       const px = w * 0.16, py = h * 0.78, pr = 24;
       const pGrad = ctx.createRadialGradient(px - 7, py - 7, 2, px, py, pr);
-      pGrad.addColorStop(0, "rgba(125,211,252,0.48)");
-      pGrad.addColorStop(0.65, "rgba(30,58,138,0.32)");
+      pGrad.addColorStop(0, "rgba(125,211,252,0.45)");
+      pGrad.addColorStop(0.65, "rgba(30,58,138,0.30)");
       pGrad.addColorStop(1, "rgba(2,6,23,0.05)");
       ctx.fillStyle = pGrad;
       ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI * 2); ctx.fill();
       ctx.save();
       ctx.translate(px, py); ctx.rotate(-0.35);
-      ctx.strokeStyle = "rgba(148,163,184,0.28)"; ctx.lineWidth = 2.8;
+      ctx.strokeStyle = "rgba(148,163,184,0.25)"; ctx.lineWidth = 2.6;
       ctx.beginPath(); ctx.ellipse(0, 0, 42, 10, 0, 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
 
@@ -107,7 +105,7 @@
       else roots.push(i);
     });
 
-    const span = nodes.length >= 45 ? 135 : (nodes.length >= 20 ? 105 : 65);
+    const span = nodes.length >= 45 ? 135 : (nodes.length >= 20 ? 105 : 68);
     const stepR = span / 4.2;
 
     function placeSubtree(idx, baseAngle, spread, depth, radius) {
@@ -151,28 +149,27 @@
     return nodes;
   };
 
-  // Pure Bioluminescent Glowing Branches (No Flicker Dots)
+  // Harmonious Astral & Bioluminescent Glowing Branches
   window.renderWorldTreeCanvas = function(ctx, w, h, nodes) {
     if (!ctx) return;
     const theme = window.getCosmosTheme();
     const cx = w * 0.5, cy = h * 0.5;
     const baseGlow = theme.glowColor || "#38bdf8";
-    const activeGlow = theme.activeGlow || "#34d399";
-    const blurAmt = Number(theme.glowStrength) || 18;
+    const blurAmt = Number(theme.glowStrength) || 16;
 
-    // Nebula Root Tendrils around Cosmic Core
+    // Subtle Nebula Root Tendrils
     for (let r = 0; r < 10; r++) {
       const a = (r * 2.39996);
-      const len = Math.min(w, h) * (0.18 + (r % 3) * 0.04);
+      const len = Math.min(w, h) * (0.16 + (r % 3) * 0.04);
       const ex = cx + Math.cos(a) * len, ey = cy + Math.sin(a) * len;
       const cpx = cx + Math.cos(a + 0.4) * (len * 0.55), cpy = cy + Math.sin(a + 0.4) * (len * 0.55);
       const rg = ctx.createLinearGradient(cx, cy, ex, ey);
       rg.addColorStop(0, baseGlow);
       rg.addColorStop(1, "rgba(2,6,23,0)");
       ctx.save();
-      ctx.globalAlpha = 0.45;
+      ctx.globalAlpha = 0.35;
       ctx.strokeStyle = rg;
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 3.5;
       ctx.lineCap = "round";
       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.quadraticCurveTo(cpx, cpy, ex, ey); ctx.stroke();
       ctx.restore();
@@ -191,40 +188,44 @@
       const sx = pIdx >= 0 ? (list[pIdx].x / 100) * w : cx;
       const sy = pIdx >= 0 ? (list[pIdx].y / 100) * h : cy;
       const dx = nx - sx, dy = ny - sy;
-      const cpx = (sx + nx) * 0.5 - dy * 0.16;
-      const cpy = (sy + ny) * 0.5 + dx * 0.16;
+      const cpx = (sx + nx) * 0.5 - dy * 0.15;
+      const cpy = (sy + ny) * 0.5 + dx * 0.15;
 
-      const active = n.status === "mastered" || n.status === "learning";
-      const limbColor = n.status === "mastered" ? "#f59e0b" : (active ? activeGlow : baseGlow);
+      const mastered = n.status === "mastered";
+      const learning = n.status === "learning";
 
+      // Soft Outer Nebula Halo
       ctx.save();
-      ctx.shadowColor = limbColor;
-      ctx.shadowBlur = blurAmt;
-      ctx.strokeStyle = limbColor;
-      ctx.globalAlpha = active ? 0.92 : 0.65;
-      ctx.lineWidth = pIdx < 0 ? 7.5 : (active ? 5.5 : 4.2);
+      ctx.shadowColor = baseGlow;
+      ctx.shadowBlur = mastered ? blurAmt * 1.3 : blurAmt * 0.8;
+      ctx.strokeStyle = baseGlow;
+      ctx.globalAlpha = mastered ? 0.55 : (learning ? 0.42 : 0.26);
+      ctx.lineWidth = pIdx < 0 ? 9 : 6.5;
       ctx.lineCap = "round";
       ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(cpx, cpy, nx, ny); ctx.stroke();
 
-      // Bright Inner Core Filament
+      // Sleek Translucent Starlight Filament
+      const grad = ctx.createLinearGradient(sx, sy, nx, ny);
+      grad.addColorStop(0, baseGlow);
+      grad.addColorStop(1, mastered ? "#fde68a" : (learning ? "#6ee7b7" : "#bae6fd"));
       ctx.shadowBlur = 0;
-      ctx.strokeStyle = "#ffffff";
-      ctx.globalAlpha = active ? 0.55 : 0.25;
-      ctx.lineWidth = pIdx < 0 ? 2.2 : 1.4;
+      ctx.strokeStyle = grad;
+      ctx.globalAlpha = mastered ? 0.92 : (learning ? 0.78 : 0.48);
+      ctx.lineWidth = pIdx < 0 ? 3.2 : 2.2;
       ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(cpx, cpy, nx, ny); ctx.stroke();
       ctx.restore();
     });
 
-    // Central Cosmic Heartwood Core
+    // Harmonized Central Cosmic Seed Core
     ctx.save();
-    const halo = ctx.createRadialGradient(cx, cy, 4, cx, cy, 52);
+    const halo = ctx.createRadialGradient(cx, cy, 3, cx, cy, 44);
     halo.addColorStop(0, "#ffffff");
-    halo.addColorStop(0.28, baseGlow);
-    halo.addColorStop(0.65, activeGlow);
+    halo.addColorStop(0.32, baseGlow);
+    halo.addColorStop(0.75, "rgba(15,23,42,0.2)");
     halo.addColorStop(1, "rgba(2,6,23,0)");
     ctx.globalAlpha = 0.85;
     ctx.fillStyle = halo;
-    ctx.beginPath(); ctx.arc(cx, cy, 52, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy, 44, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   };
 

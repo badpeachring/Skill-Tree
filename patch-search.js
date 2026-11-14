@@ -1,192 +1,90 @@
-(function installDeepSearchAndTagEngine() {
-  let allowNsfw = false;
-  let queryText = "";
+(function installRealmSearchAndAdminCards() {
+  const LIKED_KEY = "skilltree_liked_v1", HIDDEN_KEY = "skilltree_hidden_presets_v1", OVERRIDE_KEY = "skilltree_preset_overrides_v1";
+  const PRIMARY_ADMIN = "sethmcnab13@gmail.com";
+  let query = "", busy = false;
 
-  function isTreeNsfw(t) {
-    if (!t) return false;
-    if (t.nsfw === true) return true;
-    const tags = (t.tags || []).map(x => String(x).toLowerCase());
-    if (tags.includes("nsfw") || tags.includes("18+")) return true;
-    return /\b(nsfw|18\+)\b/i.test(`${t.title || ""} ${t.tag || ""}`);
-  }
+  const isAdmin = () => ((typeof firebase !== "undefined" && firebase.auth?.().currentUser?.email) || "").toLowerCase() === PRIMARY_ADMIN && !document.getElementById("adminBar")?.classList.contains("hidden");
+  const allowNsfw = () => Boolean(document.getElementById("nsfwToggle")?.checked);
 
-  function matchTreeAndNodes(t, rawQ) {
-    const q = (rawQ || "").trim().toLowerCase();
-    if (!q) return { matched: true, nodeHits: [] };
-    const isTagSearch = q.startsWith("#");
-    const term = isTagSearch ? q.slice(1) : q;
-    const tags = (t.tags || []).map(x => String(x).toLowerCase());
+  function renderRealm() {
+    const view = document.getElementById("viewServer"), list = document.getElementById("serverList");
+    if (!view || view.classList.contains("hidden") || !list) return;
 
-    if (isTagSearch) {
-      return { matched: tags.some(tag => tag.includes(term)), nodeHits: [] };
+    const panel = view.querySelector(".glass-panel");
+    if (panel && !document.getElementById("realmSearchBar")) {
+      const box = document.createElement("div");
+      box.id = "realmSearchBar"; box.className = "pt-2 border-t border-slate-800 flex items-center gap-2";
+      box.innerHTML = `<input id="realmQ" type="search" placeholder="Search trees, #tags, or inner nodes..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none"><button id="realmNsfw" type="button" class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold border border-slate-700 bg-slate-900 text-slate-400">🔞 21+: OFF</button>`;
+      panel.appendChild(box);
+      document.getElementById("realmQ").oninput = e => { query = e.target.value; renderRealm(); };
+      document.getElementById("realmNsfw").onclick = () => {
+        const c = document.getElementById("nsfwToggle");
+        if (c) { c.checked = !c.checked; if (typeof toggleNsfw === "function") toggleNsfw(); }
+        renderRealm();
+      };
     }
 
-    const headMatch = `${t.title || ""} ${t.author || ""} ${t.attr || ""} ${tags.join(" ")}`.toLowerCase().includes(term);
-    const nodeHits = (t.nodes || []).filter(n =>
-      `${n.title || ""} ${n.notes || ""} ${(n.steps || []).map(s => s.text || s).join(" ")}`.toLowerCase().includes(term)
-    );
-    return { matched: headMatch || nodeHits.length > 0, nodeHits };
-  }
-
-  function renderRealmSearchBar() {
-    const list = document.getElementById("serverTreeList");
-    if (!list || document.getElementById("realmSearchBox")) return;
-
-    const box = document.createElement("div");
-    box.id = "realmSearchBox";
-    box.className = "glass-panel rounded-xl p-3 mb-3 space-y-2 border border-sky-500/30";
-    box.innerHTML = `
-      <div class="flex items-center gap-2">
-        <input id="realmSearchInput" type="search" placeholder="Search trees, #tags, or inner nodes (e.g. #drywall, piriformis)..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none">
-        <button id="realmNsfwToggle" type="button" class="px-2.5 py-2 rounded-lg text-[11px] font-bold border border-slate-700 bg-slate-900 text-slate-400 shrink-0">🔞 NSFW: OFF</button>
-      </div>
-      <div id="realmQuickTags" class="flex flex-wrap gap-1.5 text-[10px]"></div>`;
-    list.parentElement.insertBefore(box, list);
-
-    const inp = document.getElementById("realmSearchInput");
-    const nsfwBtn = document.getElementById("realmNsfwToggle");
-
-    inp.oninput = () => { queryText = inp.value; applyRealmFilter(); };
-    nsfwBtn.onclick = () => {
-      allowNsfw = !allowNsfw;
-      nsfwBtn.textContent = allowNsfw ? "🔞 NSFW: ON" : "🔞 NSFW: OFF";
-      nsfwBtn.className = allowNsfw
-        ? "px-2.5 py-2 rounded-lg text-[11px] font-bold border border-rose-500 bg-rose-500/20 text-rose-300 shrink-0"
-        : "px-2.5 py-2 rounded-lg text-[11px] font-bold border border-slate-700 bg-slate-900 text-slate-400 shrink-0";
-      applyRealmFilter();
-    };
-  }
-
-  function applyRealmFilter() {
-    const list = document.getElementById("serverTreeList");
-    if (!list) return;
-    const pool = [
-      ...(typeof publicTreesCache !== "undefined" ? publicTreesCache : []),
-      ...(typeof baseConceptTrees !== "undefined" ? baseConceptTrees : [])
-    ];
-
-    // Collect top tags for quick filter chips
-    const tagBar = document.getElementById("realmQuickTags");
-    if (tagBar) {
-      const counts = new Map();
-      pool.forEach(t => {
-        if (!allowNsfw && isTreeNsfw(t)) return;
-        (t.tags || []).forEach(tg => counts.set(tg, (counts.get(tg) || 0) + 1));
-      });
-      const topTags = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(x => x[0]);
-      tagBar.innerHTML = topTags.map(tg =>
-        `<button type="button" data-tag="#${tg}" class="qtag px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-sky-300">#${tg}</button>`
-      ).join("");
-      tagBar.querySelectorAll(".qtag").forEach(b => b.onclick = () => {
-        const inp = document.getElementById("realmSearchInput");
-        inp.value = inp.value === b.dataset.tag ? "" : b.dataset.tag;
-        queryText = inp.value;
-        applyRealmFilter();
-      });
+    const nb = document.getElementById("realmNsfw");
+    if (nb) {
+      const on = allowNsfw();
+      nb.textContent = on ? "🔞 21+: ON" : "🔞 21+: OFF";
+      nb.className = on ? "px-2.5 py-1.5 rounded-lg text-[11px] font-bold border border-rose-500 bg-rose-500/20 text-rose-300" : "px-2.5 py-1.5 rounded-lg text-[11px] font-bold border border-slate-700 bg-slate-900 text-slate-400";
     }
+
+    const pool = [...(typeof publicTreesCache !== "undefined" ? publicTreesCache : []), ...(typeof baseConceptTrees !== "undefined" ? baseConceptTrees : [])];
+    const admin = isAdmin(), nsfwOk = allowNsfw();
+    let hidden; try { hidden = new Set(JSON.parse(localStorage.getItem(HIDDEN_KEY) || "[]")); } catch { hidden = new Set(); }
+    let liked; try { liked = JSON.parse(localStorage.getItem(LIKED_KEY) || "{}"); } catch { liked = {}; }
 
     [...list.children].forEach(card => {
-      const titleEl = card.querySelector("h2, h3, h4, .skyrim-font");
-      const title = titleEl ? titleEl.textContent.trim() : "";
+      const title = card.querySelector("h2, h3, h4, .skyrim-font")?.textContent?.trim();
       const tree = pool.find(x => x.title === title);
       if (!tree) return;
+      if (tree.id?.startsWith("b_") && !tree._zeroed) { tree.likes = 0; tree._zeroed = true; }
 
-      // Enforce NSFW safety gate
-      if (!allowNsfw && isTreeNsfw(tree)) {
-        card.style.display = "none";
-        return;
+      const isNsfw = tree.nsfw === true || (tree.tags || []).includes("nsfw");
+      const isHid = hidden.has(tree.id);
+      if (tree._privateHiddenFromRealm || (!admin && isHid) || (!nsfwOk && isNsfw)) { card.style.display = "none"; return; }
+      card.style.opacity = isHid ? "0.55" : "1";
+
+      const q = query.trim().toLowerCase();
+      card.style.display = (!q || `${tree.title} ${tree.author || ""} ${(tree.tags || []).join(" ")} ${(tree.nodes || []).map(n => n.title + " " + (n.notes || "")).join(" ")}`.toLowerCase().includes(q.replace(/^#/, ""))) ? "" : "none";
+
+      const hb = [...card.querySelectorAll("button")].find(b => (b.textContent || "").includes("♥"));
+      if (hb) {
+        const base = Number(tree.likes) || 0;
+        hb.innerHTML = `<div class="text-rose-400 text-xs">♥</div><div class="text-rose-300 text-xs font-bold">${Math.max(0, base + (liked[tree.id] ? 1 : 0))}</div>`;
+        if (!hb.dataset.wired) {
+          hb.dataset.wired = "1";
+          hb.addEventListener("click", async e => {
+            e.stopImmediatePropagation(); e.preventDefault();
+            liked[tree.id] = !liked[tree.id];
+            localStorage.setItem(LIKED_KEY, JSON.stringify(liked));
+            renderRealm();
+            if (typeof db !== "undefined" && db && typeof firebase !== "undefined") {
+              try { await db.collection("publicTrees").doc(tree.id).set({ likes: firebase.firestore.FieldValue.increment(liked[tree.id] ? 1 : -1) }, { merge: true }); } catch {}
+            }
+          }, true);
+        }
       }
 
-      const { matched, nodeHits } = matchTreeAndNodes(tree, queryText);
-      card.style.display = matched ? "" : "none";
-
-      // Render tag pills & matching inner-node badges on the card
-      let metaBox = card.querySelector(".search-meta-badges");
-      if (!metaBox) {
-        metaBox = document.createElement("div");
-        metaBox.className = "search-meta-badges mt-2 space-y-1";
-        titleEl.parentElement.appendChild(metaBox);
-      }
-      const tagsHtml = (tree.tags || []).map(tg =>
-        `<span class="inline-block text-[10px] px-1.5 py-0.5 mr-1 rounded ${tg === "nsfw" ? "bg-rose-500/20 text-rose-300" : "bg-slate-800 text-sky-300"}">#${tg}</span>`
-      ).join("");
-      const hitsHtml = (queryText.trim() && nodeHits.length)
-        ? `<div class="text-[11px] text-emerald-300 bg-emerald-950/50 border border-emerald-500/30 rounded-lg px-2 py-1">🎯 ${nodeHits.length} matching node(s): <b>${nodeHits.slice(0, 3).map(n => n.title).join(", ")}</b></div>`
-        : "";
-      metaBox.innerHTML = `${tagsHtml}${hitsHtml}`;
+      let bar = card.querySelector(".adm-card-bar");
+      if (admin) {
+        if (!bar) { bar = document.createElement("div"); bar.className = "adm-card-bar flex gap-1.5 mt-2 pt-2 border-t border-slate-800"; card.appendChild(bar); }
+        bar.innerHTML = `<button data-a="edit" class="flex-1 py-1 bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded text-[10px] font-bold">✏️ Edit</button><button data-a="nsfw" class="px-2 py-1 rounded text-[10px] font-bold border ${isNsfw ? "bg-rose-500 text-slate-950" : "bg-rose-500/15 text-rose-300 border-rose-500/40"}">${isNsfw ? "🔞 21+: ON" : "🔞 21+"}</button><button data-a="hide" class="px-2 py-1 bg-slate-800 text-slate-300 rounded text-[10px] font-bold">${isHid ? "👁 Unhide" : "Hide"}</button><button data-a="del" class="px-2 py-1 bg-rose-950 border border-rose-700 text-rose-300 rounded text-[10px] font-bold">🔥 Del</button>`;
+        bar.querySelector('[data-a="edit"]').onclick = e => { e.stopPropagation(); window.copyPresetTreeToUser?.(tree.id); };
+        bar.querySelector('[data-a="nsfw"]').onclick = async e => {
+          e.stopPropagation(); tree.nsfw = !isNsfw; tree.tags = tree.nsfw ? [...new Set([...(tree.tags || []), "nsfw"])] : (tree.tags || []).filter(t => t !== "nsfw");
+          if (typeof db !== "undefined" && db) { try { await db.collection("publicTrees").doc(tree.id).set({ nsfw: tree.nsfw, tags: tree.tags }, { merge: true }); } catch {} }
+          renderRealm();
+        };
+        bar.querySelector('[data-a="hide"]').onclick = e => { e.stopPropagation(); if (hidden.has(tree.id)) hidden.delete(tree.id); else hidden.add(tree.id); localStorage.setItem(HIDDEN_KEY, JSON.stringify([...hidden])); renderRealm(); };
+        bar.querySelector('[data-a="del"]').onclick = async e => { e.stopPropagation(); if (!confirm(`Delete "${tree.title}" from cloud?`)) return; if (typeof db !== "undefined" && db) { try { await db.collection("publicTrees").doc(tree.id).delete(); } catch {} } card.remove(); };
+      } else if (bar) bar.remove();
     });
   }
 
-  // In-Tree Node Spotlight Search inside Blueprint Viewer
-  function injectInTreeSearch() {
-    const bpWrap = document.getElementById("bpCanvasWrap");
-    if (!bpWrap || document.getElementById("bpNodeSearchBar")) return;
-
-    const bar = document.createElement("div");
-    bar.id = "bpNodeSearchBar";
-    bar.className = "absolute top-10 left-3 right-3 z-20 flex gap-1.5";
-    bar.innerHTML = `
-      <input id="bpNodeSearchInput" type="search" placeholder="🔍 Jump to star node inside this tree..." class="flex-1 bg-slate-950/90 border border-sky-500/40 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none">
-      <div id="bpNodeSearchResults" class="hidden absolute top-9 left-0 right-0 bg-slate-950/95 border border-slate-700 rounded-lg max-h-40 overflow-y-auto divide-y divide-slate-800"></div>`;
-    bpWrap.appendChild(bar);
-
-    const inp = document.getElementById("bpNodeSearchInput");
-    const res = document.getElementById("bpNodeSearchResults");
-    inp.oninput = () => {
-      const q = inp.value.trim().toLowerCase();
-      const stars = [...document.querySelectorAll("#bpNodesLayer .bp-star")];
-      if (!q) {
-        res.classList.add("hidden");
-        stars.forEach(s => s.style.opacity = "1");
-        return;
-      }
-      const matches = stars.filter(s => s.textContent.toLowerCase().includes(q));
-      stars.forEach(s => s.style.opacity = matches.includes(s) ? "1" : "0.22");
-      res.classList.remove("hidden");
-      res.innerHTML = matches.slice(0, 8).map(s =>
-        `<button type="button" data-idx="${s.dataset.i}" class="w-full text-left px-3 py-1.5 text-xs text-sky-300 hover:bg-slate-800">${s.textContent.trim()}</button>`
-      ).join("") || `<div class="px-3 py-1.5 text-xs text-slate-400">No matching nodes</div>`;
-      res.querySelectorAll("button").forEach(b => b.onclick = () => {
-        const star = document.querySelector(`#bpNodesLayer .bp-star[data-i="${b.dataset.idx}"]`);
-        if (star) star.click();
-        res.classList.add("hidden");
-      });
-    };
-  }
-
-  const obs = new MutationObserver(() => {
-    renderRealmSearchBar();
-    applyRealmFilter();
-    injectInTreeSearch();
-  });
+  const obs = new MutationObserver(() => { if (!busy) { busy = true; setTimeout(() => { busy = false; obs.disconnect(); try { renderRealm(); } finally { obs.observe(document.body, { childList: true, subtree: true }); } }, 150); } });
   obs.observe(document.body, { childList: true, subtree: true });
-  setTimeout(() => { renderRealmSearchBar(); applyRealmFilter(); }, 350);
-    // Prevent infinite heart-click spam & persist user likes locally
-  const LIKED_KEY = "skilltree_liked_ids_v1";
-  const getLiked = () => { try { return new Set(JSON.parse(localStorage.getItem(LIKED_KEY) || "[]")); } catch { return new Set(); } };
-  const saveLiked = (s) => localStorage.setItem(LIKED_KEY, JSON.stringify([...s]));
-
-  document.addEventListener("click", (e) => {
-    const btn = e.target.closest("button");
-    if (!btn || !(btn.textContent || "").includes("♥")) return;
-    const card = btn.closest(".glass-panel");
-    const title = card?.querySelector("h2, h3, h4, .skyrim-font")?.textContent?.trim();
-    if (!title) return;
-    e.stopImmediatePropagation();
-    e.preventDefault();
-    const liked = getLiked();
-    const numEl = [...btn.querySelectorAll("*")].find(el => /^\d+$/.test(el.textContent.trim())) || btn;
-    const cur = parseInt((numEl.textContent || "0").replace(/\D/g, ""), 10) || 0;
-    if (liked.has(title)) {
-      liked.delete(title);
-      numEl.innerHTML = numEl === btn ? `♥ ${Math.max(0, cur - 1)}` : String(Math.max(0, cur - 1));
-      btn.classList.remove("border-rose-500");
-    } else {
-      liked.add(title);
-      numEl.innerHTML = numEl === btn ? `♥ ${cur + 1}` : String(cur + 1);
-      btn.classList.add("border-rose-500");
-    }
-    saveLiked(liked);
-  }, true);
-  
+  setTimeout(renderRealm, 350);
 })();

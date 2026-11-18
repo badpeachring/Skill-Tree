@@ -16,6 +16,7 @@
     "patch-private-share.js",
     "patch-cosmos-tree.js",
     "patch-architect-hub.js",
+    "patch-grimoire-quests.js",
     "patch-ui-bridge.js"
   ];
   function next(i) {

@@ -1,10 +1,22 @@
-(function installRealmSearchAndAdminCards() {
-  const LIKED_KEY = "skilltree_liked_v1", HIDDEN_KEY = "skilltree_hidden_presets_v1", OVERRIDE_KEY = "skilltree_preset_overrides_v1";
+(function installRealmSearchAndRealServerHearts() {
+  const LIKED_KEY = "skilltree_liked_v2", HIDDEN_KEY = "skilltree_hidden_presets_v1";
   const PRIMARY_ADMIN = "sethmcnab13@gmail.com";
-  let query = "", busy = false;
+  let query = "", busy = false, serverLikesMap = {};
 
   const isAdmin = () => ((typeof firebase !== "undefined" && firebase.auth?.().currentUser?.email) || "").toLowerCase() === PRIMARY_ADMIN && !document.getElementById("adminBar")?.classList.contains("hidden");
   const allowNsfw = () => Boolean(document.getElementById("nsfwToggle")?.checked);
+
+  // Pull real server-wide like counts from Firestore publicTrees
+  async function syncRealServerLikes() {
+    if (typeof db === "undefined" || !db) return;
+    try {
+      const snap = await db.collection("publicTrees").get();
+      snap.forEach(doc => {
+        const d = doc.data();
+        if (typeof d.realLikes === "number") serverLikesMap[doc.id] = Math.max(0, d.realLikes);
+      });
+    } catch {}
+  }
 
   function renderRealm() {
     const view = document.getElementById("viewServer"), list = document.getElementById("serverList");
@@ -40,7 +52,9 @@
       const title = card.querySelector("h2, h3, h4, .skyrim-font")?.textContent?.trim();
       const tree = pool.find(x => x.title === title);
       if (!tree) return;
-      if (tree.id?.startsWith("b_") && !tree._zeroed) { tree.likes = 0; tree._zeroed = true; }
+
+      // Strip ALL hardcoded fake preset likes (57, 29, 35, 22, 69, etc.) -> start at 0
+      tree.likes = 0;
 
       const isNsfw = tree.nsfw === true || (tree.tags || []).includes("nsfw");
       const isHid = hidden.has(tree.id);
@@ -52,17 +66,24 @@
 
       const hb = [...card.querySelectorAll("button")].find(b => (b.textContent || "").includes("♥"));
       if (hb) {
-        const base = Number(tree.likes) || 0;
-        hb.innerHTML = `<div class="text-rose-400 text-xs">♥</div><div class="text-rose-300 text-xs font-bold">${Math.max(0, base + (liked[tree.id] ? 1 : 0))}</div>`;
+        const srvCount = typeof serverLikesMap[tree.id] === "number" ? serverLikesMap[tree.id] : 0;
+        const displayCount = Math.max(srvCount, liked[tree.id] ? 1 : 0);
+        hb.innerHTML = `<div class="${liked[tree.id] ? "text-rose-500" : "text-slate-400"} text-xs">♥</div><div class="text-rose-300 text-xs font-bold">${displayCount}</div>`;
         if (!hb.dataset.wired) {
           hb.dataset.wired = "1";
           hb.addEventListener("click", async e => {
             e.stopImmediatePropagation(); e.preventDefault();
-            liked[tree.id] = !liked[tree.id];
+            const next = !liked[tree.id];
+            liked[tree.id] = next;
             localStorage.setItem(LIKED_KEY, JSON.stringify(liked));
+            serverLikesMap[tree.id] = Math.max(0, (serverLikesMap[tree.id] || 0) + (next ? 1 : -1));
             renderRealm();
             if (typeof db !== "undefined" && db && typeof firebase !== "undefined") {
-              try { await db.collection("publicTrees").doc(tree.id).set({ likes: firebase.firestore.FieldValue.increment(liked[tree.id] ? 1 : -1) }, { merge: true }); } catch {}
+              try {
+                await db.collection("publicTrees").doc(tree.id).set({
+                  realLikes: firebase.firestore.FieldValue.increment(next ? 1 : -1)
+                }, { merge: true });
+              } catch {}
             }
           }, true);
         }
@@ -84,7 +105,7 @@
     });
   }
 
+  syncRealServerLikes().then(renderRealm);
   const obs = new MutationObserver(() => { if (!busy) { busy = true; setTimeout(() => { busy = false; obs.disconnect(); try { renderRealm(); } finally { obs.observe(document.body, { childList: true, subtree: true }); } }, 150); } });
   obs.observe(document.body, { childList: true, subtree: true });
-  setTimeout(renderRealm, 350);
 })();

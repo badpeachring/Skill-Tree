@@ -11,7 +11,7 @@
       <div class="max-w-md mx-auto w-full space-y-3 pb-10">
         <div class="flex justify-between items-center border-b border-sky-500/30 pb-2.5">
           <h2 class="text-lg font-black text-sky-400 skyrim-font">📖 COMPLETE APP GUIDE</h2>
-          <button id="closeGuideBtn" class="px-3 py-1 bg-slate-800 text-slate-200 rounded-lg text-xs font-bold">✕ Close</button>
+          <button id="closeGuideBtn" type="button" class="px-3 py-1 bg-slate-800 text-slate-200 rounded-lg text-xs font-bold">✕ Close</button>
         </div>
         <div class="glass-panel rounded-xl p-3.5 space-y-1.5"><div class="text-xs font-black text-emerald-400 uppercase">1. 🌌 The Grand Nebula</div><p class="text-xs text-slate-300 leading-relaxed">Your flagship constellation in <b>My Constellations</b>. Harvest individual skills from any tree into <b>The Grand Nebula</b> to organize them onto clean category spines across STR, DEX, CON, INT, WIS, and CHA.</p></div>
         <div class="glass-panel rounded-xl p-3.5 space-y-1.5"><div class="text-xs font-black text-amber-400 uppercase">2. 📖 Reading Nodes vs. ⚔ Quest Nodes</div><p class="text-xs text-slate-300 leading-relaxed">Unexplored stars start dim under <b>Fog-of-War</b>. <b>Reading Nodes</b> illuminate after reading; <b>Quest Nodes</b> require completing real-world practice checklists or prerequisites first.</p></div>
@@ -72,8 +72,8 @@
         const delId = sel?.value;
         const delTitle = sel?.options[sel.selectedIndex]?.text?.trim();
         if (!delTitle || !confirm(`Delete "${delTitle}" permanently?`)) return;
+        window.markTreeDeletedPermanently?.(delId, delTitle);
 
-        // Remove from ALL localStorage keys
         for (const k of Object.keys(localStorage)) {
           try {
             const v = JSON.parse(localStorage.getItem(k) || "null");
@@ -83,25 +83,19 @@
             }
           } catch {}
         }
-
-        // Remove from Firestore user doc directly
         if (typeof firebase !== "undefined" && firebase.auth?.().currentUser && typeof db !== "undefined" && db) {
           try {
             const uid = firebase.auth().currentUser.uid;
             const doc = await db.collection("users").doc(uid).get();
             if (doc.exists && Array.isArray(doc.data()?.trees)) {
-              const nextTrees = doc.data().trees.filter(t => t.id !== delId && t.title !== delTitle);
-              await db.collection("users").doc(uid).set({ trees: nextTrees }, { merge: true });
+              await db.collection("users").doc(uid).set({ trees: doc.data().trees.filter(t => t.id !== delId && t.title !== delTitle) }, { merge: true });
             }
           } catch {}
         }
-
-        // Remove option from dropdown immediately without losing place
         if (sel && sel.selectedIndex >= 0) {
           sel.remove(sel.selectedIndex);
           sel.dispatchEvent(new Event("change"));
         }
-        alert(`Deleted "${delTitle}"!`);
       };
       addBtn.parentElement.appendChild(d);
     }

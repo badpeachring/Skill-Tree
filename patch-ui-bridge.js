@@ -69,36 +69,44 @@
         d.className = "px-2 py-1 bg-rose-950/80 border border-rose-700/60 text-rose-300 rounded text-xs font-bold";
         d.onclick = async () => {
           const sel = document.getElementById("treeSelect");
-          const delId = sel?.value;
-          const delTitle = sel?.options[sel.selectedIndex]?.text?.trim();
-          if (!delTitle || !confirm(`Delete "${delTitle}" permanently?`)) return;
-          window.markTreeDeletedPermanently?.(delId, delTitle);
+          if (!sel || sel.selectedIndex < 0) return;
+          const idx = sel.selectedIndex;
+          const label = sel.options[idx].text.trim();
+          if (!confirm(`Delete "${label}" permanently?`)) return;
 
-          for (const k of Object.keys(localStorage)) {
-            try {
-              const v = JSON.parse(localStorage.getItem(k) || "null");
-              if (Array.isArray(v?.trees)) {
-                v.trees = v.trees.filter(t => t.id !== delId && t.title !== delTitle);
-                localStorage.setItem(k, JSON.stringify(v));
-              }
-            } catch {}
-          }
+          // Delete by exact index in Firestore user doc
           if (typeof firebase !== "undefined" && firebase.auth?.().currentUser && typeof db !== "undefined" && db) {
             try {
               const uid = firebase.auth().currentUser.uid;
               const doc = await db.collection("users").doc(uid).get();
               if (doc.exists && Array.isArray(doc.data()?.trees)) {
-                await db.collection("users").doc(uid).set({ trees: doc.data().trees.filter(t => t.id !== delId && t.title !== delTitle) }, { merge: true });
+                const trees = [...doc.data().trees];
+                if (idx >= 0 && idx < trees.length) {
+                  window.markTreeDeletedPermanently?.(trees[idx].id, trees[idx].title);
+                  trees.splice(idx, 1);
+                  await db.collection("users").doc(uid).set({ trees }, { merge: true });
+                }
               }
             } catch {}
           }
+
+          // Also remove by exact index from any localStorage copy
+          for (const k of Object.keys(localStorage)) {
+            try {
+              const v = JSON.parse(localStorage.getItem(k) || "null");
+              if (Array.isArray(v?.trees) && idx >= 0 && idx < v.trees.length) {
+                v.trees.splice(idx, 1);
+                localStorage.setItem(k, JSON.stringify(v));
+              }
+            } catch {}
+          }
+
           location.reload();
         };
         addBtn.parentElement.appendChild(d);
       }
     }
 
-    // Add "🎯 Pin to Quest Board" button inside personal Node Editor modal
     const modalTitleInput = document.getElementById("modalTitle");
     const nodeModal = document.getElementById("nodeModal");
     if (modalTitleInput && nodeModal && !nodeModal.classList.contains("hidden") && !document.getElementById("nodeQuestPinBtn")) {

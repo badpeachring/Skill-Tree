@@ -4,118 +4,85 @@
 
   const isOwner = () => ((typeof firebase !== "undefined" && firebase.auth?.().currentUser?.email) || "").toLowerCase() === PRIMARY_ADMIN;
 
+  function openDetailedGuideModal() {
+    let m = document.getElementById("detailedGuideModal");
+    if (!m) { m = document.createElement("div"); m.id = "detailedGuideModal"; m.className = "fixed inset-0 z-50 bg-slate-950 flex flex-col p-4 overflow-y-auto"; document.body.appendChild(m); }
+    m.innerHTML = `
+      <div class="max-w-md mx-auto w-full space-y-3 pb-10">
+        <div class="flex justify-between items-center border-b border-sky-500/30 pb-2.5">
+          <h2 class="text-lg font-black text-sky-400 skyrim-font">📖 COMPLETE APP GUIDE</h2>
+          <button id="closeGuideBtn" class="px-3 py-1 bg-slate-800 text-slate-200 rounded-lg text-xs font-bold">✕ Close</button>
+        </div>
+        <div class="glass-panel rounded-xl p-3.5 space-y-1.5"><div class="text-xs font-black text-emerald-400 uppercase">1. 🌌 The Grand Nebula (Your Unified Life Galaxy)</div><p class="text-xs text-slate-300 leading-relaxed">Your flagship constellation at the top of <b>My Constellations</b>. Whenever you harvest individual skills from any tree in <b>The Server Realm</b> or <b>Private Vault</b>, send them to <b>The Grand Nebula</b>—they automatically organize into clean category spines across your 6 D&D attributes.</p></div>
+        <div class="glass-panel rounded-xl p-3.5 space-y-1.5"><div class="text-xs font-black text-amber-400 uppercase">2. 📖 Reading Nodes vs. ⚔ Quest Nodes</div><p class="text-xs text-slate-300 leading-relaxed">Unexplored stars start dim gray under <b>Fog-of-War</b>. <b>Reading Nodes</b> illuminate as soon as you read and internalize them; <b>Quest Nodes</b> require completing real-world practice checklists or prerequisite skills before illuminating.</p></div>
+        <div class="glass-panel rounded-xl p-3.5 space-y-1.5"><div class="text-xs font-black text-sky-400 uppercase">3. 🎯 Quest Board & Private Scratchpad</div><p class="text-xs text-slate-300 leading-relaxed">Every skill set to <b>Training</b> appears on your <b>Quest Board</b> with its own private scratchpad box so you can jot down progress, PRs, or reminders between sessions—or tap <b>🎲 Next Spark</b> to draw your next skill automatically.</p></div>
+        <div class="glass-panel rounded-xl p-3.5 space-y-1.5"><div class="text-xs font-black text-purple-400 uppercase">4. ✨ AI Builder & Branch Grower</div><p class="text-xs text-slate-300 leading-relaxed">Start any new topic with 12–15 core nodes from the Main Menu, then tap <b>✨ Grow</b> inside <b>My Constellations</b> to keep expanding branches indefinitely without AI truncation.</p></div>
+        <div class="glass-panel rounded-xl p-3.5 space-y-1.5"><div class="text-xs font-black text-rose-400 uppercase">5. 🔒 Private Vault & ⚔ D&D Character Sheet</div><p class="text-xs text-slate-300 leading-relaxed">Export proprietary workflows as PIN-locked <b>STREE1</b> share links, and track how your real-world mastery balances across <b>STR, DEX, CON, INT, WIS, and CHA</b>.</p></div>
+      </div>`;
+    m.classList.remove("hidden");
+    document.getElementById("closeGuideBtn").onclick = () => m.classList.add("hidden");
+  }
+
   function syncMenu() {
-    if (!isOwner()) {
-      document.getElementById("adminBar")?.classList.add("hidden");
-      document.getElementById("adminToggleBtn")?.classList.add("hidden");
-    }
+    if (!isOwner()) { document.getElementById("adminBar")?.classList.add("hidden"); document.getElementById("adminToggleBtn")?.classList.add("hidden"); }
     const list = document.querySelector("#viewMenu .max-w-md");
     if (!list) return;
 
-    if (!document.getElementById("bridgeAiBtn")) {
-      const b = document.createElement("button");
-      b.id = "bridgeAiBtn"; b.type = "button"; b.className = "menu-btn w-full py-3 px-4 rounded-r-xl flex items-center justify-between";
-      b.innerHTML = `<div class="text-left"><div class="text-[10px] font-black uppercase text-emerald-400">AI Architect Engine</div><div class="text-sm font-bold text-white skyrim-font">✨ BUILD SKILL TREE FROM ANY TOPIC</div><div class="text-[11px] text-slate-400">Generate 12-15 nodes → Expand branches anytime</div></div><span class="text-emerald-400">🧠</span>`;
-      b.onclick = () => window.openAiBuilderModal?.();
-      list.insertBefore(b, list.firstChild);
-    }
+    const items = [
+      { id: "bridgeAiBtn", tag: "AI Architect Engine", color: "text-emerald-400", title: "✨ BUILD SKILL TREE FROM ANY TOPIC", sub: "Generate 12-15 nodes → Expand branches anytime", icon: "🧠", fn: () => window.openAiBuilderModal?.() },
+      { id: "bridgePrivBtn", tag: "Encrypted Peer Sharing", color: "text-amber-400", title: "🔒 PRIVATE TREE SHARE & HARVEST", sub: "Share workflows via PIN or harvest to Grand Nebula", icon: "🗝", fn: () => window.openPrivateShareModal?.() },
+      { id: "bridgeQuestBtn", tag: "Active Log & Scratchpad", color: "text-sky-400", title: "🎯 QUEST BOARD & FIELD NOTES", sub: "View all active quests, private notes & draw next spark", icon: "⚔", fn: () => window.openFullQuestBoard?.() }
+    ];
+    items.reverse().forEach(it => {
+      let el = document.getElementById(it.id);
+      if (!el) {
+        el = document.createElement("button"); el.id = it.id; el.type = "button";
+        el.className = "menu-btn w-full py-3 px-4 rounded-r-xl flex items-center justify-between";
+        el.innerHTML = `<div class="text-left"><div class="text-[10px] font-black uppercase ${it.color}">${it.tag}</div><div class="text-sm font-bold text-white skyrim-font">${it.title}</div><div class="text-[11px] text-slate-400">${it.sub}</div></div><span class="${it.color}">${it.icon}</span>`;
+        list.insertBefore(el, list.firstChild);
+      }
+      el.onclick = it.fn;
+    });
 
-    if (!document.getElementById("bridgePrivBtn")) {
-      const p = document.createElement("button");
-      p.id = "bridgePrivBtn"; p.type = "button"; p.className = "menu-btn w-full py-3 px-4 rounded-r-xl flex items-center justify-between";
-      p.innerHTML = `<div class="text-left"><div class="text-[10px] font-black uppercase text-amber-400">Encrypted Peer Sharing</div><div class="text-sm font-bold text-white skyrim-font">🔒 PRIVATE TREE SHARE & HARVEST</div><div class="text-[11px] text-slate-400">Share workflows via PIN or harvest to Grand Nebula</div></div><span class="text-amber-400">🗝</span>`;
-      p.onclick = () => window.openPrivateShareModal?.();
-      list.insertBefore(p, document.getElementById("bridgeAiBtn")?.nextSibling || list.firstChild);
+    let about = document.getElementById("bridgeAboutBtn");
+    if (!about) {
+      about = document.createElement("button"); about.id = "bridgeAboutBtn"; about.type = "button";
+      about.className = "menu-btn w-full py-3 px-4 rounded-r-xl flex items-center justify-between";
+      about.innerHTML = `<div class="text-left"><div class="text-sm font-bold text-sky-300 skyrim-font">📖 COMPLETE APP GUIDE & WALKTHROUGH</div><div class="text-[11px] text-slate-400">Step-by-step guide to Grand Nebula, Quests & AI Builder</div></div><span class="text-sky-400">✦</span>`;
+      list.appendChild(about);
     }
-
-    if (!document.getElementById("bridgeQuestBtn")) {
-      const q = document.createElement("button");
-      q.id = "bridgeQuestBtn"; q.type = "button"; q.className = "menu-btn w-full py-3 px-4 rounded-r-xl flex items-center justify-between";
-      q.innerHTML = `<div class="text-left"><div class="text-[10px] font-black uppercase text-sky-400">Active Log & Scratchpad</div><div class="text-sm font-bold text-white skyrim-font">🎯 QUEST BOARD & FIELD NOTES</div><div class="text-[11px] text-slate-400">View all active quests, private notes & draw next spark</div></div><span class="text-sky-400">⚔</span>`;
-      q.onclick = () => window.openFullQuestBoard?.();
-      list.insertBefore(q, document.getElementById("bridgePrivBtn")?.nextSibling || list.firstChild);
-    }
-
-    if (!document.getElementById("bridgeAboutBtn")) {
-      const a = document.createElement("button");
-      a.id = "bridgeAboutBtn"; a.type = "button"; a.className = "menu-btn w-full py-3 px-4 rounded-r-xl flex items-center justify-between";
-      a.innerHTML = `<div class="text-left"><div class="text-sm font-bold text-sky-300 skyrim-font">📖 ABOUT SKILL TREE & HOW IT WORKS</div><div class="text-[11px] text-slate-400">Real-Life RPG manifesto, Grand Nebula & tour</div></div><span class="text-sky-400">✦</span>`;
-      a.onclick = () => window.openTutorial?.();
-      list.appendChild(a);
-    }
+    about.onclick = openDetailedGuideModal;
   }
 
-  function syncWorkspaceAndNodeTags() {
+  function syncWorkspace() {
     const addBtn = document.getElementById("addNodeBtn");
-    if (addBtn) {
-      if (!document.getElementById("bridgeGrowBtn")) {
-        const g = document.createElement("button");
-        g.id = "bridgeGrowBtn"; g.type = "button"; g.textContent = "✨ Grow";
-        g.className = "px-2 py-1 bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 rounded text-xs font-bold";
-        g.onclick = () => window.openBranchExpanderModal?.();
-        addBtn.parentElement.insertBefore(g, addBtn);
-      }
-      if (!document.getElementById("bridgeDelBtn")) {
-        const d = document.createElement("button");
-        d.id = "bridgeDelBtn"; d.type = "button"; d.textContent = "🗑";
-        d.className = "px-2 py-1 bg-rose-950/80 border border-rose-700/60 text-rose-300 rounded text-xs font-bold";
-        d.onclick = async () => {
-          const sel = document.getElementById("treeSelect");
-          const title = sel?.options[sel.selectedIndex]?.text?.trim();
-          if (!title || !confirm(`Delete "${title}" permanently?`)) return;
-          if (typeof userData !== "undefined" && Array.isArray(userData?.trees)) {
-            userData.trees = userData.trees.filter(t => t.id !== sel.value && t.title !== title);
-          }
-          if (typeof firebase !== "undefined" && firebase.auth?.().currentUser && typeof db !== "undefined" && db) {
-            try {
-              const uid = firebase.auth().currentUser.uid;
-              const doc = await db.collection("users").doc(uid).get();
-              if (doc.exists) await db.collection("users").doc(uid).update({ trees: (doc.data()?.trees || []).filter(t => t.id !== sel.value && t.title !== title) });
-            } catch {}
-          }
-          location.reload();
-        };
-        addBtn.parentElement.appendChild(d);
-      }
-    }
+    if (!addBtn) return;
+    // Hide the accidental auto-layout sprout button so custom node positions never reset
+    addBtn.parentElement.querySelectorAll("button").forEach(b => { if ((b.textContent || "").includes("🌿")) b.style.display = "none"; });
 
-    // Working #Hashtag input inside Node Editor modal
-    const notesBox = document.getElementById("modalNotes");
-    if (notesBox && !document.getElementById("nodeHashtagBox")) {
-      const wrap = document.createElement("div");
-      wrap.id = "nodeHashtagBox"; wrap.className = "space-y-1";
-      wrap.innerHTML = `<label class="block text-[10px] font-bold uppercase text-sky-400">#Node Hashtags (press Enter or comma)</label><input id="nodeTagInput" type="text" placeholder="#strength, #mobility, #vocab..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-sky-300 outline-none">`;
-      notesBox.parentElement.insertBefore(wrap, notesBox);
+    if (!document.getElementById("bridgeGrowBtn")) {
+      const g = document.createElement("button"); g.id = "bridgeGrowBtn"; g.type = "button"; g.textContent = "✨ Grow";
+      g.className = "px-2 py-1 bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 rounded text-xs font-bold";
+      g.onclick = () => window.openBranchExpanderModal?.();
+      addBtn.parentElement.insertBefore(g, addBtn);
     }
-  }
-
-  async function syncDndSheet() {
-    const view = document.getElementById("viewStats"), list = document.getElementById("dndAttributesList");
-    if (!view || view.classList.contains("hidden") || !list || view.dataset.loadingStats) return;
-    view.dataset.loadingStats = "1";
-    let trees = (typeof userData !== "undefined" && Array.isArray(userData?.trees)) ? userData.trees : [];
-    if (!trees.length && typeof firebase !== "undefined" && firebase.auth?.().currentUser && typeof db !== "undefined" && db) {
-      try { const doc = await db.collection("users").doc(firebase.auth().currentUser.uid).get(); if (doc.exists) trees = doc.data()?.trees || []; } catch {}
+    if (!document.getElementById("bridgeDelBtn")) {
+      const d = document.createElement("button"); d.id = "bridgeDelBtn"; d.type = "button"; d.textContent = "🗑";
+      d.className = "px-2 py-1 bg-rose-950/80 border border-rose-700/60 text-rose-300 rounded text-xs font-bold";
+      d.onclick = async () => {
+        const sel = document.getElementById("treeSelect"), title = sel?.options[sel.selectedIndex]?.text?.trim();
+        if (!title || !confirm(`Delete "${title}" permanently?`)) return;
+        if (typeof userData !== "undefined" && Array.isArray(userData?.trees)) userData.trees = userData.trees.filter(t => t.id !== sel.value && t.title !== title);
+        await saveUserData?.();
+        location.reload();
+      };
+      addBtn.parentElement.appendChild(d);
     }
-    const attrs = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
-    const names = { STR: "Strength", DEX: "Dexterity", CON: "Constitution", INT: "Intelligence", WIS: "Wisdom", CHA: "Charisma" };
-    const counts = { STR: 0, DEX: 0, CON: 0, INT: 0, WIS: 0, CHA: 0 };
-    let total = 0;
-    trees.forEach(t => { const m = (t.nodes || []).filter(n => n.status === "mastered").length; total += m; counts[attrs.includes(t.attr) ? t.attr : "WIS"] += m; });
-    const sorted = [...attrs].sort((a, b) => counts[b] - counts[a]);
-    list.innerHTML = attrs.map(a => {
-      const sc = Math.min(30, 10 + Math.floor(Math.sqrt(counts[a]) * 2.2));
-      const mod = Math.floor((sc - 10) / 2);
-      const share = total > 0 ? Math.round((counts[a] / total) * 100) : 0;
-      const pct = Math.min(100, Math.round(((sc - 10) / 20) * 100));
-      return `<div class="space-y-1"><div class="flex justify-between text-xs"><span class="font-bold text-slate-200">${a} — ${names[a]} <span class="text-[10px] text-sky-400">(${share}% share)</span></span><span class="font-black text-sky-300">${sc} (${mod >= 0 ? "+" + mod : mod})</span></div><div class="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800"><div style="width:${pct}%" class="h-full bg-gradient-to-r from-sky-500 to-emerald-400"></div></div></div>`;
-    }).join("") + `<div class="mt-3 pt-2 border-t border-slate-800 grid grid-cols-2 gap-2 text-[11px]"><div class="bg-slate-950/80 p-2 rounded border border-slate-800">Top Affinity:<br><b class="text-emerald-400">${sorted[0]} (${names[sorted[0]]})</b></div><div class="bg-slate-950/80 p-2 rounded border border-slate-800">Growth Focus:<br><b class="text-amber-300">${sorted[5]} (${names[sorted[5]]})</b></div></div>`;
-    setTimeout(() => { view.dataset.loadingStats = ""; }, 800);
   }
 
   function runAll() {
     busy = false; obs.disconnect();
-    try { syncMenu(); syncWorkspaceAndNodeTags(); syncDndSheet(); } finally { obs.observe(document.body, { childList: true, subtree: true }); }
+    try { syncMenu(); syncWorkspace(); } finally { obs.observe(document.body, { childList: true, subtree: true }); }
   }
   const obs = new MutationObserver(() => { if (!busy) { busy = true; setTimeout(runAll, 150); } });
   obs.observe(document.body, { childList: true, subtree: true });

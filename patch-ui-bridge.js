@@ -13,11 +13,10 @@
           <h2 class="text-lg font-black text-sky-400 skyrim-font">📖 COMPLETE APP GUIDE</h2>
           <button id="closeGuideBtn" class="px-3 py-1 bg-slate-800 text-slate-200 rounded-lg text-xs font-bold">✕ Close</button>
         </div>
-        <div class="glass-panel rounded-xl p-3.5 space-y-1.5"><div class="text-xs font-black text-emerald-400 uppercase">1. 🌌 The Grand Nebula (Your Unified Life Galaxy)</div><p class="text-xs text-slate-300 leading-relaxed">Your flagship constellation at the top of <b>My Constellations</b>. Whenever you harvest individual skills from any tree in <b>The Server Realm</b> or <b>Private Vault</b>, send them to <b>The Grand Nebula</b>—they automatically organize into clean category spines across your 6 D&D attributes.</p></div>
-        <div class="glass-panel rounded-xl p-3.5 space-y-1.5"><div class="text-xs font-black text-amber-400 uppercase">2. 📖 Reading Nodes vs. ⚔ Quest Nodes</div><p class="text-xs text-slate-300 leading-relaxed">Unexplored stars start dim gray under <b>Fog-of-War</b>. <b>Reading Nodes</b> illuminate as soon as you read and internalize them; <b>Quest Nodes</b> require completing real-world practice checklists or prerequisite skills before illuminating.</p></div>
-        <div class="glass-panel rounded-xl p-3.5 space-y-1.5"><div class="text-xs font-black text-sky-400 uppercase">3. 🎯 Quest Board & Private Scratchpad</div><p class="text-xs text-slate-300 leading-relaxed">Every skill set to <b>Training</b> appears on your <b>Quest Board</b> with its own private scratchpad box so you can jot down progress, PRs, or reminders between sessions—or tap <b>🎲 Next Spark</b> to draw your next skill automatically.</p></div>
-        <div class="glass-panel rounded-xl p-3.5 space-y-1.5"><div class="text-xs font-black text-purple-400 uppercase">4. ✨ AI Builder & Branch Grower</div><p class="text-xs text-slate-300 leading-relaxed">Start any new topic with 12–15 core nodes from the Main Menu, then tap <b>✨ Grow</b> inside <b>My Constellations</b> to keep expanding branches indefinitely without AI truncation.</p></div>
-        <div class="glass-panel rounded-xl p-3.5 space-y-1.5"><div class="text-xs font-black text-rose-400 uppercase">5. 🔒 Private Vault & ⚔ D&D Character Sheet</div><p class="text-xs text-slate-300 leading-relaxed">Export proprietary workflows as PIN-locked <b>STREE1</b> share links, and track how your real-world mastery balances across <b>STR, DEX, CON, INT, WIS, and CHA</b>.</p></div>
+        <div class="glass-panel rounded-xl p-3.5 space-y-1.5"><div class="text-xs font-black text-emerald-400 uppercase">1. 🌌 The Grand Nebula</div><p class="text-xs text-slate-300 leading-relaxed">Your flagship constellation in <b>My Constellations</b>. Harvest individual skills from any tree into <b>The Grand Nebula</b> to organize them onto clean category spines across STR, DEX, CON, INT, WIS, and CHA.</p></div>
+        <div class="glass-panel rounded-xl p-3.5 space-y-1.5"><div class="text-xs font-black text-amber-400 uppercase">2. 📖 Reading Nodes vs. ⚔ Quest Nodes</div><p class="text-xs text-slate-300 leading-relaxed">Unexplored stars start dim under <b>Fog-of-War</b>. <b>Reading Nodes</b> illuminate after reading; <b>Quest Nodes</b> require completing real-world practice checklists or prerequisites first.</p></div>
+        <div class="glass-panel rounded-xl p-3.5 space-y-1.5"><div class="text-xs font-black text-sky-400 uppercase">3. 🎯 Quest Board & Private Scratchpad</div><p class="text-xs text-slate-300 leading-relaxed">Every skill in <b>Training</b> appears on your <b>Quest Board</b> with a private scratchpad box to log progress between sessions, or tap <b>🎲 Next Spark</b> to draw your next skill.</p></div>
+        <div class="glass-panel rounded-xl p-3.5 space-y-1.5"><div class="text-xs font-black text-purple-400 uppercase">4. ✨ AI Builder & Branch Grower</div><p class="text-xs text-slate-300 leading-relaxed">Generate 12–15 core nodes from the Main Menu, then tap <b>✨ Grow</b> inside <b>My Constellations</b> to expand branches indefinitely without AI truncation.</p></div>
       </div>`;
     m.classList.remove("hidden");
     document.getElementById("closeGuideBtn").onclick = () => m.classList.add("hidden");
@@ -57,7 +56,6 @@
   function syncWorkspace() {
     const addBtn = document.getElementById("addNodeBtn");
     if (!addBtn) return;
-    // Hide the accidental auto-layout sprout button so custom node positions never reset
     addBtn.parentElement.querySelectorAll("button").forEach(b => { if ((b.textContent || "").includes("🌿")) b.style.display = "none"; });
 
     if (!document.getElementById("bridgeGrowBtn")) {
@@ -70,11 +68,40 @@
       const d = document.createElement("button"); d.id = "bridgeDelBtn"; d.type = "button"; d.textContent = "🗑";
       d.className = "px-2 py-1 bg-rose-950/80 border border-rose-700/60 text-rose-300 rounded text-xs font-bold";
       d.onclick = async () => {
-        const sel = document.getElementById("treeSelect"), title = sel?.options[sel.selectedIndex]?.text?.trim();
-        if (!title || !confirm(`Delete "${title}" permanently?`)) return;
-        if (typeof userData !== "undefined" && Array.isArray(userData?.trees)) userData.trees = userData.trees.filter(t => t.id !== sel.value && t.title !== title);
-        await saveUserData?.();
-        location.reload();
+        const sel = document.getElementById("treeSelect");
+        const delId = sel?.value;
+        const delTitle = sel?.options[sel.selectedIndex]?.text?.trim();
+        if (!delTitle || !confirm(`Delete "${delTitle}" permanently?`)) return;
+
+        // Remove from ALL localStorage keys
+        for (const k of Object.keys(localStorage)) {
+          try {
+            const v = JSON.parse(localStorage.getItem(k) || "null");
+            if (Array.isArray(v?.trees)) {
+              v.trees = v.trees.filter(t => t.id !== delId && t.title !== delTitle);
+              localStorage.setItem(k, JSON.stringify(v));
+            }
+          } catch {}
+        }
+
+        // Remove from Firestore user doc directly
+        if (typeof firebase !== "undefined" && firebase.auth?.().currentUser && typeof db !== "undefined" && db) {
+          try {
+            const uid = firebase.auth().currentUser.uid;
+            const doc = await db.collection("users").doc(uid).get();
+            if (doc.exists && Array.isArray(doc.data()?.trees)) {
+              const nextTrees = doc.data().trees.filter(t => t.id !== delId && t.title !== delTitle);
+              await db.collection("users").doc(uid).set({ trees: nextTrees }, { merge: true });
+            }
+          } catch {}
+        }
+
+        // Remove option from dropdown immediately without losing place
+        if (sel && sel.selectedIndex >= 0) {
+          sel.remove(sel.selectedIndex);
+          sel.dispatchEvent(new Event("change"));
+        }
+        alert(`Deleted "${delTitle}"!`);
       };
       addBtn.parentElement.appendChild(d);
     }

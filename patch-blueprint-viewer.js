@@ -1,4 +1,4 @@
-(function installConceptViewerWithGrimoire() {
+(function installConceptViewerWithCleanHarvest() {
   let activeBp = null, cam = { s: 1, x: 0, y: 0 }, ptrs = new Map(), pDist = 0, pScale = 1, panX = 0, panY = 0, origX = 0, origY = 0;
 
   const getAllTrees = () => {
@@ -15,12 +15,13 @@
     const stamp = Date.now(), ids = layout.map((_, i) => `cp_${stamp}_${i}`);
     const cloned = layout.map((n, i) => {
       const pIdx = typeof n.parentIdx === "number" ? n.parentIdx : -1;
-      const alreadyLit = pIdx < 0 || window.isGrimoireUnlocked?.(t.id, n.title);
+      const lit = pIdx < 0 || window.isGrimoireUnlocked?.(t.id, n.title);
       return {
-        id: ids[i], title: n.title, status: alreadyLit ? "mastered" : "locked",
+        id: ids[i], title: n.title, status: lit ? "mastered" : "locked",
         tier: n.tier || "Category", icon: n.icon || "📖", color: n.color || "#38bdf8",
         x: n.x, y: n.y, tags: n.tags || [], notes: n.notes || "", image: n.image || "",
-        steps: n.steps || [], links: n.links || [], parentId: (pIdx >= 0 && ids[pIdx]) ? ids[pIdx] : null
+        steps: (n.steps || []).map(s => ({ text: s.text || s, done: false })), links: n.links || [],
+        parentId: (pIdx >= 0 && ids[pIdx]) ? ids[pIdx] : null
       };
     });
     await createNewTree(t.title, t.attr || "WIS", cloned);
@@ -28,13 +29,29 @@
     navigate("viewTrees", "My Constellations");
   };
 
+  function openCleanHarvestPicker(treeObj, nodeObj) {
+    let pm = document.getElementById("cleanHarvestModal");
+    if (!pm) { pm = document.createElement("div"); pm.id = "cleanHarvestModal"; pm.className = "fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"; document.body.appendChild(pm); }
+    const userTrees = (typeof userData !== "undefined" && Array.isArray(userData?.trees)) ? userData.trees : [];
+    pm.innerHTML = `<div class="w-full max-w-sm glass-panel rounded-2xl p-5 space-y-3"><div class="flex justify-between items-center"><h3 class="text-base font-black text-sky-400 skyrim-font">🌱 Harvest Skill Node</h3><button id="closeHarvBtn" class="text-slate-400">✕</button></div><p class="text-xs text-slate-300">Where do you want to store <b>${nodeObj.title}</b>?</p><button id="harvToNebulaBtn" class="w-full py-2.5 bg-emerald-500 text-slate-950 font-black rounded-xl text-xs">🌌 Send to The Grand Nebula (Auto-Categorized)</button><div class="space-y-1.5 pt-1"><label class="text-[10px] uppercase font-bold text-slate-400">Or add to a specific constellation:</label><select id="harvTargetSel" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white">${userTrees.map(t => `<option value="${t.id}">${t.title}</option>`).join("")}</select><button id="harvToTreeBtn" class="w-full py-2 bg-sky-500 text-slate-950 font-bold rounded-lg text-xs">+ Add to Selected Tree</button></div></div>`;
+    pm.classList.remove("hidden");
+    document.getElementById("closeHarvBtn").onclick = () => pm.classList.add("hidden");
+    document.getElementById("harvToNebulaBtn").onclick = async () => { pm.classList.add("hidden"); await window.harvestIntoGrandNebula?.(nodeObj, treeObj.title.split(":")[0], treeObj.attr || "WIS"); };
+    document.getElementById("harvToTreeBtn").onclick = async () => {
+      const target = userTrees.find(t => t.id === document.getElementById("harvTargetSel").value) || userTrees[0];
+      if (!target) return alert("Create a constellation first.");
+      target.nodes.push({ id: `h_${Date.now()}`, parentIdx: -1, parentId: null, title: nodeObj.title, status: "learning", tier: nodeObj.tier || "Harvested", icon: nodeObj.icon || "✦", color: nodeObj.color || "#38bdf8", x: 50, y: 65, notes: nodeObj.notes || "", steps: (nodeObj.steps || []).map(s => ({ text: s.text || s, done: false })), links: nodeObj.links || [] });
+      await saveUserData?.(); pm.classList.add("hidden"); alert(`Harvested into "${target.title}"!`);
+    };
+  }
+
   function ensureModal() {
     let modal = document.getElementById("serverInspectModal");
     if (!modal) { modal = document.createElement("div"); modal.id = "serverInspectModal"; document.body.appendChild(modal); }
-    // Transparent backdrop so live starfield + planets shine through behind Concept Trees
-    modal.className = "fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-[2px] flex flex-col";
+    // Solid deep-space background so Server Realm cards never bleed through behind Concept Trees
+    modal.className = "fixed inset-0 z-50 bg-[#020617] flex flex-col";
     modal.innerHTML = `
-      <div class="px-3 py-2.5 border-b border-sky-500/30 bg-slate-950/90 flex items-center justify-between gap-2 shrink-0">
+      <div class="px-3 py-2.5 border-b border-sky-500/30 bg-slate-950 flex items-center justify-between gap-2 shrink-0">
         <div class="min-w-0"><span id="inspTag" class="text-[10px] uppercase px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold">Concept</span> <span id="inspAuthor" class="text-[11px] text-slate-400"></span><h2 id="inspTitle" class="text-sm font-black text-white skyrim-font truncate"></h2></div>
         <div class="flex items-center space-x-1.5 shrink-0">
           <button id="bpFitBtn" type="button" class="px-2 py-1.5 bg-slate-800 text-sky-300 rounded-lg text-xs font-bold">⌖ Fit</button>
@@ -42,21 +59,17 @@
           <button id="bpCloseBtn" type="button" class="px-2.5 py-1.5 bg-slate-800 text-slate-200 rounded-lg text-xs font-bold">✕</button>
         </div>
       </div>
-      <div id="bpCanvasWrap" class="relative flex-1 overflow-hidden touch-none">
+      <div id="bpCanvasWrap" class="relative flex-1 overflow-hidden touch-none" style="background:radial-gradient(circle at 30% 25%, rgba(56,189,248,0.14), transparent 55%), radial-gradient(circle at 75% 70%, rgba(139,92,246,0.14), transparent 55%), #020617">
         <canvas id="bpCanvas" class="absolute inset-0 w-full h-full"></canvas>
         <div id="bpNodesLayer" class="absolute inset-0 origin-top-left"></div>
       </div>
-      <div id="bpNodeDrawer" class="hidden border-t border-sky-500/40 bg-slate-900/95 p-4 space-y-2.5 max-h-[52vh] overflow-y-auto shrink-0">
-        <div class="flex justify-between items-start gap-2">
-          <div><span id="bpNodeTier" class="text-[10px] font-black uppercase text-amber-300"></span><h3 id="bpNodeTitle" class="text-base font-bold text-white skyrim-font"></h3></div>
-          <button id="bpCloseDrawerBtn" type="button" class="text-slate-400 text-sm px-2">✕</button>
-        </div>
-        <p id="bpNodeNotes" class="text-xs text-slate-200 leading-relaxed whitespace-pre-line bg-slate-950/80 p-3 rounded-xl border border-slate-800"></p>
+      <div id="bpNodeDrawer" class="hidden border-t border-sky-500/40 bg-slate-900 p-4 space-y-2.5 max-h-[52vh] overflow-y-auto shrink-0">
+        <div class="flex justify-between items-start gap-2"><div><span id="bpNodeTier" class="text-[10px] font-black uppercase text-amber-300"></span><h3 id="bpNodeTitle" class="text-base font-bold text-white skyrim-font"></h3></div><button id="bpCloseDrawerBtn" type="button" class="text-slate-400 text-sm px-2">✕</button></div>
+        <p id="bpNodeNotes" class="text-xs text-slate-200 leading-relaxed whitespace-pre-line bg-slate-950/90 p-3 rounded-xl border border-slate-800"></p>
         <div id="bpNodeSteps" class="space-y-1.5 text-xs"></div>
-        <div class="grid grid-cols-3 gap-1.5 pt-1">
-          <button id="bpUnlockReadBtn" type="button" class="py-2 bg-amber-500 text-slate-950 rounded-lg text-[11px] font-black">✨ Illuminate</button>
-          <button id="bpNebulaBtn" type="button" class="py-2 bg-emerald-500 text-slate-950 rounded-lg text-[11px] font-black">🌌 + Nebula</button>
-          <button id="bpHarvestBtn" type="button" class="py-2 bg-sky-500 text-slate-950 rounded-lg text-[11px] font-black">+ Harvest</button>
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button id="bpUnlockReadBtn" type="button" class="py-2.5 bg-amber-500 text-slate-950 rounded-lg text-xs font-black">✨ Illuminate Node</button>
+          <button id="bpHarvestBtn" type="button" class="py-2.5 bg-emerald-500 text-slate-950 rounded-lg text-xs font-black">🌱 Harvest Node</button>
         </div>
       </div>`;
 
@@ -94,6 +107,9 @@
     if (c.height !== wrap.clientHeight) c.height = wrap.clientHeight || (window.innerHeight - 60);
     const ctx = c.getContext("2d");
     ctx.clearRect(0, 0, c.width, c.height);
+    // Draw subtle deep-space background stars inside concept tree canvas
+    ctx.fillStyle = "rgba(248,250,252,0.55)";
+    for (let i = 0; i < 70; i++) { ctx.fillRect((Math.sin(i * 73.1) * 0.5 + 0.5) * c.width, (Math.cos(i * 39.7) * 0.5 + 0.5) * c.height, 1.5, 1.5); }
     ctx.save(); ctx.translate(cam.x, cam.y); ctx.scale(cam.s, cam.s);
     window.renderWorldTreeCanvas?.(ctx, c.width, c.height, activeBp._layout);
     ctx.restore();
@@ -107,18 +123,24 @@
 
     layer.querySelectorAll(".bp-star").forEach(b => b.onclick = () => {
       const n = activeBp._layout[Number(b.dataset.i)];
+      n._previewSteps = (n.steps || []).map(s => ({ text: s.text || s, done: false }));
       document.getElementById("bpNodeDrawer").classList.remove("hidden");
       document.getElementById("bpNodeTier").textContent = n.tier || "Concept Skill";
       document.getElementById("bpNodeTitle").textContent = n.title;
       document.getElementById("bpNodeNotes").textContent = n.notes || "";
-      document.getElementById("bpNodeSteps").innerHTML = (n.steps || []).map((s, si) => `<label class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800 text-emerald-300"><input type="checkbox" data-si="${si}" ${s.done ? "checked" : ""}><span>${s.text}</span></label>`).join("");
+      const stepsBox = document.getElementById("bpNodeSteps");
+      stepsBox.innerHTML = n._previewSteps.map((s, si) => `<label class="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800 text-emerald-300"><input type="checkbox" data-si="${si}"><span>${s.text}</span></label>`).join("");
+      stepsBox.querySelectorAll("input[type=checkbox]").forEach(chk => chk.onchange = () => { n._previewSteps[Number(chk.dataset.si)].done = chk.checked; });
+
       document.getElementById("bpUnlockReadBtn").onclick = () => {
+        if (n._previewSteps.length && !n._previewSteps.every(s => s.done)) {
+          return alert("Complete all quest checklist steps above before illuminating this node!");
+        }
         n.status = "mastered";
         window.markGrimoireUnlocked?.(activeBp.id, n.title);
         renderBp(true);
       };
-      document.getElementById("bpNebulaBtn").onclick = () => window.harvestIntoGrandNebula?.(n, activeBp.title.split(":")[0], activeBp.attr || "WIS");
-      document.getElementById("bpHarvestBtn").onclick = () => harvestSingleNode?.(activeBp.id, n._oi);
+      document.getElementById("bpHarvestBtn").onclick = () => openCleanHarvestPicker(activeBp, n);
     });
   }
 

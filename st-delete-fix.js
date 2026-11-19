@@ -1,240 +1,271 @@
 (() => {
-  if (window.__stDeleteFixLoaded) return;
-  window.__stDeleteFixLoaded = true;
+  if (window.__stDeleteFixV4) return;
+  window.__stDeleteFixV4 = true;
 
   const DEL_C_KEY = "st_deleted_constellations_v1";
   const DEL_N_KEY = "st_deleted_nodes_v1";
 
-  const clone = (v) =>
-    typeof structuredClone === "function" ? structuredClone(v) : JSON.parse(JSON.stringify(v));
-
-  const idOf = (obj) => {
-    if (!obj || typeof obj !== "object") return "";
-    return String(obj.id ?? obj.constellationId ?? obj.nodeId ?? obj.key ?? obj.slug ?? "");
-  };
-
-  const labelOf = (obj, fallback = "") => {
-    if (!obj || typeof obj !== "object") return fallback;
-    return String(obj.name ?? obj.title ?? obj.label ?? fallback);
-  };
-
-  function getDeletedSet(storageKey) {
+  const clone = (v) => {
     try {
-      const raw = JSON.parse(localStorage.getItem(storageKey) || "[]");
-      return new Set(Array.isArray(raw) ? raw.map(String) : []);
+      return typeof structuredClone === "function" ? structuredClone(v) : JSON.parse(JSON.stringify(v));
+    } catch {
+      return v;
+    }
+  };
+
+  const getId = (o) =>
+    o && typeof o === "object"
+      ? String(o.id ?? o.constellationId ?? o.nodeId ?? o.key ?? o.slug ?? "")
+      : "";
+
+  const getName = (o) =>
+    o && typeof o === "object" ? String(o.name ?? o.title ?? o.label ?? "") : "";
+
+  function readSet(key) {
+    try {
+      const arr = JSON.parse(localStorage.getItem(key) || "[]");
+      return new Set(Array.isArray(arr) ? arr.map(String) : []);
     } catch {
       return new Set();
     }
   }
 
-  function saveDeletedSet(storageKey, setObj) {
+  function writeSet(key, setObj) {
     try {
-      localStorage.setItem(storageKey, JSON.stringify([...setObj]));
+      localStorage.setItem(key, JSON.stringify([...setObj]));
     } catch {}
   }
 
-  function scrubObject(data) {
-    if (!data || typeof data !== "object") return data;
-    const delC = getDeletedSet(DEL_C_KEY);
-    const delN = getDeletedSet(DEL_N_KEY);
-    const removedNodes = new Set(delN);
+  function cleanStoreObject(obj) {
+    if (!obj || typeof obj !== "object") return obj;
+    const delC = readSet(DEL_C_KEY);
+    const delN = readSet(DEL_N_KEY);
+    const removedNodeIds = new Set(delN);
 
-    if (Array.isArray(data.constellations)) {
-      data.constellations = data.constellations.filter((c) => {
-        const cid = idOf(c);
-        const cname = labelOf(c);
-        const matched = (cid && delC.has(cid)) || (cname && delC.has(cname));
-        if (matched && Array.isArray(c?.nodes)) {
+    const matchesConstellation = (c, mapKey = "") => {
+      const id = getId(c);
+      const name = getName(c);
+      return (
+        (mapKey && delC.has(String(mapKey))) ||
+        (id && delC.has(id)) ||
+        (name && delC.has(name))
+      );
+    };
+
+    if (Array.isArray(obj.constellations)) {
+      obj.constellations = obj.constellations.filter((c) => {
+        const hit = matchesConstellation(c);
+        if (hit && Array.isArray(c?.nodes)) {
           c.nodes.forEach((n) => {
-            const nid = idOf(n);
-            if (nid) removedNodes.add(nid);
+            const nid = getId(n);
+            if (nid) removedNodeIds.add(nid);
           });
         }
-        return !matched;
+        return !hit;
       });
-    } else if (data.constellations && typeof data.constellations === "object") {
-      for (const [k, c] of Object.entries(data.constellations)) {
-        const cid = idOf(c);
-        const cname = labelOf(c);
-        const matched =
-          delC.has(String(k)) || (cid && delC.has(cid)) || (cname && delC.has(cname));
-        if (matched) {
+    } else if (obj.constellations && typeof obj.constellations === "object") {
+      for (const [k, c] of Object.entries(obj.constellations)) {
+        if (matchesConstellation(c, k)) {
           if (Array.isArray(c?.nodes)) {
             c.nodes.forEach((n) => {
-              const nid = idOf(n);
-              if (nid) removedNodes.add(nid);
+              const nid = getId(n);
+              if (nid) removedNodeIds.add(nid);
             });
           }
-          delete data.constellations[k];
+          delete obj.constellations[k];
         }
       }
     }
 
-    if (Array.isArray(data.nodes)) {
-      data.nodes = data.nodes.filter((n) => {
-        const nid = idOf(n);
+    if (Array.isArray(obj.nodes)) {
+      obj.nodes = obj.nodes.filter((n) => {
+        const nid = getId(n);
+        const nname = getName(n);
         const cid = String(n?.constellationId ?? n?.constellation ?? n?.group ?? "");
-        return !removedNodes.has(nid) && !delC.has(cid);
+        return !removedNodeIds.has(nid) && !delN.has(nname) && !delC.has(cid);
       });
     }
 
-    for (const edgeField of ["edges", "links", "connections"]) {
-      if (Array.isArray(data[edgeField])) {
-        data[edgeField] = data[edgeField].filter((e) => {
+    for (const ek of ["edges", "links", "connections"]) {
+      if (Array.isArray(obj[ek])) {
+        obj[ek] = obj[ek].filter((e) => {
           const cid = String(e?.constellationId ?? e?.constellation ?? "");
-          const src = String(e?.source ?? e?.from ?? e?.sourceId ?? "");
-          const tgt = String(e?.target ?? e?.to ?? e?.targetId ?? "");
-          return !delC.has(cid) && !removedNodes.has(src) && !removedNodes.has(tgt);
+          const s = String(e?.source ?? e?.from ?? e?.sourceId ?? "");
+          const t = String(e?.target ?? e?.to ?? e?.targetId ?? "");
+          return !delC.has(cid) && !removedNodeIds.has(s) && !removedNodeIds.has(t);
         });
       }
     }
 
-    const remaining = Array.isArray(data.constellations)
-      ? data.constellations
-      : data.constellations && typeof data.constellations === "object"
-      ? Object.entries(data.constellations).map(([id, val]) => ({ id, ...val }))
+    const remaining = Array.isArray(obj.constellations)
+      ? obj.constellations
+      : obj.constellations && typeof obj.constellations === "object"
+      ? Object.entries(obj.constellations).map(([id, v]) => ({ id, ...v }))
       : [];
-    const nextActiveId = remaining.length ? idOf(remaining[0]) : null;
+    const fallbackId = remaining.length ? getId(remaining[0]) : null;
 
-    for (const activeField of [
-      "activeConstellationId",
-      "selectedConstellationId",
-      "currentConstellationId"
-    ]) {
-      if (activeField in data && (!data[activeField] || delC.has(String(data[activeField])))) {
-        data[activeField] = nextActiveId;
+    for (const ak of ["activeConstellationId", "selectedConstellationId", "currentConstellationId"]) {
+      if (ak in obj && (!obj[ak] || delC.has(String(obj[ak])))) {
+        obj[ak] = fallbackId;
       }
     }
 
-    return data;
+    return obj;
   }
 
-  function scrubStorageNow() {
+  function scrubEverything() {
+    // 1. Clean localStorage entries
     for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key || key === DEL_C_KEY || key === DEL_N_KEY) continue;
+      const k = localStorage.key(i);
+      if (!k || k === DEL_C_KEY || k === DEL_N_KEY) continue;
       try {
-        const raw = localStorage.getItem(key);
+        const raw = localStorage.getItem(k);
         if (!raw || (!raw.includes("constellations") && !raw.includes("nodes"))) continue;
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === "object") {
-          const cleaned = scrubObject(clone(parsed));
-          localStorage.setItem(key, JSON.stringify(cleaned));
-        }
-      } catch {}
-    }
-  }
-
-  function readConstellations() {
-    const items = [];
-    const seen = new Set();
-    const delC = getDeletedSet(DEL_C_KEY);
-
-    function addItem(c, index) {
-      if (!c || typeof c !== "object") return;
-      const id = idOf(c) || `idx_${index}`;
-      const name = labelOf(c, `Constellation ${index + 1}`);
-      if (delC.has(id) || delC.has(name)) return;
-      const key = `${id}::${name}`;
-      if (seen.has(key)) return;
-      seen.add(key);
-      items.push({ id, name });
-    }
-
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key || key === DEL_C_KEY || key === DEL_N_KEY) continue;
-      try {
-        const parsed = JSON.parse(localStorage.getItem(key));
-        if (!parsed || typeof parsed !== "object") continue;
-        if (Array.isArray(parsed.constellations)) {
-          parsed.constellations.forEach((c, idx) => addItem(c, idx));
-        } else if (parsed.constellations && typeof parsed.constellations === "object") {
-          Object.entries(parsed.constellations).forEach(([id, c], idx) =>
-            addItem({ id, ...c }, idx)
-          );
+          const next = cleanStoreObject(clone(parsed));
+          const serialized = JSON.stringify(next);
+          if (serialized !== raw) {
+            writeWithoutGuard(k, serialized);
+          }
         }
       } catch {}
     }
 
-    return items;
-  }
-
-  function readNodes() {
-    const items = [];
-    const seen = new Set();
-    const delN = getDeletedSet(DEL_N_KEY);
-    const delC = getDeletedSet(DEL_C_KEY);
-
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key || key === DEL_C_KEY || key === DEL_N_KEY) continue;
-      try {
-        const parsed = JSON.parse(localStorage.getItem(key));
-        if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.nodes)) continue;
-        parsed.nodes.forEach((n, idx) => {
-          const id = idOf(n) || `n_${idx}`;
-          const cid = String(n?.constellationId ?? n?.constellation ?? n?.group ?? "");
-          const name = labelOf(n, `Node ${idx + 1}`);
-          if (delN.has(id) || delN.has(name) || delC.has(cid)) return;
-          const keyId = `${id}::${name}`;
-          if (seen.has(keyId)) return;
-          seen.add(keyId);
-          items.push({ id, name });
-        });
-      } catch {}
+    // 2. Clean any state objects attached to window
+    for (const prop of ["appState", "skillTreeState", "state", "treeState"]) {
+      if (window[prop] && typeof window[prop] === "object") {
+        cleanStoreObject(window[prop]);
+      }
     }
-
-    return items;
   }
 
-  function deleteConstellations(targets) {
-    const delC = getDeletedSet(DEL_C_KEY);
-    targets.forEach((t) => {
-      if (t?.id) delC.add(String(t.id));
-      if (t?.name) delC.add(String(t.name));
-    });
-    saveDeletedSet(DEL_C_KEY, delC);
-    scrubStorageNow();
-    window.dispatchEvent(new CustomEvent("skilltree:updated"));
-  }
-
-  function deleteNodes(targets) {
-    const delN = getDeletedSet(DEL_N_KEY);
-    targets.forEach((t) => {
-      if (t?.id) delN.add(String(t.id));
-      if (t?.name) delN.add(String(t.name));
-    });
-    saveDeletedSet(DEL_N_KEY, delN);
-    scrubStorageNow();
-    window.dispatchEvent(new CustomEvent("skilltree:updated"));
-  }
-
-  scrubStorageNow();
   const nativeSetItem = localStorage.setItem.bind(localStorage);
-  let isScrubbing = false;
+  let guarding = false;
+
+  function writeWithoutGuard(key, val) {
+    guarding = true;
+    try {
+      nativeSetItem(key, val);
+    } finally {
+      guarding = false;
+    }
+  }
+
   localStorage.setItem = function (key, value) {
     nativeSetItem(key, value);
-    if (isScrubbing || key === DEL_C_KEY || key === DEL_N_KEY) return;
+    if (guarding || key === DEL_C_KEY || key === DEL_N_KEY) return;
     try {
       if (typeof value === "string" && (value.includes("constellations") || value.includes("nodes"))) {
         const parsed = JSON.parse(value);
         if (parsed && typeof parsed === "object") {
-          const cleaned = scrubObject(clone(parsed));
-          const nextRaw = JSON.stringify(cleaned);
-          if (nextRaw !== value) {
-            isScrubbing = true;
-            nativeSetItem(key, nextRaw);
-            isScrubbing = false;
-          }
+          const cleaned = cleanStoreObject(clone(parsed));
+          const out = JSON.stringify(cleaned);
+          if (out !== value) writeWithoutGuard(key, out);
         }
       }
-    } catch {
-      isScrubbing = false;
-    }
+    } catch {}
   };
 
-  function mountDeleteUI() {
+  function collectConstellations() {
+    const out = [];
+    const seen = new Set();
+    const delC = readSet(DEL_C_KEY);
+
+    const pushItem = (c, idx) => {
+      if (!c || typeof c !== "object") return;
+      const id = getId(c) || `c_${idx}`;
+      const name = getName(c) || `Constellation ${idx + 1}`;
+      if (delC.has(id) || delC.has(name)) return;
+      const key = `${id}::${name}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push({ id, name });
+    };
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || k === DEL_C_KEY || k === DEL_N_KEY) continue;
+      try {
+        const p = JSON.parse(localStorage.getItem(k));
+        if (!p || typeof p !== "object") continue;
+        if (Array.isArray(p.constellations)) p.constellations.forEach(pushItem);
+        else if (p.constellations && typeof p.constellations === "object") {
+          Object.entries(p.constellations).forEach(([id, v], idx) => pushItem({ id, ...v }, idx));
+        }
+      } catch {}
+    }
+
+    for (const prop of ["appState", "skillTreeState", "state", "treeState"]) {
+      const p = window[prop];
+      if (!p || typeof p !== "object") continue;
+      if (Array.isArray(p.constellations)) p.constellations.forEach(pushItem);
+      else if (p.constellations && typeof p.constellations === "object") {
+        Object.entries(p.constellations).forEach(([id, v], idx) => pushItem({ id, ...v }, idx));
+      }
+    }
+
+    return out;
+  }
+
+  function collectNodes() {
+    const out = [];
+    const seen = new Set();
+    const delN = readSet(DEL_N_KEY);
+    const delC = readSet(DEL_C_KEY);
+
+    const pushNode = (n, idx) => {
+      if (!n || typeof n !== "object") return;
+      const id = getId(n) || `n_${idx}`;
+      const name = getName(n) || `Node ${idx + 1}`;
+      const cid = String(n?.constellationId ?? n?.constellation ?? n?.group ?? "");
+      if (delN.has(id) || delN.has(name) || delC.has(cid)) return;
+      const key = `${id}::${name}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push({ id, name });
+    };
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || k === DEL_C_KEY || k === DEL_N_KEY) continue;
+      try {
+        const p = JSON.parse(localStorage.getItem(k));
+        if (p && typeof p === "object" && Array.isArray(p.nodes)) p.nodes.forEach(pushNode);
+      } catch {}
+    }
+
+    for (const prop of ["appState", "skillTreeState", "state", "treeState"]) {
+      const p = window[prop];
+      if (p && typeof p === "object" && Array.isArray(p.nodes)) p.nodes.forEach(pushNode);
+    }
+
+    return out;
+  }
+
+  function removeConstellationTargets(targets) {
+    const delC = readSet(DEL_C_KEY);
+    targets.forEach((t) => {
+      if (t?.id) delC.add(String(t.id));
+      if (t?.name) delC.add(String(t.name));
+    });
+    writeSet(DEL_C_KEY, delC);
+    scrubEverything();
+    window.dispatchEvent(new CustomEvent("skilltree:updated"));
+  }
+
+  function removeNodeTargets(targets) {
+    const delN = readSet(DEL_N_KEY);
+    targets.forEach((t) => {
+      if (t?.id) delN.add(String(t.id));
+      if (t?.name) delN.add(String(t.name));
+    });
+    writeSet(DEL_N_KEY, delN);
+    scrubEverything();
+    window.dispatchEvent(new CustomEvent("skilltree:updated"));
+  }
+
+  function mountUI() {
     if (document.getElementById("stFixButton")) return;
 
     const btn = document.createElement("button");
@@ -268,15 +299,15 @@
       </div>
     `;
 
-    let cListCache = [];
-    let nListCache = [];
+    let cCache = [];
+    let nCache = [];
 
-    function renderLists() {
-      cListCache = readConstellations();
-      nListCache = readNodes();
+    function draw() {
+      cCache = collectConstellations();
+      nCache = collectNodes();
 
-      overlay.querySelector("#stFixConstellations").innerHTML = cListCache.length
-        ? cListCache
+      overlay.querySelector("#stFixConstellations").innerHTML = cCache.length
+        ? cCache
             .map(
               (c, idx) => `
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:#0e0819;padding:8px 10px;border-radius:12px;">
@@ -290,8 +321,8 @@
             .join("")
         : `<div style="font-size:12px;color:#a1a1aa;">No constellations remaining</div>`;
 
-      overlay.querySelector("#stFixNodes").innerHTML = nListCache.length
-        ? nListCache
+      overlay.querySelector("#stFixNodes").innerHTML = nCache.length
+        ? nCache
             .map(
               (n, idx) => `
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:#0e0819;padding:6px 10px;border-radius:10px;font-size:11px;">
@@ -309,7 +340,7 @@
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      renderLists();
+      draw();
       overlay.style.display = "flex";
     });
 
@@ -324,9 +355,9 @@
       if (cBtn) {
         e.preventDefault();
         e.stopPropagation();
-        const target = cListCache[Number(cBtn.getAttribute("data-del-one-c"))];
-        if (target) deleteConstellations([target]);
-        renderLists();
+        const item = cCache[Number(cBtn.getAttribute("data-del-one-c"))];
+        if (item) removeConstellationTargets([item]);
+        draw();
         return;
       }
 
@@ -334,40 +365,41 @@
       if (nBtn) {
         e.preventDefault();
         e.stopPropagation();
-        const target = nListCache[Number(nBtn.getAttribute("data-del-one-n"))];
-        if (target) deleteNodes([target]);
-        renderLists();
+        const item = nCache[Number(nBtn.getAttribute("data-del-one-n"))];
+        if (item) removeNodeTargets([item]);
+        draw();
       }
     });
 
     overlay.querySelector("#stFixDeleteChecked").addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const checkedC = [...overlay.querySelectorAll(".stf-c-box:checked")]
-        .map((el) => cListCache[Number(el.value)])
+      const cSel = [...overlay.querySelectorAll(".stf-c-box:checked")]
+        .map((el) => cCache[Number(el.value)])
         .filter(Boolean);
-      const checkedN = [...overlay.querySelectorAll(".stf-n-box:checked")]
-        .map((el) => nListCache[Number(el.value)])
+      const nSel = [...overlay.querySelectorAll(".stf-n-box:checked")]
+        .map((el) => nCache[Number(el.value)])
         .filter(Boolean);
-      if (checkedC.length) deleteConstellations(checkedC);
-      if (checkedN.length) deleteNodes(checkedN);
-      renderLists();
+      if (cSel.length) removeConstellationTargets(cSel);
+      if (nSel.length) removeNodeTargets(nSel);
+      draw();
     });
 
     overlay.querySelector("#stFixDeleteAllC").addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (cListCache.length) deleteConstellations(cListCache);
-      renderLists();
+      if (cCache.length) removeConstellationTargets(cCache);
+      draw();
     });
 
     document.body.appendChild(btn);
     document.body.appendChild(overlay);
   }
 
+  scrubEverything();
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", mountDeleteUI);
+    document.addEventListener("DOMContentLoaded", mountUI);
   } else {
-    mountDeleteUI();
+    mountUI();
   }
 })();

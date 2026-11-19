@@ -1,4 +1,4 @@
-(function loaSkillTreeModules() {
+(function loadSkillTreeModules() {
   const v = Date.now();
   const files = [
     "trees.js",

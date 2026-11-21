@@ -3,488 +3,594 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0d0714">
-  <link rel="manifest" href="manifest.json">
-  <title>App Forge • 2D Loft Studio</title>
+  <meta name="theme-color" content="#060918">
+  <title>Skill Tree • Real-World Mastery System</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .glass-card { background: rgba(18, 11, 28, 0.88); backdrop-filter: blur(16px); border: 1px solid rgba(244, 63, 94, 0.25); }
-    @keyframes mjIdleRich {
-      0% { transform: scale(1.015) translate3d(0px, 0px, 0); filter: brightness(1.0) contrast(1.02); }
-      33% { transform: scale(1.038) translate3d(-4px, -4px, 0); filter: brightness(1.05) contrast(1.04); }
-      66% { transform: scale(1.026) translate3d(4px, -2px, 0); filter: brightness(1.02) contrast(1.03); }
-      100% { transform: scale(1.015) translate3d(0px, 0px, 0); filter: brightness(1.0) contrast(1.02); }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 20% 15%, #161b40 0%, #070a19 52%, #03040c 100%);
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
-    @keyframes mjHackPulse {
-      0%, 100% { transform: scale(1.02) translate3d(0, 0, 0); filter: brightness(1.02); }
-      50% { transform: scale(1.04) translate3d(-2px, -1px, 0); filter: brightness(1.13); }
+    .glass {
+      background: rgba(13, 19, 43, 0.86);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(99, 102, 241, 0.28);
     }
-    @keyframes mjCelebratePop {
-      0%, 100% { transform: scale(1.02) translate3d(0, 0, 0); filter: brightness(1.05); }
-      50% { transform: scale(1.05) translate3d(0, -6px, 0); filter: brightness(1.14); }
+    .starfield {
+      background-image:
+        radial-gradient(1.5px 1.5px at 18% 24%, rgba(255,255,255,0.7), transparent),
+        radial-gradient(1px 1px at 72% 18%, rgba(165,180,252,0.8), transparent),
+        radial-gradient(1.5px 1.5px at 45% 68%, rgba(244,114,182,0.65), transparent),
+        radial-gradient(1px 1px at 84% 76%, rgba(56,189,248,0.75), transparent),
+        radial-gradient(2px 2px at 28% 84%, rgba(250,204,21,0.5), transparent);
     }
-    @keyframes mjSwayFloat {
-      0%, 100% { transform: scale(1.03) translate3d(-5px, 0, 0); }
-      50% { transform: scale(1.035) translate3d(5px, -3px, 0); }
+    .node-card {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      touch-action: none;
+      user-select: none;
+      cursor: grab;
+      transition: box-shadow 0.2s ease, border-color 0.2s ease;
     }
-    .fx-idle { animation: mjIdleRich 11s ease-in-out infinite; will-change: transform, filter; }
-    .fx-hack { animation: mjHackPulse 0.95s ease-in-out infinite; will-change: transform, filter; }
-    .fx-celebrate { animation: mjCelebratePop 1.35s ease-in-out infinite; will-change: transform, filter; }
-    .fx-sway { animation: mjSwayFloat 3.6s ease-in-out infinite; will-change: transform; }
-    .fx-paused { animation: none !important; transform: scale(1) !important; filter: none !important; }
+    .node-card:active { cursor: grabbing; }
   </style>
 </head>
-<body class="bg-[#0d0714] text-amber-50 min-h-screen p-3.5 font-sans">
-  <div class="max-w-lg mx-auto space-y-3 pb-12">
+<body class="starfield">
 
-    <div class="relative rounded-3xl overflow-hidden border border-rose-500/35 shadow-2xl bg-[#140b20]">
-      <div class="absolute top-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-none">
-        <div class="bg-black/75 backdrop-blur-md px-3 py-1 rounded-full border border-rose-400/50 text-[10px] font-black uppercase text-rose-200 pointer-events-auto">🌸 2D Loft Studio</div>
-        <div class="flex items-center gap-1.5 pointer-events-auto">
-          <div id="buildBadge" class="px-3 py-1 rounded-full text-[11px] font-bold bg-black/75 backdrop-blur-md border border-amber-400/35 text-amber-200">Wave</div>
-          <button id="settingsBtn" type="button" class="w-7 h-7 rounded-full bg-black/80 backdrop-blur-md border border-rose-400/45 text-xs flex items-center justify-center text-rose-200 active:scale-95">⚙️</button>
-        </div>
-      </div>
+  <!-- MAIN MENU VIEW -->
+  <div id="menuView" class="max-w-lg mx-auto px-4 pt-6 pb-16 space-y-4">
+    <div class="flex items-center justify-between">
+      <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-slate-900/90 border border-sky-400/35 text-sky-300">☁️ Local Vault Ready</span>
+      <span id="headerLevelPill" class="px-3 py-1 rounded-full text-[11px] font-black bg-indigo-950/90 border border-indigo-400/40 text-indigo-200">LVL 1 • 0 Nodes</span>
+    </div>
 
-      <div id="settingsPopover" class="hidden absolute top-11 right-2.5 z-30 w-52 rounded-2xl bg-[#160c24]/95 border border-rose-500/45 p-3 shadow-2xl space-y-2.5 backdrop-blur-xl">
-        <div class="text-[10px] font-black uppercase tracking-wider text-rose-300">Studio Settings</div>
-        <div class="flex items-center justify-between">
-          <span class="text-[11px] font-bold text-amber-200">✨ Living Motion</span>
-          <button id="motionToggleBtn" type="button" class="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-500 text-slate-950">ON</button>
-        </div>
-        <div class="flex items-center justify-between pt-1.5 border-t border-rose-500/20">
-          <span class="text-[11px] font-bold text-pink-200">🎭 Poses</span>
-          <button id="posesToggleBtn" type="button" class="px-2.5 py-1 rounded-full text-[10px] font-black bg-slate-800 border border-rose-500/40 text-rose-300">OFF</button>
-        </div>
-      </div>
+    <div class="text-center py-3 space-y-1.5">
+      <div class="text-[10px] font-black tracking-[0.25em] uppercase text-sky-400">Real-World Mastery System</div>
+      <h1 class="text-3xl font-black tracking-[0.14em] text-white">SKILL TREE</h1>
+      <p id="menuSubtitle" class="text-xs text-slate-300">Tap a constellation to map, drag, level up, or prune nodes</p>
+    </div>
 
-      <div id="stage2d" class="w-full aspect-video relative overflow-hidden bg-[#140b20]">
-        <div id="layerA" class="absolute inset-0 transition-opacity duration-300 opacity-100"></div>
-        <div id="layerB" class="absolute inset-0 transition-opacity duration-300 opacity-0"></div>
-        <div id="fxGlow" class="absolute inset-0 pointer-events-none transition-all duration-500"></div>
-      </div>
-
-      <div id="posesPanel" class="hidden space-y-1.5 px-3 py-2 bg-black/85 border-t border-rose-500/20">
-        <div class="grid grid-cols-4 gap-1.5">
-          <button id="cmdIdleBtn" type="button" class="py-1.5 rounded-lg bg-slate-800/90 border border-rose-500/30 text-[11px] font-bold text-rose-200">😌 Idle</button>
-          <button id="cmdHackBtn" type="button" class="py-1.5 rounded-lg bg-slate-800/90 border border-sky-500/30 text-[11px] font-bold text-sky-200">💻 Hack</button>
-          <button id="cmdWaveBtn" type="button" class="py-1.5 rounded-lg bg-slate-800/90 border border-amber-500/30 text-[11px] font-bold text-amber-200">👋 Wave</button>
-          <button id="cmdCelebrateBtn" type="button" class="py-1.5 rounded-lg bg-slate-800/90 border border-emerald-500/30 text-[11px] font-bold text-emerald-200">🎉 Celebrate</button>
-        </div>
-        <div class="grid grid-cols-4 gap-1.5">
-          <button id="cmdSwayBtn" type="button" class="py-1.5 rounded-lg bg-rose-950/90 border border-rose-500/50 text-[11px] font-bold text-rose-200">💃 Sway</button>
-          <button id="cmdKissBtn" type="button" class="py-1.5 rounded-lg bg-pink-950/90 border border-pink-500/50 text-[11px] font-bold text-pink-200">😘 Kiss</button>
-          <button id="cmdKneelBtn" type="button" class="py-1.5 rounded-lg bg-fuchsia-950/90 border border-fuchsia-500/50 text-[11px] font-bold text-fuchsia-200">🧎 Pose</button>
-          <button id="cmdTeaseBtn" type="button" class="py-1.5 rounded-lg bg-red-950/90 border border-red-500/50 text-[11px] font-bold text-red-200">🔥 Tease</button>
-        </div>
-      </div>
-
-      <div id="mjSpeech" class="px-4 py-2 bg-black/95 border-t border-rose-500/25 text-[11px] text-amber-200 flex items-center justify-between gap-2">
-        <span class="truncate">💬 "Booting 2D Loft Studio..."</span>
-        <span id="repoCounterPill" class="text-[10px] font-bold text-emerald-400 shrink-0"></span>
+    <!-- Quick New Constellation Bar -->
+    <div class="glass rounded-2xl p-3.5 space-y-2.5">
+      <div class="text-[10px] font-black uppercase tracking-wider text-amber-300">✨ Architect New Constellation</div>
+      <div class="flex gap-2">
+        <input id="newTreeNameInput" type="text" placeholder="e.g. Full-Body Mobility, Handstand Press..." class="flex-1 bg-slate-950/80 border border-indigo-500/35 rounded-xl px-3 py-2 text-xs text-white outline-none">
+        <button id="createTreeBtn" type="button" class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-sky-500 text-slate-950 font-black text-xs shrink-0">+ Build</button>
       </div>
     </div>
 
-    <div class="glass-card rounded-2xl p-3.5 space-y-2">
-      <div class="flex justify-between items-center">
-        <span class="text-[10px] font-black uppercase text-amber-300">1. GitHub Token</span>
-        <button id="toggleTokenBtn" type="button" class="text-[11px] text-rose-300/70 underline">Show / Edit</button>
+    <!-- Saved Constellations List -->
+    <div class="space-y-2">
+      <div class="flex items-center justify-between px-1">
+        <span class="text-[11px] font-black uppercase tracking-wider text-indigo-300">My Constellations</span>
+        <span id="treeCountLabel" class="text-[11px] text-slate-400">0 Trees</span>
       </div>
-      <div id="tokenWrap" class="flex gap-2">
-        <input id="ghToken" type="password" placeholder="Paste token" class="flex-1 bg-black/60 border border-rose-500/30 rounded-xl px-3 py-2 text-xs text-white outline-none">
-        <button id="saveTokenBtn" type="button" class="px-4 py-2 bg-gradient-to-r from-rose-500 to-amber-500 text-slate-950 font-black rounded-xl text-xs">Connect</button>
-      </div>
+      <div id="constellationList" class="space-y-2.5"></div>
     </div>
 
-    <div class="glass-card rounded-2xl p-3.5 space-y-2.5">
-      <div class="text-[10px] font-black uppercase text-rose-300">2. Select App Repo & File</div>
-      <div class="grid grid-cols-2 gap-2">
-        <select id="repoSelect" class="bg-black/60 border border-rose-500/30 rounded-xl px-2.5 py-2 text-xs text-white outline-none"></select>
-        <select id="fileSelect" class="bg-black/60 border border-rose-500/30 rounded-xl px-2.5 py-2 text-xs text-white outline-none"></select>
+    <!-- Backup / Export Controls -->
+    <div class="glass rounded-2xl p-3.5 flex items-center justify-between gap-2">
+      <div>
+        <div class="text-xs font-bold text-slate-200">JSON Snapshot</div>
+        <div class="text-[11px] text-slate-400">Copy or restore your full tree state</div>
       </div>
       <div class="flex gap-2">
-        <input id="newFileName" type="text" placeholder="Or new filename" class="flex-1 bg-black/60 border border-rose-500/30 rounded-xl px-3 py-1.5 text-xs text-white outline-none">
-        <button id="createFileModeBtn" type="button" class="px-3.5 py-1.5 bg-rose-500/20 border border-rose-500/40 text-rose-200 font-bold rounded-xl text-xs">+ New</button>
+        <button id="exportJsonBtn" type="button" class="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-600/50 text-xs font-bold text-slate-200">Copy JSON</button>
+        <button id="importJsonBtn" type="button" class="px-3 py-1.5 rounded-xl bg-slate-800 border border-indigo-500/40 text-xs font-bold text-indigo-200">Import</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONSTELLATION CANVAS VIEW -->
+  <div id="canvasView" class="hidden fixed inset-0 flex flex-col bg-[#050814]">
+    <!-- Top Header -->
+    <div class="px-3 py-2.5 bg-slate-950/90 border-b border-indigo-500/25 flex items-center justify-between gap-2 z-20">
+      <button id="backToMenuBtn" type="button" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700/70 text-[11px] font-black text-sky-300">◀ MAIN MENU</button>
+      <div class="text-right">
+        <div class="text-[10px] font-black uppercase tracking-wider text-indigo-300">My Constellations</div>
+        <div id="canvasLevelBadge" class="text-[11px] font-bold text-amber-300">LVL 1</div>
       </div>
     </div>
 
-    <div class="glass-card rounded-2xl p-3.5 space-y-2.5">
+    <!-- Toolbar -->
+    <div class="px-3 py-2 bg-slate-900/90 border-b border-indigo-500/20 flex items-center gap-1.5 overflow-x-auto z-20">
+      <select id="activeTreeSelect" class="bg-slate-950 border border-indigo-500/40 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white max-w-[165px] truncate outline-none"></select>
+      <button id="toolbarNewTreeBtn" type="button" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-600/50 text-xs font-bold text-slate-200 shrink-0">+ Tree</button>
+      <button id="toolbarAddNodeBtn" type="button" class="px-3 py-1.5 rounded-lg bg-sky-500 text-slate-950 text-xs font-black shrink-0">+ Node</button>
+      <button id="toolbarDeleteTreeBtn" type="button" title="Delete Active Constellation" class="ml-auto px-2.5 py-1.5 rounded-lg bg-rose-950/90 border border-rose-500/55 text-xs font-bold text-rose-200 shrink-0">🗑️ Delete Tree</button>
+    </div>
+
+    <!-- Sub-bar -->
+    <div class="px-3 py-1.5 bg-slate-950/75 border-b border-white/5 flex items-center justify-between text-[11px] text-slate-400 z-20">
+      <span id="canopyStatsText">0 Nodes • Tap node to edit • Drag to move</span>
+      <button id="centerViewBtn" type="button" class="text-sky-400 font-bold">Reset View</button>
+    </div>
+
+    <!-- Interactive Star Canvas -->
+    <div id="starCanvas" class="relative flex-1 overflow-hidden starfield">
+      <svg id="edgeLayer" class="absolute inset-0 w-full h-full pointer-events-none"></svg>
+      <div id="nodeLayer" class="absolute inset-0"></div>
+    </div>
+  </div>
+
+  <!-- NODE EDIT / DELETE MODAL -->
+  <div id="nodeModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-sm rounded-2xl bg-[#0d132b] border border-indigo-500/45 p-4 space-y-3 shadow-2xl">
       <div class="flex items-center justify-between">
-        <span id="activePathLabel" class="text-xs font-mono font-bold text-emerald-300 truncate">No file loaded</span>
-        <div class="flex gap-1.5 shrink-0">
-          <button id="pasteReplaceBtn" type="button" class="px-2.5 py-1.5 bg-amber-400 text-slate-950 font-black rounded-xl text-[11px]">📋 Paste All</button>
-          <button id="copyCurrentBtn" type="button" class="px-2.5 py-1.5 bg-black/60 border border-rose-500/30 text-rose-200 font-bold rounded-xl text-[11px]">Copy</button>
+        <span class="text-xs font-black uppercase tracking-wider text-sky-300">Edit Skill Node</span>
+        <button id="closeNodeModalBtn" type="button" class="px-2.5 py-1 rounded-lg bg-slate-800 text-xs text-slate-300">Close</button>
+      </div>
+      <div class="space-y-1">
+        <label class="text-[11px] font-bold text-slate-300">Node Title</label>
+        <input id="editNodeTitle" type="text" class="w-full bg-slate-950 border border-indigo-500/35 rounded-xl px-3 py-2 text-xs text-white outline-none">
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold text-slate-300">Completed Steps</label>
+          <input id="editNodeDone" type="number" min="0" class="w-full bg-slate-950 border border-indigo-500/35 rounded-xl px-3 py-2 text-xs text-white outline-none">
+        </div>
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold text-slate-300">Target Steps</label>
+          <input id="editNodeTotal" type="number" min="1" class="w-full bg-slate-950 border border-indigo-500/35 rounded-xl px-3 py-2 text-xs text-white outline-none">
         </div>
       </div>
-      <textarea id="codeEditor" rows="12" spellcheck="false" placeholder="Type or paste code here..." class="w-full bg-[#07040b] border border-rose-500/25 rounded-xl p-3 text-[11px] text-amber-100 font-mono leading-relaxed outline-none"></textarea>
-      <div class="flex gap-2">
-        <input id="commitMsg" type="text" value="Update via App Forge" class="flex-1 bg-black/60 border border-rose-500/30 rounded-xl px-3 py-2 text-xs text-white outline-none">
-        <button id="deployBtn" type="button" class="px-5 py-2.5 bg-gradient-to-r from-rose-500 via-pink-500 to-amber-500 text-white font-black rounded-xl text-xs shrink-0 shadow-lg">🚀 Deploy Now</button>
+      <div class="space-y-1">
+        <label class="text-[11px] font-bold text-slate-300">Connect Parent Node</label>
+        <select id="editNodeParent" class="w-full bg-slate-950 border border-indigo-500/35 rounded-xl px-3 py-2 text-xs text-white outline-none"></select>
       </div>
-      <a id="liveSiteLink" href="#" target="_blank" class="hidden block text-center py-2 bg-black/60 border border-emerald-500/40 rounded-xl text-xs font-bold text-emerald-300">↗ Open Live App</a>
+      <div class="space-y-1">
+        <label class="text-[11px] font-bold text-slate-300">Field Notes</label>
+        <textarea id="editNodeNotes" rows="2" class="w-full bg-slate-950 border border-indigo-500/35 rounded-xl p-2.5 text-xs text-slate-200 outline-none"></textarea>
+      </div>
+      <div class="flex items-center justify-between gap-2 pt-1">
+        <button id="deleteNodeBtn" type="button" class="px-3.5 py-2 rounded-xl bg-rose-600 text-white text-xs font-black">🗑️ Delete Node</button>
+        <button id="saveNodeBtn" type="button" class="px-4 py-2 rounded-xl bg-emerald-400 text-slate-950 text-xs font-black">Save Changes</button>
+      </div>
     </div>
   </div>
 
   <script>
-    const TOKEN_KEY = "app_forge_gh_token_v1";
-    const POSES_KEY = "app_forge_poses_v1";
-    const MOTION_KEY = "app_forge_motion_v1";
-    const ASSET_VER = Date.now().toString();
+    const STORAGE_KEY = "skilltree_mastery_v1";
+    const DELETED_KEY = "skilltree_deleted_tombstones_v1";
+    const $ = (id) => document.getElementById(id);
 
-    let ghUser = "", currentSha = null, isNewFile = false, introTimer = null, resetTimer = null;
-    let activeLayer = "A", currentMode = "wave", deploySeq = 0;
-    let posesEnabled = localStorage.getItem(POSES_KEY) === "1";
-    let motionEnabled = localStorage.getItem(MOTION_KEY) !== "0";
+    function getTombstones() {
+      try {
+        const arr = JSON.parse(localStorage.getItem(DELETED_KEY) || "[]");
+        return new Set(Array.isArray(arr) ? arr.map(String) : []);
+      } catch {
+        return new Set();
+      }
+    }
 
-    const assetCache = new Map();
-    const $ = id => document.getElementById(id);
-    const getToken = () => localStorage.getItem(TOKEN_KEY) || $("ghToken")?.value.trim() || "";
-    const getHeaders = () => ({
-      "Authorization": `Bearer ${getToken()}`,
-      "Accept": "application/vnd.github+json",
-      "Content-Type": "application/json"
-    });
+    function addTombstone(id) {
+      if (!id) return;
+      const set = getTombstones();
+      set.add(String(id));
+      localStorage.setItem(DELETED_KEY, JSON.stringify([...set]));
+    }
 
-    const FX_MAP = {
-      idle: { cls: "fx-idle", glow: "radial-gradient(circle at 24% 52%, rgba(56,189,248,0.16), rgba(244,63,94,0.08) 45%, transparent 65%)" },
-      hack: { cls: "fx-hack", glow: "radial-gradient(circle at 22% 52%, rgba(52,211,153,0.28), transparent 58%)" },
-      wave: { cls: "fx-idle", glow: "radial-gradient(circle at 60% 45%, rgba(251,191,36,0.16), transparent 55%)" },
-      celebrate: { cls: "fx-celebrate", glow: "radial-gradient(circle at 30% 48%, rgba(16,185,129,0.34), transparent 65%)" },
-      sway: { cls: "fx-sway", glow: "radial-gradient(circle at 55% 50%, rgba(244,63,94,0.22), transparent 60%)" },
-      kiss: { cls: "fx-idle", glow: "radial-gradient(circle at 55% 45%, rgba(236,72,153,0.24), transparent 60%)" },
-      pose: { cls: "fx-sway", glow: "radial-gradient(circle at 55% 50%, rgba(192,38,211,0.22), transparent 60%)" },
-      tease: { cls: "fx-sway", glow: "radial-gradient(circle at 55% 50%, rgba(239,68,68,0.25), transparent 60%)" }
+    function defaultSeedState() {
+      return {
+        activeTreeId: "tree_mobility_1",
+        trees: [
+          {
+            id: "tree_mobility_1",
+            name: "Full-Body Mobility & Press",
+            nodes: [
+              { id: "n1", title: "1. 360° Diaphragmatic Rib Breath", x: 50, y: 20, done: 1, total: 2, parentId: "", notes: "Expand lateral ribs before compression work." },
+              { id: "n2", title: "2. Segmental Cat-Cow Spinal Wave", x: 32, y: 46, done: 0, total: 2, parentId: "n1", notes: "Articulate one vertebra at a time." },
+              { id: "n3", title: "3. Full-Body Joint CARs Warm-Up", x: 68, y: 46, done: 0, total: 2, parentId: "n1", notes: "Slow controlled articular rotations." },
+              { id: "n4", title: "4. Child's Pose w/ Lateral Lat Reach", x: 50, y: 74, done: 0, total: 2, parentId: "n2", notes: "Hold 45s per side." }
+            ]
+          }
+        ]
+      };
+    }
+
+    function sanitizeState(rawState) {
+      const dead = getTombstones();
+      const safe = rawState && Array.isArray(rawState.trees) ? rawState : defaultSeedState();
+      safe.trees = safe.trees
+        .filter((t) => t && !dead.has(String(t.id)))
+        .map((t) => {
+          const validNodes = (Array.isArray(t.nodes) ? t.nodes : []).filter((n) => n && !dead.has(String(n.id)));
+          const validIds = new Set(validNodes.map((n) => String(n.id)));
+          validNodes.forEach((n) => {
+            if (n.parentId && !validIds.has(String(n.parentId))) n.parentId = "";
+          });
+          return { ...t, nodes: validNodes };
+        });
+
+      if (!safe.trees.some((t) => String(t.id) === String(safe.activeTreeId))) {
+        safe.activeTreeId = safe.trees.length ? safe.trees[0].id : null;
+      }
+      return safe;
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          const seeded = sanitizeState(defaultSeedState());
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+          return seeded;
+        }
+        return sanitizeState(JSON.parse(raw));
+      } catch {
+        return sanitizeState(defaultSeedState());
+      }
+    }
+
+    let state = loadState();
+    let editingNodeId = null;
+
+    function persist() {
+      state = sanitizeState(state);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      renderAll();
+    }
+
+    function getActiveTree() {
+      return state.trees.find((t) => String(t.id) === String(state.activeTreeId)) || null;
+    }
+
+    function computeStats() {
+      let totalNodes = 0;
+      let totalDone = 0;
+      state.trees.forEach((t) => {
+        totalNodes += t.nodes.length;
+        t.nodes.forEach((n) => {
+          totalDone += Number(n.done || 0);
+        });
+      });
+      const level = Math.max(1, Math.floor(totalDone / 2) + 1);
+      return { totalNodes, totalDone, level };
+    }
+
+    function openMenu() {
+      $("canvasView").classList.add("hidden");
+      $("menuView").classList.remove("hidden");
+      renderMenu();
+    }
+
+    function openCanvas(treeId) {
+      if (treeId) state.activeTreeId = treeId;
+      if (!getActiveTree() && state.trees.length) {
+        state.activeTreeId = state.trees[0].id;
+      }
+      $("menuView").classList.add("hidden");
+      $("canvasView").classList.remove("hidden");
+      renderCanvas();
+    }
+
+    function renderMenu() {
+      const stats = computeStats();
+      $("headerLevelPill").textContent = `LVL ${stats.level} • ${stats.totalNodes} Nodes`;
+      $("treeCountLabel").textContent = `${state.trees.length} ${state.trees.length === 1 ? "Tree" : "Trees"}`;
+
+      const list = $("constellationList");
+      if (!state.trees.length) {
+        list.innerHTML = `<div class="glass rounded-2xl p-5 text-center text-xs text-slate-400">No constellations yet. Enter a topic above and tap <b>+ Build</b>.</div>`;
+        return;
+      }
+
+      list.innerHTML = state.trees
+        .map((t) => {
+          const doneCount = t.nodes.filter((n) => Number(n.done) >= Number(n.total || 1)).length;
+          return `
+            <div class="glass rounded-2xl p-3.5 flex items-center justify-between gap-2">
+              <button type="button" data-open-tree="${t.id}" class="flex-1 text-left min-w-0">
+                <div class="text-sm font-black text-white truncate">${escapeHtml(t.name)}</div>
+                <div class="text-[11px] text-sky-300 mt-0.5">${t.nodes.length} Nodes • ${doneCount} Mastered</div>
+              </button>
+              <button type="button" data-del-tree="${t.id}" class="px-3 py-1.5 rounded-xl bg-rose-950/90 border border-rose-500/45 text-[11px] font-bold text-rose-200 shrink-0">Delete</button>
+            </div>`;
+        })
+        .join("");
+    }
+
+    function renderCanvas() {
+      const stats = computeStats();
+      $("canvasLevelBadge").textContent = `LVL ${stats.level}`;
+
+      const select = $("activeTreeSelect");
+      select.innerHTML = state.trees
+        .map((t) => `<option value="${t.id}" ${String(t.id) === String(state.activeTreeId) ? "selected" : ""}>${escapeHtml(t.name)}</option>`)
+        .join("");
+
+      const tree = getActiveTree();
+      const nodeLayer = $("nodeLayer");
+      const edgeLayer = $("edgeLayer");
+
+      if (!tree) {
+        $("canopyStatsText").textContent = "No active constellation — tap + Tree to create one";
+        nodeLayer.innerHTML = "";
+        edgeLayer.innerHTML = "";
+        return;
+      }
+
+      const completed = tree.nodes.filter((n) => Number(n.done) >= Number(n.total || 1)).length;
+      $("canopyStatsText").textContent = `${completed} / ${tree.nodes.length} Mastered • Tap to edit • Drag anywhere`;
+
+      // Render SVG connecting lines
+      const byId = new Map(tree.nodes.map((n) => [String(n.id), n]));
+      edgeLayer.innerHTML = tree.nodes
+        .map((n) => {
+          const parent = n.parentId ? byId.get(String(n.parentId)) : null;
+          if (!parent) return "";
+          return `<line x1="${parent.x}%" y1="${parent.y}%" x2="${n.x}%" y2="${n.y}%" stroke="rgba(168,85,247,0.75)" stroke-width="2.5" stroke-linecap="round" />`;
+        })
+        .join("");
+
+      // Render draggable nodes
+      nodeLayer.innerHTML = tree.nodes
+        .map((n) => {
+          const mastered = Number(n.done) >= Number(n.total || 1);
+          const ringClass = mastered
+            ? "border-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.45)]"
+            : "border-sky-400/70 shadow-[0_0_16px_rgba(56,189,248,0.3)]";
+          return `
+            <div class="node-card flex flex-col items-center max-w-[165px]" data-node-id="${n.id}" style="left:${n.x}%; top:${n.y}%;">
+              <div class="w-10 h-10 rounded-full bg-slate-950 border-2 ${ringClass} flex items-center justify-center text-xs font-black ${mastered ? "text-emerald-300" : "text-sky-200"}">
+                ${mastered ? "★" : `${n.done}/${n.total}`}
+              </div>
+              <div class="mt-1.5 px-2.5 py-1 rounded-lg bg-slate-950/90 border border-indigo-400/35 text-[11px] font-bold text-center text-white leading-tight shadow-lg">
+                ${escapeHtml(n.title)}
+              </div>
+            </div>`;
+        })
+        .join("");
+
+      bindNodeDragAndTap();
+    }
+
+    function renderAll() {
+      renderMenu();
+      if (!$("canvasView").classList.contains("hidden")) {
+        renderCanvas();
+      }
+    }
+
+    function deleteTreeById(treeId) {
+      const target = state.trees.find((t) => String(t.id) === String(treeId));
+      if (!target) return;
+      addTombstone(target.id);
+      target.nodes.forEach((n) => addTombstone(n.id));
+      state.trees = state.trees.filter((t) => String(t.id) !== String(treeId));
+      if (String(state.activeTreeId) === String(treeId)) {
+        state.activeTreeId = state.trees.length ? state.trees[0].id : null;
+      }
+      persist();
+    }
+
+    function deleteNodeById(nodeId) {
+      const tree = getActiveTree();
+      if (!tree) return;
+      addTombstone(nodeId);
+      tree.nodes = tree.nodes.filter((n) => String(n.id) !== String(nodeId));
+      tree.nodes.forEach((n) => {
+        if (String(n.parentId) === String(nodeId)) n.parentId = "";
+      });
+      persist();
+    }
+
+    function openNodeModal(nodeId) {
+      const tree = getActiveTree();
+      const node = tree?.nodes.find((n) => String(n.id) === String(nodeId));
+      if (!node) return;
+      editingNodeId = node.id;
+
+      $("editNodeTitle").value = node.title;
+      $("editNodeDone").value = Number(node.done || 0);
+      $("editNodeTotal").value = Math.max(1, Number(node.total || 2));
+      $("editNodeNotes").value = node.notes || "";
+
+      const others = tree.nodes.filter((n) => String(n.id) !== String(node.id));
+      $("editNodeParent").innerHTML =
+        `<option value="">None (Root Node)</option>` +
+        others.map((o) => `<option value="${o.id}" ${String(o.id) === String(node.parentId) ? "selected" : ""}>${escapeHtml(o.title)}</option>`).join("");
+
+      $("nodeModal").classList.remove("hidden");
+    }
+
+    function bindNodeDragAndTap() {
+      const canvas = $("starCanvas");
+      document.querySelectorAll(".node-card").forEach((el) => {
+        let startX = 0, startY = 0, moved = false;
+
+        el.addEventListener("pointerdown", (e) => {
+          e.stopPropagation();
+          el.setPointerCapture(e.pointerId);
+          startX = e.clientX;
+          startY = e.clientY;
+          moved = false;
+        });
+
+        el.addEventListener("pointermove", (e) => {
+          if (!el.hasPointerCapture(e.pointerId)) return;
+          const dx = Math.abs(e.clientX - startX);
+          const dy = Math.abs(e.clientY - startY);
+          if (dx > 5 || dy > 5) moved = true;
+          if (!moved) return;
+
+          const rect = canvas.getBoundingClientRect();
+          const pctX = Math.min(92, Math.max(8, ((e.clientX - rect.left) / rect.width) * 100));
+          const pctY = Math.min(92, Math.max(8, ((e.clientY - rect.top) / rect.height) * 100));
+          el.style.left = `${pctX}%`;
+          el.style.top = `${pctY}%`;
+
+          const tree = getActiveTree();
+          const node = tree?.nodes.find((n) => String(n.id) === String(el.dataset.nodeId));
+          if (node) {
+            node.x = Math.round(pctX * 10) / 10;
+            node.y = Math.round(pctY * 10) / 10;
+          }
+        });
+
+        el.addEventListener("pointerup", (e) => {
+          if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+          if (!moved) {
+            openNodeModal(el.dataset.nodeId);
+          } else {
+            persist();
+          }
+        });
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    // Event Bindings
+    $("createTreeBtn").onclick = () => {
+      const name = $("newTreeNameInput").value.trim() || `Constellation ${state.trees.length + 1}`;
+      const id = `tree_${Date.now()}`;
+      state.trees.push({
+        id,
+        name,
+        nodes: [
+          { id: `n_${Date.now()}_1`, title: `1. Core Foundation`, x: 50, y: 26, done: 0, total: 2, parentId: "", notes: "" },
+          { id: `n_${Date.now()}_2`, title: `2. Progression Drill`, x: 50, y: 62, done: 0, total: 2, parentId: `n_${Date.now()}_1`, notes: "" }
+        ]
+      });
+      $("newTreeNameInput").value = "";
+      state.activeTreeId = id;
+      persist();
+      openCanvas(id);
     };
 
-    window.addEventListener("error", e => {
-      const sp = $("mjSpeech")?.firstElementChild;
-      if (sp) sp.textContent = `⚠️ ${e.message || "Script error"}`;
+    $("constellationList").addEventListener("click", (e) => {
+      const delBtn = e.target.closest("[data-del-tree]");
+      if (delBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        deleteTreeById(delBtn.dataset.delTree);
+        return;
+      }
+      const openBtn = e.target.closest("[data-open-tree]");
+      if (openBtn) {
+        openCanvas(openBtn.dataset.openTree);
+      }
     });
 
-    function toUtf8Base64(str) {
-      const bytes = new TextEncoder().encode(str);
-      let bin = "";
-      for (let i = 0; i < bytes.length; i += 8192) {
-        bin += String.fromCharCode(...bytes.subarray(i, i + 8192));
-      }
-      return btoa(bin);
-    }
+    $("backToMenuBtn").onclick = openMenu;
 
-    function fromUtf8Base64(b64) {
-      const clean = (b64 || "").replace(/\n/g, "");
-      const raw = atob(clean);
-      const bytes = new Uint8Array(raw.length);
-      for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-      return new TextDecoder().decode(bytes);
-    }
+    $("activeTreeSelect").onchange = (e) => {
+      state.activeTreeId = e.target.value;
+      persist();
+    };
 
-    async function resolveAsset(stateName) {
-      if (assetCache.has(stateName)) return assetCache.get(stateName);
-      const exts = ["mp4", "webp", "png", "jpg", "jpeg"];
-      for (const ext of exts) {
-        const url = `${stateName}.${ext}?v=${ASSET_VER}`;
-        try {
-          const res = await fetch(url, { cache: "no-store" });
-          if (res.ok) {
-            const entry = { url, type: ext === "mp4" ? "video" : "image" };
-            assetCache.set(stateName, entry);
-            return entry;
-          }
-        } catch {}
-      }
-      assetCache.set(stateName, null);
-      return null;
-    }
-
-    function buildMediaNode(asset, fxClass) {
-      const paused = motionEnabled ? "" : " fx-paused";
-      if (asset.type === "video") {
-        const v = document.createElement("video");
-        v.src = asset.url;
-        v.autoplay = true;
-        v.loop = true;
-        v.muted = true;
-        v.playsInline = true;
-        v.className = `w-full h-full object-cover ${fxClass}${paused}`;
-        return v;
-      }
-      const img = document.createElement("img");
-      img.src = asset.url;
-      img.alt = currentMode;
-      img.className = `w-full h-full object-cover ${fxClass}${paused}`;
-      return img;
-    }
-
-    async function renderScene(mode) {
-      const fx = FX_MAP[mode] || FX_MAP.idle;
-      $("fxGlow").style.background = fx.glow;
-
-      let asset = await resolveAsset(mode);
-      let usedFallback = false;
-      if (!asset && mode !== "idle") {
-        asset = await resolveAsset("idle");
-        usedFallback = true;
-      }
-
-      const nextId = activeLayer === "A" ? "layerB" : "layerA";
-      const prevId = activeLayer === "A" ? "layerA" : "layerB";
-      const nextEl = $(nextId);
-      const prevEl = $(prevId);
-
-      if (!asset) {
-        nextEl.innerHTML = `<div class="w-full h-full flex flex-col items-center justify-center text-center px-6">
-          <div class="text-xs font-black uppercase tracking-widest text-rose-300">Art Not Found</div>
-          <div class="text-[11px] text-amber-100/80 mt-1">Check <b>idle.jpg</b>, <b>hack.jpg</b>, <b>wave.jpg</b>, <b>celebrate.jpg</b> in App-Forge root.</div>
-        </div>`;
-      } else {
-        nextEl.innerHTML = "";
-        nextEl.appendChild(buildMediaNode(asset, fx.cls));
-      }
-
-      nextEl.classList.remove("opacity-0");
-      nextEl.classList.add("opacity-100");
-      prevEl.classList.remove("opacity-100");
-      prevEl.classList.add("opacity-0");
-      activeLayer = nextId === "layerA" ? "A" : "B";
-      return usedFallback;
-    }
-
-    async function setMjState(mode, text, { cancelIntro = true } = {}) {
-      if (cancelIntro && introTimer) {
-        clearTimeout(introTimer);
-        introTimer = null;
-      }
-      if (resetTimer) {
-        clearTimeout(resetTimer);
-        resetTimer = null;
-      }
-      currentMode = mode;
-      if (text) $("mjSpeech").firstElementChild.textContent = `💬 "${text}"`;
-      const usedFallback = await renderScene(mode);
-      if (usedFallback && text) {
-        $("mjSpeech").firstElementChild.textContent = `💬 "${text} (add ${mode} asset for custom art)"`;
-      }
-    }
-
-    function scheduleIdleReturn(delayMs, text = "Ready for the next move!") {
-      if (resetTimer) clearTimeout(resetTimer);
-      resetTimer = setTimeout(() => {
-        setMjState("idle", text);
-      }, delayMs);
-    }
-
-    function runGreetingSequence() {
-      setMjState("wave", "Hey there! Welcome back to the loft.", { cancelIntro: false });
-      introTimer = setTimeout(() => {
-        introTimer = null;
-        if (currentMode === "wave") {
-          setMjState("idle", "Loft studio online — ready when you are.");
-        }
-      }, 2800);
-    }
-
-    function setBadge(text, tone = "idle") {
-      const b = $("buildBadge");
-      b.textContent = text;
-      b.className = tone === "ok"
-        ? "px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/25 backdrop-blur-md border border-emerald-400 text-emerald-200"
-        : tone === "busy"
-        ? "px-3 py-1 rounded-full text-[11px] font-bold bg-amber-500/25 backdrop-blur-md border border-amber-400 text-amber-200"
-        : "px-3 py-1 rounded-full text-[11px] font-bold bg-black/75 backdrop-blur-md border border-amber-400/35 text-amber-200";
-    }
-
-    function syncSettingsUI() {
-      const pBtn = $("posesToggleBtn");
-      pBtn.textContent = posesEnabled ? "ON" : "OFF";
-      pBtn.className = posesEnabled
-        ? "px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-500 text-white"
-        : "px-2.5 py-1 rounded-full text-[10px] font-black bg-slate-800 border border-rose-500/40 text-rose-300";
-      $("posesPanel").classList.toggle("hidden", !posesEnabled);
-
-      const mBtn = $("motionToggleBtn");
-      mBtn.textContent = motionEnabled ? "ON" : "OFF";
-      mBtn.className = motionEnabled
-        ? "px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-500 text-slate-950"
-        : "px-2.5 py-1 rounded-full text-[10px] font-black bg-slate-800 border border-amber-500/40 text-amber-300";
-
-      document.querySelectorAll("#stage2d img, #stage2d video").forEach(el => {
-        el.classList.toggle("fx-paused", !motionEnabled);
+    $("toolbarNewTreeBtn").onclick = () => {
+      const name = prompt("New constellation name:");
+      if (!name || !name.trim()) return;
+      const id = `tree_${Date.now()}`;
+      state.trees.push({
+        id,
+        name: name.trim(),
+        nodes: [{ id: `n_${Date.now()}`, title: "1. Starting Node", x: 50, y: 35, done: 0, total: 2, parentId: "", notes: "" }]
       });
-    }
+      state.activeTreeId = id;
+      persist();
+    };
 
-    async function initConnection() {
-      const tok = localStorage.getItem(TOKEN_KEY);
-      if (!tok) return;
-      $("ghToken").value = tok;
-      $("tokenWrap").classList.add("hidden");
-      setBadge("Connecting...", "busy");
-      const uRes = await fetch("https://api.github.com/user", { headers: getHeaders() });
-      if (!uRes.ok) { setBadge("Token Error"); $("tokenWrap").classList.remove("hidden"); return; }
-      const u = await uRes.json();
-      ghUser = u.login;
-      const rRes = await fetch("https://api.github.com/user/repos?per_page=100&sort=updated", { headers: getHeaders() });
-      const repos = await rRes.json();
-      $("repoSelect").innerHTML = repos.map(r => `<option value="${r.name}">${r.name}</option>`).join("");
-      $("repoCounterPill").textContent = `${repos.length} Repos`;
-      if (repos.some(r => r.name === "Skill-Tree")) $("repoSelect").value = "Skill-Tree";
-      setBadge(`Connected: ${ghUser}`, "ok");
-      await loadRepoFiles();
-    }
+    $("toolbarAddNodeBtn").onclick = () => {
+      const tree = getActiveTree();
+      if (!tree) return;
+      const last = tree.nodes[tree.nodes.length - 1];
+      const nextNum = tree.nodes.length + 1;
+      tree.nodes.push({
+        id: `n_${Date.now()}`,
+        title: `${nextNum}. New Skill Node`,
+        x: Math.min(82, Math.max(18, (last ? last.x : 50) + (nextNum % 2 === 0 ? 14 : -14))),
+        y: Math.min(84, (last ? last.y : 25) + 16),
+        done: 0,
+        total: 2,
+        parentId: last ? last.id : "",
+        notes: ""
+      });
+      persist();
+    };
 
-    async function loadRepoFiles() {
-      const repo = $("repoSelect").value;
-      if (!repo || !ghUser) return;
-      const link = $("liveSiteLink");
-      link.href = `https://${ghUser.toLowerCase()}.github.io/${repo}/`;
-      link.textContent = `↗ Open Live ${repo}`;
-      link.classList.remove("hidden");
-      const res = await fetch(`https://api.github.com/repos/${ghUser}/${repo}/contents/`, { headers: getHeaders() });
-      const items = await res.json();
-      const files = Array.isArray(items) ? items.filter(x => x.type === "file") : [];
-      $("fileSelect").innerHTML = files.map(f => `<option value="${f.path}">${f.path}</option>`).join("");
-      if (files.length) await loadFileContent(files[0].path);
-    }
+    $("toolbarDeleteTreeBtn").onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const tree = getActiveTree();
+      if (!tree) return;
+      deleteTreeById(tree.id);
+      if (!state.trees.length) openMenu();
+    };
 
-    async function loadFileContent(path) {
-      const repo = $("repoSelect").value;
-      isNewFile = false;
-      $("activePathLabel").textContent = `${repo}/${path}`;
-      setBadge("Loading...", "busy");
-      const res = await fetch(`https://api.github.com/repos/${ghUser}/${repo}/contents/${path}`, { headers: getHeaders() });
-      const data = await res.json();
-      currentSha = data.sha;
-      if (data.content) {
-        $("codeEditor").value = fromUtf8Base64(data.content);
-      } else {
-        $("codeEditor").value = "[Binary or large file — edit text files only]";
+    $("centerViewBtn").onclick = () => {
+      const tree = getActiveTree();
+      if (!tree) return;
+      tree.nodes.forEach((n, idx) => {
+        n.x = idx % 2 === 0 ? 38 : 62;
+        n.y = Math.min(85, 20 + idx * 16);
+      });
+      persist();
+    };
+
+    $("closeNodeModalBtn").onclick = () => {
+      $("nodeModal").classList.add("hidden");
+      editingNodeId = null;
+    };
+
+    $("saveNodeBtn").onclick = () => {
+      const tree = getActiveTree();
+      const node = tree?.nodes.find((n) => String(n.id) === String(editingNodeId));
+      if (node) {
+        node.title = $("editNodeTitle").value.trim() || node.title;
+        node.done = Math.max(0, Number($("editNodeDone").value || 0));
+        node.total = Math.max(1, Number($("editNodeTotal").value || 1));
+        node.parentId = $("editNodeParent").value;
+        node.notes = $("editNodeNotes").value.trim();
+        persist();
       }
-      setBadge("Ready", "ok");
-    }
+      $("nodeModal").classList.add("hidden");
+      editingNodeId = null;
+    };
 
-    function triggerUpdateActive(repo, path, badgeLabel, speechText) {
-      setBadge(badgeLabel, "ok");
-      setMjState("celebrate", speechText);
-      scheduleIdleReturn(5000, `${repo}/${path} is live and ready.`);
-    }
-
-    async function deployFile() {
-      const repo = $("repoSelect").value;
-      const path = isNewFile ? $("newFileName").value.trim() : $("fileSelect").value;
-      if (!repo || !path) return alert("Select or name a file first.");
-      const seq = ++deploySeq;
-      const encoded = toUtf8Base64($("codeEditor").value);
-
-      setBadge("Deploying...", "busy");
-      await setMjState("hack", `Hacking & pushing ${path} to ${repo}...`);
-
-      const body = { message: $("commitMsg").value.trim() || `Update ${path}`, content: encoded };
-      if (!isNewFile && currentSha) body.sha = currentSha;
-
-      const res = await fetch(`https://api.github.com/repos/${ghUser}/${repo}/contents/${path}`, {
-        method: "PUT",
-        headers: getHeaders(),
-        body: JSON.stringify(body)
-      });
-
-      if (seq !== deploySeq) return;
-      if (!res.ok) {
-        const err = await res.json();
-        setBadge("Deploy Failed");
-        await setMjState("idle", "Deploy failed — check alert.");
-        return alert("API Error: " + (err.message || res.status));
+    $("deleteNodeBtn").onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (editingNodeId) {
+        deleteNodeById(editingNodeId);
       }
+      $("nodeModal").classList.add("hidden");
+      editingNodeId = null;
+    };
 
-      const out = await res.json();
-      currentSha = out.content.sha;
-      isNewFile = false;
-      $("activePathLabel").textContent = `${repo}/${path}`;
-      triggerUpdateActive(repo, path, "🟢 Update Active!", `${path} is pushed and active on ${repo}!`);
-    }
+    $("exportJsonBtn").onclick = async () => {
+      await navigator.clipboard.writeText(JSON.stringify(state, null, 2));
+      $("menuSubtitle").textContent = "✅ Full Skill-Tree JSON copied to clipboard!";
+    };
 
-    function boot() {
-      syncSettingsUI();
-      ["idle", "hack", "wave", "celebrate"].forEach(s => resolveAsset(s));
-      runGreetingSequence();
+    $("importJsonBtn").onclick = () => {
+      const raw = prompt("Paste Skill-Tree JSON snapshot:");
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed.trees)) throw new Error("Invalid format");
+        state = sanitizeState(parsed);
+        persist();
+        $("menuSubtitle").textContent = "✅ Snapshot imported!";
+      } catch {
+        alert("Invalid JSON snapshot.");
+      }
+    };
 
-      $("settingsBtn").onclick = e => {
-        e.stopPropagation();
-        $("settingsPopover").classList.toggle("hidden");
-      };
-      document.addEventListener("click", e => {
-        if (!e.target.closest("#settingsPopover") && !e.target.closest("#settingsBtn")) {
-          $("settingsPopover").classList.add("hidden");
-        }
-      });
-      $("motionToggleBtn").onclick = () => {
-        motionEnabled = !motionEnabled;
-        localStorage.setItem(MOTION_KEY, motionEnabled ? "1" : "0");
-        syncSettingsUI();
-      };
-      $("posesToggleBtn").onclick = () => {
-        posesEnabled = !posesEnabled;
-        localStorage.setItem(POSES_KEY, posesEnabled ? "1" : "0");
-        syncSettingsUI();
-        $("settingsPopover").classList.add("hidden");
-        if (posesEnabled) setMjState("pose", "Pose controls unlocked.");
-      };
-
-      $("cmdIdleBtn").onclick = () => setMjState("idle", "Chilling in the loft — ready when you are.");
-      $("cmdHackBtn").onclick = () => setMjState("hack", "Terminal engaged! Hacking build...");
-      $("cmdWaveBtn").onclick = () => setMjState("wave", "Hey there! Systems are green.");
-      $("cmdCelebrateBtn").onclick = () => setMjState("celebrate", "Woohoo! Build is live!");
-      $("cmdSwayBtn").onclick = () => setMjState("sway", "Feeling the vibe in the loft...");
-      $("cmdKissBtn").onclick = () => setMjState("kiss", "Muah! Good luck on this deploy.");
-      $("cmdKneelBtn").onclick = () => setMjState("pose", "Striking a pose for you...");
-      $("cmdTeaseBtn").onclick = () => setMjState("tease", "Like what you see? Let's ship some code.");
-
-      $("codeEditor").addEventListener("input", () => {
-        if (currentMode !== "hack") setMjState("hack", "Typing edits into terminal...");
-        scheduleIdleReturn(2000, "Ready — hit Deploy Now!");
-      });
-
-      $("saveTokenBtn").onclick = () => {
-        const val = $("ghToken").value.trim();
-        if (!val) return;
-        localStorage.setItem(TOKEN_KEY, val);
-        initConnection();
-      };
-      $("toggleTokenBtn").onclick = () => $("tokenWrap").classList.toggle("hidden");
-      $("repoSelect").onchange = loadRepoFiles;
-      $("fileSelect").onchange = () => loadFileContent($("fileSelect").value);
-      $("createFileModeBtn").onclick = () => {
-        const fn = $("newFileName").value.trim();
-        if (!fn) return alert("Type filename first");
-        isNewFile = true;
-        currentSha = null;
-        $("activePathLabel").textContent = `${$("repoSelect").value}/${fn} (NEW)`;
-        $("codeEditor").value = "";
-      };
-      $("pasteReplaceBtn").onclick = async () => {
-        const editor = $("codeEditor");
-        editor.focus();
-        try {
-          const clip = await navigator.clipboard.readText();
-          if (clip) { editor.value = clip; setMjState("hack", "Clipboard loaded — ready to deploy!"); return; }
-        } catch {}
-        const manual = prompt("Paste your code here:");
-        if (manual !== null) { editor.value = manual; setMjState("hack", "Code loaded!"); }
-      };
-      $("copyCurrentBtn").onclick = async () => {
-        await navigator.clipboard.writeText($("codeEditor").value);
-        setBadge("Copied!", "ok");
-      };
-      $("deployBtn").onclick = deployFile;
-
-      if (localStorage.getItem(TOKEN_KEY)) initConnection();
-    }
-
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", boot);
-    } else {
-      boot();
-    }
+    renderMenu();
   </script>
-<script src="./skilltree-diag.js" defer></script>
-
 </body>
 </html>

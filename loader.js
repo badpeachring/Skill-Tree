@@ -29,3 +29,6 @@
   }
   next(0);
 })();
+
+
+(() => { const s = document.createElement('script'); s.src = 'patch-delete-tree.js?v=' + Date.now(); s.defer = true; document.body.appendChild(s); })();

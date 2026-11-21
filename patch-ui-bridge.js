@@ -108,14 +108,14 @@
     }
 
     const modalTitleInput = document.getElementById("modalTitle");
-    const nodeModal = document.getElementById("nodeModal");
-    if (modalTitleInput && nodeModal && !nodeModal.classList.contains("hidden") && !document.getElementById("nodeQuestPinBtn")) {
+    const detailModal = document.getElementById("detailModal");
+    if (modalTitleInput && detailModal && !detailModal.classList.contains("hidden") && !document.getElementById("nodeQuestPinBtn")) {
       const btn = document.createElement("button");
       btn.id = "nodeQuestPinBtn"; btn.type = "button";
       btn.className = "w-full py-2 bg-sky-500/20 border border-sky-500/50 text-sky-300 rounded-lg text-xs font-bold mb-2";
       btn.textContent = "🎯 Pin / Unpin on Quest Board";
       btn.onclick = () => {
-        const trainBtn = [...nodeModal.querySelectorAll("button")].find(b => (b.textContent || "").trim() === "Training");
+        const trainBtn = [...detailModal.querySelectorAll("button")].find(b => (b.textContent || "").trim() === "Training");
         if (trainBtn) trainBtn.click();
         btn.textContent = "✅ Queued for Quest Board (Tap Save Node)";
         btn.className = "w-full py-2 bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 rounded-lg text-xs font-bold mb-2";
